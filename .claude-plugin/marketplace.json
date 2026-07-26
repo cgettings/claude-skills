@@ -1,0 +1,28 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "cgettings-skills",
+  "description": "Agent skills for Claude Code",
+  "owner": {
+    "name": "cgettings"
+  },
+  "plugins": [
+    {
+      "name": "distill-lessons",
+      "source": "./plugins/distill-lessons",
+      "description": "Review a finished stretch of work for durable lessons and write each one where it will actually be read — throwing most candidates away.",
+      "author": {
+        "name": "cgettings"
+      },
+      "category": "productivity"
+    },
+    {
+      "name": "reconcile-records",
+      "source": "./plugins/reconcile-records",
+      "description": "Find and fix records that recent work made false — stale status lines, superseded numbers, notes that became re-derivable.",
+      "author": {
+        "name": "cgettings"
+      },
+      "category": "productivity"
+    }
+  ]
+}

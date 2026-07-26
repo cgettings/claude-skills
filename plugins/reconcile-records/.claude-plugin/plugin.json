@@ -1,0 +1,8 @@
+{
+  "name": "reconcile-records",
+  "version": "1.0.0",
+  "description": "Find and fix records that recent work made false — stale status lines, superseded numbers, notes that became re-derivable.",
+  "author": {
+    "name": "cgettings"
+  }
+}

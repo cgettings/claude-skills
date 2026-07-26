@@ -1,0 +1,34 @@
+{
+  "skill_name": "reconcile-records",
+  "notes": "Prompts stay short and withhold detail on purpose — a user doesn't narrate a session back to the agent that was in it, and a prompt containing every fact lets the model skip step 1's scoping. Prior state a case depends on is described in expected_output as a precondition, not put in the user's mouth. Eval 1 is the core case and the one that distinguishes this skill from `distill-lessons`: the work taught nothing, so a lessons pass correctly produces nothing, and this pass must still find the falsified status line. It needs a seeded store containing a record that calls the work unmerged. Eval 2 guards the most destructive failure mode — deleting a dated historical statement because it reads like a stale one. Eval 3 is a near-miss that belongs to `distill-lessons`, not here. Eval 4 tests the deletion bar: the surviving copy must make the same claim, not merely contain the same words.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "no-lesson-but-a-falsified-status-line",
+      "prompt": "pipeline refactor's merged. clean fast-forward, nothing interesting to report.",
+      "expected_output": "\"Nothing interesting to report\" is the trap: it invites agreement, and this pass must run anyway. Should scope to the pipeline refactor, grep the record store for its subject terms, find the record still describing it as unmerged, and propose the correction with evidence — a branch or commit check, not an inference from the user's say-so. Agreeing that there is nothing to do without having looked is the failure. Requires a seeded store containing a record that calls this work unmerged.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "historical-statement-must-survive",
+      "prompt": "the benchmark suite is up to 40 cases now. can you check the notes are still accurate?",
+      "expected_output": "Should correct any present-tense claim about the suite's current size, and must NOT touch a dated sentence like 'the suite was 25 cases when this shipped' — that was true when written and remains a valid historical record. Deleting or 'updating' the dated line is a fail: it destroys history to fix something that was never false.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "near-miss-belongs-to-distill-lessons",
+      "prompt": "just lost two hours to the ORM silently truncating on a column type change instead of erroring. should that go somewhere?",
+      "expected_output": "Should NOT run this skill. Nothing here is falsified; the user is offering a new durable lesson, which is `distill-lessons`. Running a reconcile sweep is over-triggering. Handing off to the other skill, or simply answering the question asked, is correct.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "deletion-bar-claim-not-keyword",
+      "prompt": "the docker setup is written up in the setup notes and in the README. do we still need both?",
+      "expected_output": "Must not answer from a keyword match. Correct behaviour is to read both and check whether one genuinely contains everything the other asserts — including anything present in only one — before proposing that either goes, and to name what survives where. Answering 'yes, drop one, they both cover docker' is the failure this case exists for. Concluding that both should stay because each holds something the other lacks is a perfectly good outcome.",
+      "files": []
+    }
+  ]
+}
