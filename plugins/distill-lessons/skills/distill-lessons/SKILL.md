@@ -53,7 +53,7 @@ If you can't state the shape, you have an anecdote. Anecdotes belong in memory (
 
 Three destinations. Apply the test, not the vibe.
 
-**CLAUDE.md — standing instructions.** Would this change what you *do* on some unrelated future task? It's loaded into every prompt, so it earns its place by changing behavior, not by being true. One line per concept, imperative, no narrative.
+**CLAUDE.md — standing instructions.** Would this change what you *do* on some unrelated future task? It's loaded into every prompt, so it earns its place by changing behavior, not by being true. One line per concept, imperative, no narrative. **Size is a second gate, not a style preference:** an entry can pass the usefulness test and still cost more than it returns. A 90-word bullet added to a 300-word section is a 30% tax on that section, paid forever, on every unrelated task.
 - *Project* `CLAUDE.md` if it's tied to this repo's tools, layout, or conventions.
 - *User* `~/.claude/CLAUDE.md` if it holds regardless of repo.
 
@@ -64,6 +64,8 @@ If your memory system keeps an always-loaded index — a file of pointers read e
 **Nowhere.** Can it be easily re-derived from the code, git history, an audit doc, or an existing CLAUDE.md line? Then saving it creates a second copy that will go stale and contradict the first. This is the correct destination for most candidates.
 
 **The split that keeps CLAUDE.md from bloating: the rule goes in CLAUDE.md, the incident goes in memory.** They cross-reference; they don't duplicate. A reader who wants to know *why* a rule exists can follow the link; a reader who just needs the rule isn't made to read the story first.
+
+**Methods and recipes need the same split, and are the likeliest to get it wrong.** Step 2 explicitly asks what verification approach or cheap proof worked — but a recipe is neither a standing instruction nor an incident, so the routing above has no obvious slot for it, and the default pull is toward CLAUDE.md because a method *reads* like guidance. Put the **trigger** in CLAUDE.md and the **method** in memory: one line naming when you'd reach for it and where it lives, with the commands, the gotchas, and the approaches that failed behind that pointer. The trigger stays loaded so you know the method exists; the method itself costs nothing until the day it's needed.
 
 Check the destination before writing, whichever it is: re-read the relevant CLAUDE.md section and search existing memories for the same ground. If something already covers it, extend or correct that instead of adding a second entry. Duplicates are worse than nothing — they drift apart and later readers can't tell which is current.
 
@@ -80,6 +82,8 @@ If you find an earlier claim was wrong, correct it in place and say it was wrong
 ## 6. Propose, then apply
 
 Show the user what you intend to write before writing it: for each destination, the path, a one-line reason, and the exact added lines as a diff. Seeing the real wording is what lets them judge it — a summary of what you plan to add is not reviewable.
+
+**For every CLAUDE.md addition, give its size against the section it joins** — words added, section length, the ratio. Measure it; don't estimate it. Do this in the proposal rather than after, because bloat is nearly invisible in a diff read line by line and obvious the moment it's a ratio. If the number is embarrassing, the entry wants to be a memory with a one-line pointer, not a bullet.
 
 Then ask which to apply. Two reasons this matters: they know things you don't about what's already tribal knowledge, and a project CLAUDE.md is usually shared with a team, so it's their call what lands in it.
 

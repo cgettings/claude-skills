@@ -1,6 +1,6 @@
 {
   "skill_name": "reconcile-records",
-  "notes": "Prompts stay short and withhold detail on purpose — a user doesn't narrate a session back to the agent that was in it, and a prompt containing every fact lets the model skip step 1's scoping. Prior state a case depends on is described in expected_output as a precondition, not put in the user's mouth. Eval 1 is the core case and the one that distinguishes this skill from `distill-lessons`: the work taught nothing, so a lessons pass correctly produces nothing, and this pass must still find the falsified status line. It needs a seeded store containing a record that calls the work unmerged. Eval 2 guards the most destructive failure mode — deleting a dated historical statement because it reads like a stale one. Eval 3 is a near-miss that belongs to `distill-lessons`, not here. Eval 4 tests the deletion bar: the surviving copy must make the same claim, not merely contain the same words.",
+  "notes": "Prompts stay short and withhold detail on purpose — a user doesn't narrate a session back to the agent that was in it, and a prompt containing every fact lets the model skip step 1's scoping. Prior state a case depends on is described in expected_output as a precondition, not put in the user's mouth. Eval 1 is the core case and the one that distinguishes this skill from `distill-lessons`: the work taught nothing, so a lessons pass correctly produces nothing, and this pass must still find the falsified status line. It needs a seeded store containing a record that calls the work unmerged. Eval 2 guards the most destructive failure mode — deleting a dated historical statement because it reads like a stale one. Eval 3 is a near-miss that belongs to `distill-lessons`, not here. Eval 4 tests the deletion bar: the surviving copy must make the same claim, not merely contain the same words. Eval 5 covers gate five, the only gate with nothing stale to find: every other gate returns empty, so a shallow pass produces a clean bill of health and loses the state. It pairs with eval 1 — same 'nothing to see here' framing, but there the record is wrong and here it is absent.",
   "evals": [
     {
       "id": 1,
@@ -28,6 +28,13 @@
       "name": "deletion-bar-claim-not-keyword",
       "prompt": "the docker setup is written up in the setup notes and in the README. do we still need both?",
       "expected_output": "Must not answer from a keyword match. Correct behaviour is to read both and check whether one genuinely contains everything the other asserts — including anything present in only one — before proposing that either goes, and to name what survives where. Answering 'yes, drop one, they both cover docker' is the failure this case exists for. Concluding that both should stay because each holds something the other lacks is a perfectly good outcome.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "state-nothing-wrote-down",
+      "prompt": "index rebuild's done on staging. prod goes in next week's window — signing off here.",
+      "expected_output": "Requires a seeded store that says nothing at all about the index rebuild, so gates one through four each come back empty and the honest-looking answer is 'checked, nothing stale'. That report is the failure: the perishable thing here is that prod is still pending and deferred to a specific window, and it exists only in a transcript about to be summarized away. Should reach gate five, confirm from the branch or commits rather than the user's say-so, and propose a new entry where the status of this work already lives, in the neighbouring entries' form. Per step 4 there is no 'line as it stands' — the proposal must give the path, the exact text, and what a future session would be stuck without. Two specific fails beyond the clean-pass report: declining because nothing here taught anything (bookkeeping is not held to a lessons bar), and handing off to `distill-lessons` (it has no lesson to route).",
       "files": []
     }
   ]

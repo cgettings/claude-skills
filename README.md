@@ -1,9 +1,9 @@
 # cgettings-skills
 
-Two Claude Code skills for the moment work finishes. They're separate on purpose: one decides
-what should be **added** to your durable notes, the other decides which assertions have **changed** 
-in them. Different questions, different bars, and the second one runs even when the first finds 
-nothing.
+Two Claude Code skills for the moment work finishes. They're separate on purpose: one decides what
+**knowledge** is worth keeping, the other keeps the record **true to reality** — correcting what
+changed, retiring what's dead, and capturing state that nothing wrote down. Different questions,
+different bars, and the second one runs even when the first finds nothing.
 
 ## `distill-lessons`
 
@@ -17,14 +17,15 @@ outcome rather than a failure.
 
 Six steps: decide whether there's anything here at all; reflect, grounded in artifacts on disk
 rather than recall; generalize each candidate from an instance to a reusable shape; route the
-survivors (CLAUDE.md for standing rules, memory for incidents, nowhere for most of them);
+survivors (CLAUDE.md for standing rules, memory for incidents and methods, nowhere for most of them);
 verify each claim before it becomes durable; propose the exact wording as a diff before
 writing anything.
 
 ## `reconcile-records`
 
 Finds and fixes records that recent work made false — status lines that have moved on, numbers
-something re-measured, notes the code now states better, rules a newer rule replaced.
+something re-measured, notes the code now states better, rules a newer rule replaced — and
+captures the state the work left unrecorded, which is the same failure seen from the other side.
 
 **Why it's separate.** Note-keeping systems only ever add. Every pass appends, nothing is
 retired, and the store grows until the wrong parts outnumber the parts anyone trusts. Nothing
@@ -32,8 +33,8 @@ schedules anyone to look. This pass is that schedule, and it applies to more occ
 lessons pass does: after a merge, after a release, when someone trips over a stale doc, or as a
 periodic sweep.
 
-Four steps: bound the scope to what the work touched; apply four gates for the kinds of thing
-that go false; verify before deleting — including confirming the *claim* survives elsewhere,
+Four steps: bound the scope to what the work touched; apply five gates for the kinds of thing
+that go false or go missing; verify before deleting — including confirming the *claim* survives elsewhere,
 not merely the keyword; propose the exact edits with evidence for what makes each current
 version false.
 
