@@ -69,7 +69,7 @@ thing, and eval 4 needs two documents with overlapping but not identical content
 
 ## License
 
-Copyright (C) 2026 cgettings
+Copyright (C) 2026 Chris Gettings
 
 This program is free software: you can redistribute it and/or modify it under the
 terms of the GNU General Public License as published by the Free Software
