@@ -62,11 +62,16 @@ They work independently, but they're designed to run back to back.
 ## Evals
 
 Each skill carries its own cases under `skills/<name>/evals/evals.json`, weighted toward
-near-misses — the prompts that look like a trigger and aren't.
+near-misses — the prompts that look like a trigger and aren't. Six cases for `distill-lessons`,
+five for `reconcile-records`; seven of the eleven turn on the skill *not* firing, or on it
+producing nothing. Every case carries both an `expected_output` written for a human reader and
+an `expectations` array of individually checkable assertions, which is what `skill-creator`'s
+grader scores.
 
-Three `reconcile-records` cases need fixtures: eval 1 needs a record calling the finished work
+Four `reconcile-records` cases need fixtures: eval 1 needs a record calling the finished work
 unmerged, eval 2 needs notes holding both a present-tense and a dated claim about the same
-thing, and eval 4 needs two documents with overlapping but not identical content.
+thing, eval 4 needs two documents with overlapping but not identical content, and eval 5 needs a
+store that says nothing at all about the finished work.
 
 ## License
 

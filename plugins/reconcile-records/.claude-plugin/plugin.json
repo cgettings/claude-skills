@@ -4,5 +4,9 @@
   "description": "Find and fix records that recent work made false — stale status lines, superseded numbers, notes that became re-derivable, state left unrecorded.",
   "author": {
     "name": "cgettings"
-  }
+  },
+  "homepage": "https://github.com/cgettings/claude-skills",
+  "repository": "https://github.com/cgettings/claude-skills.git",
+  "license": "GPL-3.0-or-later",
+  "keywords": ["memory", "documentation", "staleness", "claude-md"]
 }

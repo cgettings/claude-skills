@@ -1,48 +1,94 @@
 {
   "skill_name": "distill-lessons",
-  "notes": "Prompts are deliberately short and withhold the session's details, because a user does not narrate a session back to the agent that was present for it — and a prompt that hands over every fact lets the model skip step 2's grounding entirely. Where a case depends on prior session state, that state is described in expected_output as a precondition rather than put in the user's mouth. Eval 1 and 2 test the workflow (filtering + routing), and eval 1 also tests grounding. Eval 3 is a near-miss that should NOT trigger the skill — it's a direct edit request, not a lessons pass. Eval 2's correct answer is 'nothing worth recording', which is the failure mode most worth guarding against. Eval 4 guards the one ambiguous trigger phrase the description still carries: \"let's debrief\" is listed deliberately because people say it, but 'debrief' can also mean 'recap what happened', which is a report rather than a decision about what outlives the work. Eval 5 is the proactive case — no ask, no trigger phrase — which the description calls for and which nothing else covers; it pairs with eval 2, same absence of an ask and the opposite correct outcome. Eval 6 tests the 'What not to record' instruction to probe rather than comply; it pairs with eval 3, where the content is durable and the right move is simply to make the edit. Correcting records the work falsified is a separate skill (`reconcile-records`) and is evaluated there, not here.",
+  "notes": "Prompts are deliberately short and withhold the session's details, because a user does not narrate a session back to the agent that was present for it — and a prompt that hands over every fact lets the model skip step 2's grounding entirely. Where a case depends on prior session state, that state is described in expected_output as a precondition rather than put in the user's mouth. Eval 1 and 2 test the workflow (filtering + routing), and eval 1 also tests grounding. Eval 3 is a near-miss that should NOT trigger the skill — it's a direct edit request, not a lessons pass. Eval 2's correct answer is 'nothing worth recording', which is the failure mode most worth guarding against. Eval 4 guards the one ambiguous trigger phrase the description still carries: \"let's debrief\" is listed deliberately because people say it, but 'debrief' can also mean 'recap what happened', which is a report rather than a decision about what outlives the work. Eval 5 is the proactive case — no ask, no trigger phrase — which the description calls for and which nothing else covers; it pairs with eval 2, same absence of an ask and the opposite correct outcome. Eval 6 tests the 'What not to record' instruction to probe rather than comply; it pairs with eval 3, where the content is durable and the right move is simply to make the edit. Correcting records the work falsified is a separate skill (`reconcile-records`) and is evaluated there, not here. Expectations are written to be checkable from the transcript alone, and many are negative — for eval 2 and the three near-misses, the whole result is an action that must not happen.",
   "evals": [
     {
       "id": 1,
       "name": "flaky-ci-session-mixed-candidates",
       "prompt": "ok, flaky CI is finally sorted. anything worth keeping from that?",
       "expected_output": "Assumes a session in which four things surfaced, of unequal value: a timezone mismatch between the CI runner and the developer's machine, now pinned in the workflow; `npm test` hanging without --runInBand, documented nowhere; a node 18-vs-22 split; and an assistant suggestion to loosen an assertion, which the user rejected. The prompt supplies none of this on purpose — the pass must reconstruct it from the transcript and the branch. Asking the user 'what happened?' is a fail; so is answering from a vague impression of the session. Then: two CLAUDE.md-worthy items at most (the --runInBand requirement, and the node split if not already documented). The timezone fix routes to 'nowhere' — the workflow pins it now and the fix is in git. The rejected suggestion either drops as generic good practice or becomes one rule with the incident in memory, never both at full length. Four entries is a fail.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The branch's git log, the changed files, or the session transcript is read before candidates are named",
+        "The user is not asked what happened in the session",
+        "At most two items are routed to CLAUDE.md",
+        "The --runInBand requirement is among the items proposed for CLAUDE.md",
+        "The timezone fix is routed to nowhere, on the stated grounds that the workflow now pins it",
+        "The rejected assertion-loosening suggestion does not appear at full length in both CLAUDE.md and memory",
+        "Each proposed entry is phrased as a reusable rule rather than a narration of this session",
+        "The exact wording of every proposed entry is shown before anything is written",
+        "Each CLAUDE.md addition is accompanied by its measured size against the section it joins",
+        "Candidates that were considered and dropped are named with reasons"
+      ]
     },
     {
       "id": 2,
       "name": "routine-work-nothing-to-record",
       "prompt": "merged the dependabot bumps and the changelog tidy-up, branch is gone. anything worth writing down?",
       "expected_output": "Concludes there is nothing durable to record and says so plainly. Must not manufacture a lesson to appear thorough. A one-line 'nothing here' is a pass; any CLAUDE.md edit is a fail.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The response concludes that there is nothing durable to record",
+        "No CLAUDE.md file is edited",
+        "No memory file is created",
+        "No lesson is manufactured from the dependabot bumps or the changelog tidy-up",
+        "The conclusion is stated plainly rather than padded to look thorough"
+      ]
     },
     {
       "id": 3,
       "name": "near-miss-direct-edit-request",
       "prompt": "add a line to CLAUDE.md saying the e2e suite needs `pnpm e2e --headed` on macs with apple silicon, docker networking breaks otherwise",
       "expected_output": "Should NOT invoke the lessons workflow — the user already knows the lesson and is asking for a specific edit. Just make the edit. Running the full pass here is over-triggering.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The requested line is added to CLAUDE.md",
+        "The multi-step lessons workflow is not run",
+        "The session is not searched for other candidate lessons",
+        "The response does not ask what else the work might have taught"
+      ]
     },
     {
       "id": 4,
       "name": "near-miss-recap-request",
       "prompt": "i'm about to hand this over to priya for the afternoon — can you debrief me on where the auth refactor got to? what's done, what's half-done, what she needs to watch out for",
       "expected_output": "Should NOT invoke the workflow despite the word 'debrief'. This asks for a handover summary — a report on current state for another person — not a decision about which lessons outlive the work. Answer the question directly. This case exists because \"let's debrief\" is a listed trigger phrase, so the word alone must not be sufficient to fire the workflow.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The lessons workflow is not run",
+        "The response describes what is done, what is half-done, and what to watch out for",
+        "No CLAUDE.md edit is proposed",
+        "No memory file is created",
+        "The word 'debrief' alone does not trigger the workflow"
+      ]
     },
     {
       "id": 5,
       "name": "proactive-no-ask-substantial-work",
       "prompt": "ok that's the migration done. onto the rate limiter tomorrow.",
       "expected_output": "Assumes a session that just completed a substantial multi-service migration. Should run the pass unprompted: there is no question and no trigger phrase, only a signal that the user is moving to the next thing — which is exactly the boundary the skill is meant to fire on. Concluding 'nothing durable here' after actually reflecting is acceptable; not running the pass at all is the failure. Pairs with eval 2: eval 2 asks and gets 'nothing', this one doesn't ask and must still get a real pass. The discriminator is the substance of the work, not the phrasing.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The lessons pass runs even though the user did not ask for it",
+        "The pass is grounded in artifacts on disk rather than recall alone",
+        "The response names the candidates that were considered, whatever the conclusion",
+        "A conclusion of 'nothing durable' is reached only after the reflection step visibly ran",
+        "The response does not simply acknowledge the message and move on"
+      ]
     },
     {
       "id": 6,
       "name": "asked-to-save-rederivable-trivia",
       "prompt": "remember for next time that the deploy script has to be run from the repo root",
       "expected_output": "Should not save this as given — it is re-derivable from the script itself and goes stale the moment the script changes, which is the 'Nowhere' destination. Should also not refuse. Correct behaviour is to ask what was non-obvious about it (did it fail silently from a subdirectory? did the error point somewhere misleading?) and record that instead, if anything. Pairs with eval 3: both are direct save requests, but eval 3's content is genuinely durable and should just be written — the discriminator is the content, not the request form.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The instruction is not saved verbatim as given",
+        "The request is not refused",
+        "The response asks what was non-obvious about it, such as whether it failed silently or the error pointed somewhere misleading",
+        "The reason given is that the fact is re-derivable from the script itself",
+        "Any entry that is eventually recorded captures the non-obvious behaviour rather than the repo-root requirement"
+      ]
     }
   ]
 }

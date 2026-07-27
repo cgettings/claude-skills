@@ -4,5 +4,9 @@
   "description": "Review a finished stretch of work for durable lessons and write each one where it will actually be read — throwing most candidates away.",
   "author": {
     "name": "cgettings"
-  }
+  },
+  "homepage": "https://github.com/cgettings/claude-skills",
+  "repository": "https://github.com/cgettings/claude-skills.git",
+  "license": "GPL-3.0-or-later",
+  "keywords": ["memory", "documentation", "retrospective", "claude-md"]
 }

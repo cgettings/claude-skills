@@ -1,41 +1,83 @@
 {
   "skill_name": "reconcile-records",
-  "notes": "Prompts stay short and withhold detail on purpose — a user doesn't narrate a session back to the agent that was in it, and a prompt containing every fact lets the model skip step 1's scoping. Prior state a case depends on is described in expected_output as a precondition, not put in the user's mouth. Eval 1 is the core case and the one that distinguishes this skill from `distill-lessons`: the work taught nothing, so a lessons pass correctly produces nothing, and this pass must still find the falsified status line. It needs a seeded store containing a record that calls the work unmerged. Eval 2 guards the most destructive failure mode — deleting a dated historical statement because it reads like a stale one. Eval 3 is a near-miss that belongs to `distill-lessons`, not here. Eval 4 tests the deletion bar: the surviving copy must make the same claim, not merely contain the same words. Eval 5 covers gate five, the only gate with nothing stale to find: every other gate returns empty, so a shallow pass produces a clean bill of health and loses the state. It pairs with eval 1 — same 'nothing to see here' framing, but there the record is wrong and here it is absent.",
+  "notes": "Prompts stay short and withhold detail on purpose — a user doesn't narrate a session back to the agent that was in it, and a prompt containing every fact lets the model skip step 1's scoping. Prior state a case depends on is described in expected_output as a precondition, not put in the user's mouth. Eval 1 is the core case and the one that distinguishes this skill from `distill-lessons`: the work taught nothing, so a lessons pass correctly produces nothing, and this pass must still find the falsified status line. It needs a seeded store containing a record that calls the work unmerged. Eval 2 guards the most destructive failure mode — deleting a dated historical statement because it reads like a stale one. Eval 3 is a near-miss that belongs to `distill-lessons`, not here. Eval 4 tests the deletion bar: the surviving copy must make the same claim, not merely contain the same words. Eval 5 covers gate five, the only gate with nothing stale to find: every other gate returns empty, so a shallow pass produces a clean bill of health and loses the state. It pairs with eval 1 — same 'nothing to see here' framing, but there the record is wrong and here it is absent. Expectations are written to be checkable from the transcript alone, and several are negative — for the near-miss cases the whole result is an action that must not happen.",
   "evals": [
     {
       "id": 1,
       "name": "no-lesson-but-a-falsified-status-line",
       "prompt": "pipeline refactor's merged. clean fast-forward, nothing interesting to report.",
       "expected_output": "\"Nothing interesting to report\" is the trap: it invites agreement, and this pass must run anyway. Should scope to the pipeline refactor, grep the record store for its subject terms, find the record still describing it as unmerged, and propose the correction with evidence — a branch or commit check, not an inference from the user's say-so. Agreeing that there is nothing to do without having looked is the failure. Requires a seeded store containing a record that calls this work unmerged.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The pass runs rather than agreeing that there is nothing to do",
+        "The record store is searched using subject terms derived from the pipeline refactor",
+        "The record describing the refactor as unmerged is located",
+        "A correction to that record is proposed",
+        "The evidence cited is a branch or commit check, not the user's statement that it merged",
+        "The proposal shows the file path, the line as it stands, and the line as it would read",
+        "The declared scope is stated rather than left implicit"
+      ]
     },
     {
       "id": 2,
       "name": "historical-statement-must-survive",
       "prompt": "the benchmark suite is up to 40 cases now. can you check the notes are still accurate?",
       "expected_output": "Should correct any present-tense claim about the suite's current size, and must NOT touch a dated sentence like 'the suite was 25 cases when this shipped' — that was true when written and remains a valid historical record. Deleting or 'updating' the dated line is a fail: it destroys history to fix something that was never false.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Every present-tense claim about the suite's current size is corrected to 40",
+        "The dated sentence recording the suite's size at ship time is left byte-for-byte unchanged",
+        "The dated sentence is not deleted",
+        "The response distinguishes the present-tense claim from the dated one by name",
+        "The response reports what was checked and found correct, not only what was wrong"
+      ]
     },
     {
       "id": 3,
       "name": "near-miss-belongs-to-distill-lessons",
       "prompt": "just lost two hours to the ORM silently truncating on a column type change instead of erroring. should that go somewhere?",
       "expected_output": "Should NOT run this skill. Nothing here is falsified; the user is offering a new durable lesson, which is `distill-lessons`. Running a reconcile sweep is over-triggering. Handing off to the other skill, or simply answering the question asked, is correct.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The reconcile workflow is not run",
+        "No sweep of the record store is performed",
+        "No existing record is corrected, retired, or deleted",
+        "The response either answers the question directly or routes it to distill-lessons"
+      ]
     },
     {
       "id": 4,
       "name": "deletion-bar-claim-not-keyword",
       "prompt": "the docker setup is written up in the setup notes and in the README. do we still need both?",
       "expected_output": "Must not answer from a keyword match. Correct behaviour is to read both and check whether one genuinely contains everything the other asserts — including anything present in only one — before proposing that either goes, and to name what survives where. Answering 'yes, drop one, they both cover docker' is the failure this case exists for. Concluding that both should stay because each holds something the other lacks is a perfectly good outcome.",
-      "files": []
+      "files": [],
+      "expectations": [
+        "Both the setup notes and the README section are read in full before any recommendation",
+        "The response names specific claims and identifies which document each appears in",
+        "Any claim present in only one of the two documents is called out",
+        "No deletion is proposed on the grounds that both documents mention docker",
+        "If a deletion is proposed, the response names where each deleted claim survives",
+        "Concluding that both should stay is treated as a valid outcome, not a failure to decide"
+      ]
     },
     {
       "id": 5,
       "name": "state-nothing-wrote-down",
       "prompt": "index rebuild's done on staging. prod goes in next week's window — signing off here.",
       "expected_output": "Requires a seeded store that says nothing at all about the index rebuild, so gates one through four each come back empty and the honest-looking answer is 'checked, nothing stale'. That report is the failure: the perishable thing here is that prod is still pending and deferred to a specific window, and it exists only in a transcript about to be summarized away. Should reach gate five, confirm from the branch or commits rather than the user's say-so, and propose a new entry where the status of this work already lives, in the neighbouring entries' form. Per step 4 there is no 'line as it stands' — the proposal must give the path, the exact text, and what a future session would be stuck without. Two specific fails beyond the clean-pass report: declining because nothing here taught anything (bookkeeping is not held to a lessons bar), and handing off to `distill-lessons` (it has no lesson to route).",
-      "files": []
+      "files": [],
+      "expectations": [
+        "The pass does not conclude with a clean bill of health after gates one through four come back empty",
+        "A new entry is proposed recording that the prod rebuild is outstanding and scheduled for next week's window",
+        "The completed staging rebuild is recorded alongside the outstanding prod step",
+        "The proposal gives a file path and the exact text to be written",
+        "The proposal does not claim to quote an existing line, because none exists",
+        "The state is confirmed against the branch or commits rather than accepted from the user's message",
+        "The response states what a future session would be stuck without",
+        "The entry is not declined on the grounds that nothing here is a durable lesson",
+        "The task is not handed off to distill-lessons",
+        "The new entry is placed where the status of this work already lives, matching the form of neighbouring entries"
+      ]
     }
   ]
 }
