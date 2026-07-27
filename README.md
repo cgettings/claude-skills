@@ -1,9 +1,9 @@
 # cgettings-skills
 
 Two Claude Code skills for the moment work finishes. They're separate on purpose: one decides
-what should be **added** to your durable notes, the other decides what should stop being
-**asserted** in them. Different questions, different bars, and the second one runs even when
-the first finds nothing.
+what should be **added** to your durable notes, the other decides which assertions have **changed** 
+in them. Different questions, different bars, and the second one runs even when the first finds 
+nothing.
 
 ## `distill-lessons`
 
@@ -12,7 +12,7 @@ actually be read.
 
 **What it isn't.** Not a session recap, not a post-mortem, not a handover summary. Those
 describe what happened. This decides what's worth carrying forward — and throws away most of
-it. Most sessions yield zero to two durable lessons, and saying "nothing" is the normal
+it. Most sessions yield zero to two durable lessons, and saying "nothing" is a normal
 outcome rather than a failure.
 
 Six steps: decide whether there's anything here at all; reflect, grounded in artifacts on disk
@@ -69,4 +69,4 @@ thing, and eval 4 needs two documents with overlapping but not identical content
 
 ## License
 
-MIT.
+GPL-3.0.

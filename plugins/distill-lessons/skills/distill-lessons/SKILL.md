@@ -61,7 +61,7 @@ Three destinations. Apply the test, not the vibe.
 
 If your memory system keeps an always-loaded index — a file of pointers read every session, with the memories themselves opened only on demand — that index line is a pointer, not a summary. It is loaded every session while the file behind it is not, so a hook that swells into a paragraph moves the cost back into the always-loaded tier and defeats the split it exists to make. Keep it under ~120 characters — enough to decide whether to open the file, never enough to stand in for it. Re-compress the hook whenever you touch the memory; this drift is silent and surfaces months later as a bloated index. Before compressing, confirm the file behind it actually makes the claims you're about to drop — a hook is sometimes *newer* than its file, and grepping for the keyword proves the word is present, not the claim.
 
-**Nowhere.** Can it be re-derived from the code, git history, an audit doc, or an existing CLAUDE.md line? Then saving it creates a second copy that will go stale and contradict the first. This is the correct destination for most candidates.
+**Nowhere.** Can it be easily re-derived from the code, git history, an audit doc, or an existing CLAUDE.md line? Then saving it creates a second copy that will go stale and contradict the first. This is the correct destination for most candidates.
 
 **The split that keeps CLAUDE.md from bloating: the rule goes in CLAUDE.md, the incident goes in memory.** They cross-reference; they don't duplicate. A reader who wants to know *why* a rule exists can follow the link; a reader who just needs the rule isn't made to read the story first.
 
