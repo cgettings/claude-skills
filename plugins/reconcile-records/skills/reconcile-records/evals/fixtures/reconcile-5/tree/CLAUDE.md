@@ -12,4 +12,3 @@ Elasticsearch behind a thin Go API. Index rebuilds are the operationally interes
 ## Status
 
 Ongoing workstreams are tracked in `.claude/memory/`, one file each, indexed in `MEMORY.md`.
-Status entries say what is done, what is outstanding, and what the next step is waiting on.

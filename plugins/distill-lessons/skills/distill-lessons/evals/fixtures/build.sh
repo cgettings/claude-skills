@@ -15,11 +15,13 @@ set -euo pipefail
 SRC="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CASE=""
 OUT=""
+INSTALL_TRANSCRIPT=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
         --case) CASE="$2"; shift 2 ;;
         --out)  OUT="$2";  shift 2 ;;
+        --install-transcript) INSTALL_TRANSCRIPT=1; shift ;;
         *) echo "unknown argument: $1" >&2; exit 2 ;;
     esac
 done
@@ -87,3 +89,46 @@ distill-6)
 esac
 
 echo "built $CASE at $OUT"
+
+# A transcript can't live in the fixture: the skill looks for it under
+# ~/.claude/projects/<slug>/, where slug is the project path with the separators
+# flattened. Emit it into the fixture and print the install command rather than
+# writing into the real ~/.claude by default — that directory holds the user's
+# actual session history for any path that collides.
+if [ -f "$SRC/$CASE/transcript.jsonl" ]; then
+    session="$(cat /proc/sys/kernel/random/uuid 2>/dev/null || echo "00000000-0000-4000-8000-0000000000ff")"
+    abs="$OUT"
+    command -v cygpath >/dev/null 2>&1 && abs="$(cygpath -w "$OUT")"
+    # Only the drive letter is lowercased; the rest of the path keeps its case.
+    # C:\Users\Chris\x -> c--Users-Chris-x
+    # Parameter expansion rather than sed/tr: on MSYS/Git Bash the argument
+    # converter rewrites anything containing a slash or backslash before the
+    # external command sees it, which silently mangles the substitution.
+    # A literal backslash has to come from a variable: inside double quotes the
+    # escape collapses before the pattern is matched, so "${s//\\/-}" silently
+    # replaces nothing.
+    bs='\'
+    drive="${abs:0:1}"
+    slug="${drive,,}${abs:1}"
+    slug="${slug//:/-}"
+    slug="${slug//"$bs"/-}"
+    slug="${slug//\//-}"
+
+    sed -e "s|__CWD__|$(printf '%s' "$abs" | sed 's|\\|\\\\\\\\|g')|g" \
+        -e "s|__SESSION__|$session|g" \
+        "$SRC/$CASE/transcript.jsonl" > "$OUT/fixture-transcript.jsonl"
+
+    dest="$HOME/.claude/projects/$slug"
+    if [ "$INSTALL_TRANSCRIPT" -eq 1 ]; then
+        mkdir -p "$dest"
+        cp "$OUT/fixture-transcript.jsonl" "$dest/$session.jsonl"
+        echo "installed transcript at $dest/$session.jsonl"
+        echo "remove it when you're done — it is indistinguishable from a real session"
+    else
+        echo
+        echo "this case also needs a session transcript. to install it:"
+        echo "  mkdir -p \"$dest\""
+        echo "  cp \"$OUT/fixture-transcript.jsonl\" \"$dest/$session.jsonl\""
+        echo "or re-run with --install-transcript."
+    fi
+fi
