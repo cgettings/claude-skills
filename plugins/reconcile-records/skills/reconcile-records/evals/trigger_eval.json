@@ -1,0 +1,21 @@
+[
+  {"query": "is any of this still true?", "should_trigger": true},
+  {"query": "anything out of date in the notes?", "should_trigger": true},
+  {"query": "does the README still match the code?", "should_trigger": true},
+  {"query": "can you clean up the notes now that this is done", "should_trigger": true},
+  {"query": "release went out this morning", "should_trigger": true},
+  {"query": "just merged the auth branch, deleting it now", "should_trigger": true},
+  {"query": "the setup doc told me to run a command that doesn't exist any more", "should_trigger": true},
+  {"query": "we finished the last stage of the migration plan", "should_trigger": true},
+  {"query": "that's the lessons pass done, nothing worth recording", "should_trigger": true},
+
+  {"query": "just lost two hours to the ORM silently truncating instead of erroring. should that go somewhere?", "should_trigger": false},
+  {"query": "add a line to CLAUDE.md about running e2e headed on apple silicon", "should_trigger": false},
+  {"query": "can you debrief me on where the auth refactor got to before I hand it over?", "should_trigger": false},
+  {"query": "what does this function actually do?", "should_trigger": false},
+  {"query": "write me a README for this package", "should_trigger": false},
+  {"query": "update the version in package.json to 2.1.0", "should_trigger": false},
+  {"query": "is this the right way to structure the migration?", "should_trigger": false},
+  {"query": "the tests are failing on main, can you look?", "should_trigger": false},
+  {"query": "summarise what we did today", "should_trigger": false}
+]

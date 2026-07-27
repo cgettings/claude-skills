@@ -7,7 +7,9 @@
       "name": "flaky-ci-session-mixed-candidates",
       "prompt": "ok, flaky CI is finally sorted. anything worth keeping from that?",
       "expected_output": "Assumes a session in which four things surfaced, of unequal value: a timezone mismatch between the CI runner and the developer's machine, now pinned in the workflow; `npm test` hanging without --runInBand, documented nowhere; a node 18-vs-22 split; and an assistant suggestion to loosen an assertion, which the user rejected. The prompt supplies none of this on purpose — the pass must reconstruct it from the transcript and the branch. Asking the user 'what happened?' is a fail; so is answering from a vague impression of the session. Then: two CLAUDE.md-worthy items at most (the --runInBand requirement, and the node split if not already documented). The timezone fix routes to 'nowhere' — the workflow pins it now and the fix is in git. The rejected suggestion either drops as generic good practice or becomes one rule with the incident in memory, never both at full length. Four entries is a fail.",
-      "files": [],
+      "files": [
+        "evals/fixtures/build.sh --case distill-1 --out <dir>  # run the eval with cwd=<dir>"
+      ],
       "expectations": [
         "The branch's git log, the changed files, or the session transcript is read before candidates are named",
         "The user is not asked what happened in the session",
@@ -40,7 +42,9 @@
       "name": "near-miss-direct-edit-request",
       "prompt": "add a line to CLAUDE.md saying the e2e suite needs `pnpm e2e --headed` on macs with apple silicon, docker networking breaks otherwise",
       "expected_output": "Should NOT invoke the lessons workflow — the user already knows the lesson and is asking for a specific edit. Just make the edit. Running the full pass here is over-triggering.",
-      "files": [],
+      "files": [
+        "evals/fixtures/build.sh --case distill-3 --out <dir>  # run the eval with cwd=<dir>"
+      ],
       "expectations": [
         "The requested line is added to CLAUDE.md",
         "The multi-step lessons workflow is not run",
@@ -67,7 +71,9 @@
       "name": "proactive-no-ask-substantial-work",
       "prompt": "ok that's the migration done. onto the rate limiter tomorrow.",
       "expected_output": "Assumes a session that just completed a substantial multi-service migration. Should run the pass unprompted: there is no question and no trigger phrase, only a signal that the user is moving to the next thing — which is exactly the boundary the skill is meant to fire on. Concluding 'nothing durable here' after actually reflecting is acceptable; not running the pass at all is the failure. Pairs with eval 2: eval 2 asks and gets 'nothing', this one doesn't ask and must still get a real pass. The discriminator is the substance of the work, not the phrasing.",
-      "files": [],
+      "files": [
+        "evals/fixtures/build.sh --case distill-5 --out <dir>  # run the eval with cwd=<dir>"
+      ],
       "expectations": [
         "The lessons pass runs even though the user did not ask for it",
         "The pass is grounded in artifacts on disk rather than recall alone",
@@ -81,7 +87,9 @@
       "name": "asked-to-save-rederivable-trivia",
       "prompt": "remember for next time that the deploy script has to be run from the repo root",
       "expected_output": "Should not save this as given — it is re-derivable from the script itself and goes stale the moment the script changes, which is the 'Nowhere' destination. Should also not refuse. Correct behaviour is to ask what was non-obvious about it (did it fail silently from a subdirectory? did the error point somewhere misleading?) and record that instead, if anything. Pairs with eval 3: both are direct save requests, but eval 3's content is genuinely durable and should just be written — the discriminator is the content, not the request form.",
-      "files": [],
+      "files": [
+        "evals/fixtures/build.sh --case distill-6 --out <dir>  # run the eval with cwd=<dir>"
+      ],
       "expectations": [
         "The instruction is not saved verbatim as given",
         "The request is not refused",

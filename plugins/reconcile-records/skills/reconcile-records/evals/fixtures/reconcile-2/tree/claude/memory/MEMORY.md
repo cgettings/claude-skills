@@ -1,0 +1,1 @@
+- [Benchmark suite scope](benchmark-suite-scope.md) — what the 25 cases cover and why pass rate isn't accuracy

@@ -1,0 +1,21 @@
+[
+  {"query": "any lessons from that?", "should_trigger": true},
+  {"query": "anything worth putting in CLAUDE.md?", "should_trigger": true},
+  {"query": "what did we learn there?", "should_trigger": true},
+  {"query": "anything worth remembering from this one?", "should_trigger": true},
+  {"query": "ok that's the migration done. onto the rate limiter tomorrow.", "should_trigger": true},
+  {"query": "branch is merged and the plan doc is all ticked off", "should_trigger": true},
+  {"query": "we're about to run out of context, anything to save first?", "should_trigger": true},
+  {"query": "that took four hours of debugging but it's fixed now", "should_trigger": true},
+
+  {"query": "add a line to CLAUDE.md about running e2e headed on apple silicon", "should_trigger": false},
+  {"query": "remember that I prefer tabs over spaces", "should_trigger": false},
+  {"query": "can you debrief me on where the auth refactor got to before I hand it over?", "should_trigger": false},
+  {"query": "summarise what we did today for the standup", "should_trigger": false},
+  {"query": "write a post-mortem for the outage", "should_trigger": false},
+  {"query": "what's in CLAUDE.md right now?", "should_trigger": false},
+  {"query": "the status line in the notes says this is unmerged, but it isn't", "should_trigger": false},
+  {"query": "is the README still accurate after all this?", "should_trigger": false},
+  {"query": "explain how the retry logic works", "should_trigger": false},
+  {"query": "fix the failing test in checkout.spec.ts", "should_trigger": false}
+]

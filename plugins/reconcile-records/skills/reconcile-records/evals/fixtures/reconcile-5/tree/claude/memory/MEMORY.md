@@ -1,0 +1,4 @@
+- [Analyzer rollout status](analyzer-rollout-status.md) — staging done, prod behind a flag until the Nordics dictionary lands
+- [Query log retention](query-log-retention.md) — 30 days, why it isn't longer, what to do before it matters
+- [Synonym file ownership](synonym-file-ownership.md) — support owns it, engineering reviews, neither deploys
+- [Shard count is load-bearing](shard-count-load-bearing.md) — 12 on staging, 24 on prod, and why they differ

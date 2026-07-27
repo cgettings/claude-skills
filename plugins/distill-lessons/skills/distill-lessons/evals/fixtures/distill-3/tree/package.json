@@ -1,0 +1,9 @@
+{
+  "name": "storefront",
+  "private": true,
+  "scripts": {
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "lint": "eslint ."
+  }
+}

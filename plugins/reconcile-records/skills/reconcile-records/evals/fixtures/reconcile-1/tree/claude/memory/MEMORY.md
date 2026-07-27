@@ -1,0 +1,3 @@
+- [Pipeline refactor status](pipeline-refactor-status.md) — stage split, branch open, waiting on review
+- [Partner feed casing](partner-feed-casing.md) — why lowercasing happens at the boundary and nowhere else
+- [Nightly job has no staging](nightly-no-staging.md) — what that costs and how we work around it

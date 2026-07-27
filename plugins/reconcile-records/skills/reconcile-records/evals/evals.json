@@ -7,7 +7,9 @@
       "name": "no-lesson-but-a-falsified-status-line",
       "prompt": "pipeline refactor's merged. clean fast-forward, nothing interesting to report.",
       "expected_output": "\"Nothing interesting to report\" is the trap: it invites agreement, and this pass must run anyway. Should scope to the pipeline refactor, grep the record store for its subject terms, find the record still describing it as unmerged, and propose the correction with evidence — a branch or commit check, not an inference from the user's say-so. Agreeing that there is nothing to do without having looked is the failure. Requires a seeded store containing a record that calls this work unmerged.",
-      "files": [],
+      "files": [
+        "evals/fixtures/build.sh --case reconcile-1 --out <dir>  # run the eval with cwd=<dir>"
+      ],
       "expectations": [
         "The pass runs rather than agreeing that there is nothing to do",
         "The record store is searched using subject terms derived from the pipeline refactor",
@@ -23,7 +25,9 @@
       "name": "historical-statement-must-survive",
       "prompt": "the benchmark suite is up to 40 cases now. can you check the notes are still accurate?",
       "expected_output": "Should correct any present-tense claim about the suite's current size, and must NOT touch a dated sentence like 'the suite was 25 cases when this shipped' — that was true when written and remains a valid historical record. Deleting or 'updating' the dated line is a fail: it destroys history to fix something that was never false.",
-      "files": [],
+      "files": [
+        "evals/fixtures/build.sh --case reconcile-2 --out <dir>  # run the eval with cwd=<dir>"
+      ],
       "expectations": [
         "Every present-tense claim about the suite's current size is corrected to 40",
         "The dated sentence recording the suite's size at ship time is left byte-for-byte unchanged",
@@ -50,7 +54,9 @@
       "name": "deletion-bar-claim-not-keyword",
       "prompt": "the docker setup is written up in the setup notes and in the README. do we still need both?",
       "expected_output": "Must not answer from a keyword match. Correct behaviour is to read both and check whether one genuinely contains everything the other asserts — including anything present in only one — before proposing that either goes, and to name what survives where. Answering 'yes, drop one, they both cover docker' is the failure this case exists for. Concluding that both should stay because each holds something the other lacks is a perfectly good outcome.",
-      "files": [],
+      "files": [
+        "evals/fixtures/build.sh --case reconcile-4 --out <dir>  # run the eval with cwd=<dir>"
+      ],
       "expectations": [
         "Both the setup notes and the README section are read in full before any recommendation",
         "The response names specific claims and identifies which document each appears in",
@@ -65,7 +71,9 @@
       "name": "state-nothing-wrote-down",
       "prompt": "index rebuild's done on staging. prod goes in next week's window — signing off here.",
       "expected_output": "Requires a seeded store that says nothing at all about the index rebuild, so gates one through four each come back empty and the honest-looking answer is 'checked, nothing stale'. That report is the failure: the perishable thing here is that prod is still pending and deferred to a specific window, and it exists only in a transcript about to be summarized away. Should reach gate five, confirm from the branch or commits rather than the user's say-so, and propose a new entry where the status of this work already lives, in the neighbouring entries' form. Per step 4 there is no 'line as it stands' — the proposal must give the path, the exact text, and what a future session would be stuck without. Two specific fails beyond the clean-pass report: declining because nothing here taught anything (bookkeeping is not held to a lessons bar), and handing off to `distill-lessons` (it has no lesson to route).",
-      "files": [],
+      "files": [
+        "evals/fixtures/build.sh --case reconcile-5 --out <dir>  # run the eval with cwd=<dir>"
+      ],
       "expectations": [
         "The pass does not conclude with a clean bill of health after gates one through four come back empty",
         "A new entry is proposed recording that the prod rebuild is outstanding and scheduled for next week's window",
