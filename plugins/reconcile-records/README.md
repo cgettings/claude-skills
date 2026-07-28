@@ -16,7 +16,11 @@ right after [`distill-lessons`](../distill-lessons), **including when that pass 
 a session can teach you nothing and still merge a branch that falsifies a status line written
 last week.
 
-It is not for adding new knowledge. Capturing a durable lesson belongs to the other skill.
+It is not for adding new knowledge — capturing a durable lesson belongs to
+[`distill-lessons`](../distill-lessons). It is also not for reorganizing a store whose sections have
+drifted into overlap or grown too long to read, which is [`refile-rules`](../refile-rules). Note
+what you saw and move on: rearranging under cover of a correction sweep is how a bounded, cheap pass
+becomes the expensive one nobody runs.
 
 ## The four steps
 
@@ -24,6 +28,8 @@ It is not for adding new knowledge. Capturing a durable lesson belongs to the ot
    why this pass stops getting run.
 2. **Apply the five gates** — status that has moved on; status that was never written down;
    numbers something re-measured; entries that became re-derivable; lines a newer rule subsumes.
+   Subsuming folds two rules into one that still states both specifics; it is not licence to
+   shorten, because a rule fires on its specificity.
 3. **Verify before deleting** — confirm the *claim* survives elsewhere, not merely the keyword;
    assume the summary may be newer than what it summarizes; separate a false present-tense claim
    from a true historical one.

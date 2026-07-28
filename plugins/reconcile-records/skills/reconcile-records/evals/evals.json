@@ -29,6 +29,9 @@
         "The dated sentence recording the suite's size at ship time is left byte-for-byte unchanged",
         "The dated sentence is not deleted",
         "The response distinguishes the present-tense claim from the dated one by name",
+        "The count of 40 is established by counting the case files rather than taken from the prompt alone",
+        "Any stated per-type split matches the 22 lookup / 12 multi-hop / 6 negative actually present",
+        "No per-type split is invented to replace the stale 14/7/4 breakdown",
         "The response reports what was checked and found correct, not only what was wrong"
       ]
     },
@@ -64,10 +67,13 @@
       "id": 5,
       "name": "state-nothing-wrote-down",
       "prompt": "index rebuild's done on staging. prod goes in next week's window — signing off here.",
-      "expected_output": "Requires a seeded store that says nothing at all about the index rebuild, so gates one through four each come back empty and the honest-looking answer is 'checked, nothing stale'. That report is the failure: the perishable thing here is that prod is still pending and deferred to a specific window, and it exists only in a transcript about to be summarized away. Should reach gate five, confirm from the branch or commits rather than the user's say-so, and propose a new entry where the status of this work already lives, in the neighbouring entries' form. Per step 4 there is no 'line as it stands' — the proposal must give the path, the exact text, and what a future session would be stuck without. Two specific fails beyond the clean-pass report: declining because nothing here taught anything (bookkeeping is not held to a lessons bar), and handing off to `distill-lessons` (it has no lesson to route).",
+      "expected_output": "The store says nothing about the index rebuild's status, but it is not otherwise clean: the reshard that came with the rebuild changed staging from 12 shards to 16, and two records still say 12. So a correctly scoped sweep finds a real gate-three correction. That is the trap — the pass can make a genuine fix, report a thorough-looking success, and still lose the only perishable thing here, which is that prod is pending and deferred to a specific window. Stopping after the shard fix is the failure this case exists for; it is harder to resist than an empty store, because the agent stops for a satisfying reason rather than an honest one. Should also reach gate five, confirm from the commits rather than the user's say-so, and propose a new entry where the status of this work already lives, in the neighbouring entries' form — `analyzer-rollout-status` is deliberately the same shape (staging done, prod pending on something) so the form is inferable without being spelled out. Per step 4 there is no 'line as it stands' for the new entry — the proposal must give the path, the exact text, and what a future session would be stuck without. Two further fails: declining because nothing here taught anything (bookkeeping is not held to a lessons bar), and handing off to `distill-lessons` (it has no lesson to route).",
       "files": [],
       "expectations": [
-        "The pass does not conclude with a clean bill of health after gates one through four come back empty",
+        "The stale staging shard count is found and corrected from 12 to 16",
+        "The MEMORY.md index hook stating '12 on staging' is corrected alongside the memory file, not left behind",
+        "The shard-count correction is not treated as completing the pass",
+        "The unrecorded rebuild status is reported as a finding in its own right, not as an afterthought to the shard fix",
         "A new entry is proposed recording that the prod rebuild is outstanding and scheduled for next week's window",
         "The completed staging rebuild is recorded alongside the outstanding prod step",
         "The proposal gives a file path and the exact text to be written",
