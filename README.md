@@ -68,10 +68,17 @@ producing nothing. Every case carries both an `expected_output` written for a hu
 an `expectations` array of individually checkable assertions, which is what `skill-creator`'s
 grader scores.
 
-Four `reconcile-records` cases need fixtures: eval 1 needs a record calling the finished work
-unmerged, eval 2 needs notes holding both a present-tense and a dated claim about the same
-thing, eval 4 needs two documents with overlapping but not identical content, and eval 5 needs a
-store that says nothing at all about the finished work.
+Four `reconcile-records` cases need a seeded record store. Eval 1 needs a record calling the
+finished work unmerged. Eval 2 needs notes holding both a present-tense and a dated claim about the
+same thing, plus a per-type breakdown the notes still give as 14/7/4 against the 22 lookup / 12
+multi-hop / 6 negative actually present. Eval 4 needs two documents with overlapping but not
+identical content. Eval 5 needs a store that records nothing about the finished work while still
+holding a real staleness elsewhere — a staging shard count of 12 where the rebuild left 16, in both
+the memory file and its `MEMORY.md` hook — plus a neighbouring entry of the same shape, so the form
+of the missing record is inferable without being spelled out.
+
+`distill-lessons` eval 1 needs a fixture of a different kind: a session transcript. The rejected
+suggestion it expects to be recovered appears in no artifact, which is the whole point of the case.
 
 ## License
 
