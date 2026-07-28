@@ -1,0 +1,12 @@
+{
+  "name": "refile-rules",
+  "version": "1.0.0",
+  "description": "Reorganize a rule store whose structure stopped holding — overlapping sections, rules filed by feel, content in the always-loaded tier that had a trigger all along.",
+  "author": {
+    "name": "cgettings"
+  },
+  "homepage": "https://github.com/cgettings/claude-skills",
+  "repository": "https://github.com/cgettings/claude-skills.git",
+  "license": "GPL-3.0-or-later",
+  "keywords": ["memory", "documentation", "organization", "claude-md"]
+}

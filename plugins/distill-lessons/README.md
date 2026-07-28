@@ -26,8 +26,11 @@ report rather than a decision about what outlives the work; and an edit already 
    plan doc, the scratch ledger, and the transcript only for what artifacts can't hold.
 3. **Generalize** each candidate from an instance to a reusable shape. If you can't state the
    shape, you have an anecdote.
-4. **Route the survivors** — CLAUDE.md for standing rules, memory for incidents and methods,
-   nowhere for most of them.
+4. **Route the survivors** — but first check whether a rule for this already exists. If it does, the
+   lesson isn't the rule; the rule is written and it didn't fire, and a second copy makes two rules
+   that will both sometimes fail to fire. The output there is a revision of the existing entry,
+   narrowed until a command can check it — never a new entry. Otherwise: CLAUDE.md for standing
+   rules, memory for incidents and methods, nowhere for most of them.
 5. **Verify each claim** before it becomes durable, especially forward-looking ones.
 6. **Propose the exact wording as a diff**, with each CLAUDE.md addition's measured size against
    the section it joins.
@@ -41,6 +44,11 @@ report rather than a decision about what outlives the work; and an edit already 
 
 Designed to run back to back with [`reconcile-records`](../reconcile-records), which corrects
 what this work made false. That pass runs even when this one finds nothing.
+
+Filing is also the moment structural drift becomes visible, and this is the only pass standing in
+the destination file when it does. If two sections could plausibly hold an entry, or a rule that
+already existed couldn't be narrowed into a checkable form, that's reported as a finding about the
+file and handed to [`refile-rules`](../refile-rules). This pass never reorganizes anything itself.
 
 ## Assumptions about your setup
 
@@ -56,8 +64,9 @@ what this work made false. That pass runs even when this one finds nothing.
 ## Evals
 
 Six cases in [`skills/distill-lessons/evals/evals.json`](skills/distill-lessons/evals/evals.json),
-weighted toward near-misses — the prompts that look like a trigger and aren't. Three of the six
-must *not* invoke the workflow.
+weighted toward near-misses — the prompts that look like a trigger and aren't. Two must not invoke
+the workflow at all (cases 3 and 4); one must not comply with a save request as given (case 6); and
+one runs the pass and correctly concludes there is nothing to record (case 2).
 
 ## License
 

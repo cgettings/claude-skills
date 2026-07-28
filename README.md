@@ -1,9 +1,17 @@
 # cgettings-skills
 
-Two Claude Code skills for the moment work finishes. They're separate on purpose: one decides what
-**knowledge** is worth keeping, the other keeps the record **true to reality** — correcting what
-changed, retiring what's dead, and capturing state that nothing wrote down. Different questions,
-different bars, and the second one runs even when the first finds nothing.
+Three Claude Code skills for the moment work finishes. They're separate on purpose, and they ask
+different questions at different bars:
+
+| Skill | Question | Runs |
+|---|---|---|
+| [`distill-lessons`](plugins/distill-lessons) | What **knowledge** is worth keeping? | Every work boundary |
+| [`reconcile-records`](plugins/reconcile-records) | What written thing **went false**? | Every work boundary, and more besides |
+| [`refile-rules`](plugins/refile-rules) | Does the store's **organization** still hold? | Only when tripped |
+
+The first two run back to back, and the second runs even when the first finds nothing. The third
+isn't scheduled at all — it fires on evidence the other two produce while they're already standing
+in the file.
 
 ## `distill-lessons`
 
@@ -20,6 +28,11 @@ rather than recall; generalize each candidate from an instance to a reusable sha
 survivors (CLAUDE.md for standing rules, memory for incidents and methods, nowhere for most of them);
 verify each claim before it becomes durable; propose the exact wording as a diff before
 writing anything.
+
+Routing has a fork ahead of those destinations: if a rule for this **already exists**, the lesson
+isn't the rule — the rule is written and it didn't fire, and a second copy makes two rules that will
+both sometimes fail to fire. The output is a revision of the existing entry, narrowed until a
+command can check it, never a new entry.
 
 ## `reconcile-records`
 
@@ -38,15 +51,42 @@ that go false or go missing; verify before deleting — including confirming the
 not merely the keyword; propose the exact edits with evidence for what makes each current
 version false.
 
+## `refile-rules`
+
+Reorganizes a store whose structure stopped holding — sections that drifted into overlap, a file
+grown past the length anyone reads to the end, rules filed by feel because the boundary was never
+real, and content sitting in an always-loaded file when the moment it's needed would have triggered
+it anyway.
+
+**Why it's separate.** A store makes two kinds of claim: each entry claims something is true, and
+the organization claims its sections carve the subject at real joints. Only the first ever gets
+checked. But a rule that can't be found doesn't fire, and a rule that doesn't fire is
+indistinguishable from one that was never written — the file still reads well, every line in it is
+still true, and the failure surfaces somewhere else entirely.
+
+**Why it isn't scheduled.** Knowing where something lives is itself part of retrieval, and every
+reorganization spends that down. So it needs a trigger, and the triggers come from the other two
+passes while they're already standing in the file: a lessons pass that couldn't tell which section
+an entry belonged to, a rule that already existed and couldn't be narrowed into a checkable form, a
+measurement taken in passing — or someone simply asking.
+
+Six steps: don't run speculatively; diagnose before moving anything, because length is a symptom
+shared by every cause; test the boundaries by predicting where existing entries live from the
+headings alone; apply the placement criterion — always-loaded is for content whose moment of need is
+a moment you wouldn't know to go get it; re-file and merge but **never abbreviate**, since a rule
+fires on its specificity; propose as a manifest and prove the move by diffing the sorted rule lines.
+
 ## Install
 
 ```
 /plugin marketplace add cgettings/claude-skills
 /plugin install distill-lessons@cgettings-skills
 /plugin install reconcile-records@cgettings-skills
+/plugin install refile-rules@cgettings-skills
 ```
 
-They work independently, but they're designed to run back to back.
+They work independently. The first two are designed to run back to back; the third fires only when
+one of them trips it.
 
 ## Assumptions about your setup
 
@@ -62,11 +102,18 @@ They work independently, but they're designed to run back to back.
 ## Evals
 
 Each skill carries its own cases under `skills/<name>/evals/evals.json`, weighted toward
-near-misses — the prompts that look like a trigger and aren't. Six cases for `distill-lessons`,
-five for `reconcile-records`; seven of the eleven turn on the skill *not* firing, or on it
-producing nothing. Every case carries both an `expected_output` written for a human reader and
-an `expectations` array of individually checkable assertions, which is what `skill-creator`'s
-grader scores.
+near-misses — the prompts that look like a trigger and aren't. Sixteen cases in all: six for
+`distill-lessons`, five each for `reconcile-records` and `refile-rules`. Four of them turn on the
+workflow not running *at all*, and two more on the pass running and correctly producing nothing;
+most of the rest carry at least one expectation that some action must not be taken. Every case
+carries both an `expected_output` written for a human reader and an `expectations` array of
+individually checkable assertions, which is what `skill-creator`'s grader scores.
+
+`refile-rules` also carries a `trigger_eval.json` — twenty phrasings with expected
+trigger/no-trigger outcomes, nine positive and eleven negative. It exists because all three skills
+describe a rule store going wrong and therefore compete for the same prompts, so eight of its
+negatives are prompts belonging squarely to the other two. The negative half is the actual test;
+passing the happy path proves nothing about separation.
 
 Four `reconcile-records` cases need a seeded record store. Eval 1 needs a record calling the
 finished work unmerged. Eval 2 needs notes holding both a present-tense and a dated claim about the

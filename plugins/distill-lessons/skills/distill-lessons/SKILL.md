@@ -1,7 +1,7 @@
 ---
 name: distill-lessons
 description: Review a finished stretch of work for durable lessons and write each one to the right place — CLAUDE.md for standing instructions, memory for incidents, nowhere for the rest. Use this whenever a branch, plan, multi-stage task, or long debugging session wraps up; when context is about to be lost to a compaction or session reset; and whenever the user asks "any lessons?", "anything for CLAUDE.md?", "what did we learn?", "anything worth remembering?", "let's debrief", or otherwise asks what should be carried forward from the work. Also use it proactively at the end of substantial work even if the user doesn't ask — lessons left in a plan doc or scratch ledger are read by nobody. Two things this is NOT for — summarizing or recapping what happened, which is a report on the work rather than a decision about what outlives it; and edits already decided on, since "add X to CLAUDE.md" or "remember that I prefer Y" is a direct request to just do it. This pass is for deciding *what* is worth recording.
-version: 1.1.0
+version: 1.2.0
 license: GPL-3.0-or-later
 ---
 
@@ -53,11 +53,31 @@ If you can't state the shape, you have an anecdote. Anecdotes belong in memory (
 
 ## 4. Route each survivor
 
-Three destinations. Apply the test, not the vibe.
+**First: does a rule for this already exist?**
 
-**CLAUDE.md — standing instructions.** Would this change what you *do* on some unrelated future task? It's loaded into every prompt, so it earns its place by changing behavior, not by being true. One line per concept, imperative, no narrative. **Size is a second gate, not a style preference:** an entry can pass the usefulness test and still cost more than it returns. A 90-word bullet added to a 300-word section is a 30% tax on that section, paid forever, on every unrelated task.
+Check before routing. If the store already covers this ground, the lesson is not the rule — the rule is written, it was loaded, and it did not fire. A second copy produces two rules that will both sometimes fail to fire.
+
+The output is a **revision of the existing entry, never a new one**, and the revision has a preferred shape: narrow the rule until a command can check it.
+
+| Fires only if you remember it | Fires because you can run it |
+|---|---|
+| "Re-verify claims when you promote them into a commit message" | "A commit message describes its own diff; any sentence asserting something about code *outside* the diff is cut, or backed by a command run before committing" |
+
+The right-hand version isn't better worded. It names an artifact, a boundary, and a check, so failing it is visible at the time — where failing the left-hand one is visible only in hindsight.
+
+One shape to look for while you narrow: a rule stated as a norm, later read back as a description of the world. "Every file opens with a header" is an instruction; it is not evidence that every file has one, even when the inventory sits two sentences below it. Re-reading the source feels like verification and isn't.
+
+Some rules are irreducibly judgment-shaped and can't be made checkable. That is itself the finding — the failure was **retrieval, not wording**. Restating it more forcefully is the second copy wearing a bolder font. Report it as a `refile-rules` trigger and leave the wording alone.
+
+Otherwise, three destinations. Apply the test, not the vibe.
+
+**CLAUDE.md — standing instructions.** Would this change what you *do* on some unrelated future task? It's loaded into every prompt, so it earns its place by changing behavior, not by being true. One line per concept, imperative, no narrative.
 - *Project* `CLAUDE.md` if it's tied to this repo's tools, layout, or conventions.
 - *User* `~/.claude/CLAUDE.md` if it holds regardless of repo.
+
+**Then ask where you'd be standing when you needed it.** Always-loaded space is for content whose moment of need is a moment you would *not* know to go get it — a verification habit qualifies, because you don't know you're about to assert something unverified. Content with a natural trigger doesn't: an open `.R` file, a workflow YAML, a `.ps1` are perfect triggers, so those conventions belong in an on-demand skill and this file keeps at most a pointer to it.
+
+**Size is a further gate, not a style preference:** an entry can pass the usefulness test and still cost more than it returns. A 90-word bullet added to a 300-word section is a 30% tax on that section, paid forever, on every unrelated task.
 
 **Memory — incidents and context.** Is this the story of what happened, or state a future session would need to pick the work up? Memory holds the narrative, the numbers, the *why* — everything that would bloat CLAUDE.md. Follow whatever memory format the environment specifies — one fact per file, with frontmatter and an index line, is one common shape. If the environment has no memory tier at all, this destination collapses into CLAUDE.md or nowhere; say so plainly rather than inventing a store to write to.
 
@@ -70,6 +90,8 @@ If your memory system keeps an always-loaded index — a file of pointers read e
 **Methods and recipes need the same split, and are the likeliest to get it wrong.** Step 2 explicitly asks what verification approach or cheap proof worked — but a recipe is neither a standing instruction nor an incident, so the routing above has no obvious slot for it, and the default pull is toward CLAUDE.md because a method *reads* like guidance. Put the **trigger** in CLAUDE.md and the **method** in memory: one line naming when you'd reach for it and where it lives, with the commands, the gotchas, and the approaches that failed behind that pointer. The trigger stays loaded so you know the method exists; the method itself costs nothing until the day it's needed.
 
 Check the destination before writing, whichever it is: re-read the relevant CLAUDE.md section and search existing memories for the same ground. If something already covers it, extend or correct that instead of adding a second entry. Duplicates are worse than nothing — they drift apart and later readers can't tell which is current.
+
+While you're in there, notice whether the file made the choice easy. If two sections could plausibly hold the entry, or you settle it by feel, that's a finding about the destination rather than a detail of your entry — a boundary you can't file against is one that retrieval can't search against either. Filing is the moment structural drift becomes visible, and this pass is the only one standing in the file when it does. Note it and name `refile-rules`. Don't reorganize here.
 
 **Two weak candidates sometimes make one strong entry.** If several instances share a shape, record the shape once rather than each instance separately — the merged form is usually more useful than any of its parts, and it's the version that will match the next occurrence, which won't look like any of them.
 
@@ -90,6 +112,8 @@ Show the user what you intend to write before writing it: for each destination, 
 Then ask which to apply. Two reasons this matters: they know things you don't about what's already tribal knowledge, and a project CLAUDE.md is usually shared with a team, so it's their call what lands in it.
 
 Mention what you considered and dropped, with the reason. That's often the most useful part of the report — it shows the filter ran, and they can overrule it.
+
+If step 4 turned up a problem with the *destination* — two sections that could hold the same entry, or a rule that already exists and couldn't be narrowed into a checkable form — report it as its own line rather than folding it into the entry that surfaced it. It isn't a lesson and it isn't yours to fix here; it's `refile-rules`' input, and it will be lost if it arrives as an aside.
 
 ## What not to record
 

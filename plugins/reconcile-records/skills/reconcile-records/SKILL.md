@@ -1,7 +1,7 @@
 ---
 name: reconcile-records
-description: Find and fix records that recent work made false — status lines that have moved on, numbers something re-measured, notes that became re-derivable, rules a newer rule replaced, and state the work left unrecorded. Use when a branch merges, a release ships, or a multi-stage task completes; right after a lessons pass, including when that pass found nothing worth recording; when someone trips over a stale doc, memory, comment, or README; and whenever the user asks "is this still true?", "anything out of date?", "clean up the notes", or "does the doc still match the code?". This is not for adding new knowledge — capturing a durable lesson is `distill-lessons`. This pass makes the record match reality — it corrects, retires, and where the work left state unrecorded, captures that state. It runs whether or not the work taught anything.
-version: 1.1.0
+description: Find and fix records that recent work made false — status lines that have moved on, numbers something re-measured, notes that became re-derivable, rules a newer rule replaced, and state the work left unrecorded. Use when a branch merges, a release ships, or a multi-stage task completes; right after a lessons pass, including when that pass found nothing worth recording; when someone trips over a stale doc, memory, comment, or README; and whenever the user asks "is this still true?", "anything out of date?", "clean up the notes", or "does the doc still match the code?". This is not for adding new knowledge — capturing a durable lesson is `distill-lessons`. It is also not for reorganizing a store whose sections have drifted into overlap or grown too long to read, which is `refile-rules`. This pass makes the record match reality — it corrects, retires, and where the work left state unrecorded, captures that state. It runs whether or not the work taught anything.
+version: 1.2.0
 license: GPL-3.0-or-later
 ---
 
@@ -35,6 +35,8 @@ State the scope you settled on. If asked for something broader, say what you cov
 
 **Lines a newer rule subsumes.** When a broad rule lands, the narrower rule it replaced usually survives beside it. Adding without subtracting is how an always-loaded file grows until nobody reads it.
 
+Subsuming folds two rules into one that still states both specifics. It is not licence to shorten. A rule fires because of its specificity, so a merge that reads more smoothly and names less has removed the trigger while looking like tidying — and that loss is invisible afterwards, because what's left still reads as true.
+
 ## 3. Verify before you delete
 
 Deletion is the irreversible half of this pass, and the check that feels sufficient usually isn't.
@@ -61,3 +63,4 @@ Report briefly what you checked and found *correct*. A pass that lists only prob
 - Anything whose current truth you didn't actually check. An unverified guess about staleness is worse than leaving it alone.
 - Records outside the scope you declared in step 1. Note them for a later pass rather than expanding silently.
 - Prose you merely disagree with. This pass corrects what is false, not what is phrased differently than you'd phrase it.
+- The *organization* of a store, as against the truth of its lines. Sections that have drifted into overlap, a file grown past the length anyone reads to the end, an entry half-subsumed by another three bullets up — all real problems, none of them this pass. They belong to `refile-rules`. Note what you saw and move on: rearranging under cover of a correction sweep is how a bounded, cheap pass becomes the expensive one nobody runs.

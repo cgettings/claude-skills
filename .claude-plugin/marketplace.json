@@ -23,6 +23,15 @@
         "name": "cgettings"
       },
       "category": "productivity"
+    },
+    {
+      "name": "refile-rules",
+      "source": "./plugins/refile-rules",
+      "description": "Reorganize a rule store whose structure stopped holding — overlapping sections, rules filed by feel, content in the always-loaded tier that had a trigger all along.",
+      "author": {
+        "name": "cgettings"
+      },
+      "category": "productivity"
     }
   ]
 }

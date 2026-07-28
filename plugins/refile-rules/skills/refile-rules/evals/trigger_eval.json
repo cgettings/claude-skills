@@ -1,0 +1,23 @@
+[
+  {"query": "this CLAUDE.md has got way too big", "should_trigger": true},
+  {"query": "I can never find the rule I need in here", "should_trigger": true},
+  {"query": "these two sections say the same kind of thing", "should_trigger": true},
+  {"query": "we've ended up with verification rules in two different places", "should_trigger": true},
+  {"query": "where does this rule even belong?", "should_trigger": true},
+  {"query": "half of this file only matters when I'm writing R", "should_trigger": true},
+  {"query": "should these language conventions be in CLAUDE.md or in a skill?", "should_trigger": true},
+  {"query": "the lessons pass said it couldn't tell which section to file that under", "should_trigger": true},
+  {"query": "that rule was already in here and it still didn't fire", "should_trigger": true},
+
+  {"query": "is any of this still true?", "should_trigger": false},
+  {"query": "anything out of date in the notes?", "should_trigger": false},
+  {"query": "does the README still match the code?", "should_trigger": false},
+  {"query": "can you clean up the notes now that this is done", "should_trigger": false},
+  {"query": "release went out this morning", "should_trigger": false},
+  {"query": "just merged the auth branch, deleting it now", "should_trigger": false},
+  {"query": "any lessons from that?", "should_trigger": false},
+  {"query": "anything worth putting in CLAUDE.md?", "should_trigger": false},
+  {"query": "add a line to CLAUDE.md about running e2e headed on apple silicon", "should_trigger": false},
+  {"query": "what's in CLAUDE.md right now?", "should_trigger": false},
+  {"query": "reformat this file to wrap at 80 columns", "should_trigger": false}
+]
