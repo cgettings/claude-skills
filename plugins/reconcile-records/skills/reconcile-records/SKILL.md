@@ -1,7 +1,7 @@
 ---
 name: reconcile-records
 description: Find and fix records that recent work made false — status lines that have moved on, numbers something re-measured, notes that became re-derivable, rules a newer rule replaced, and state the work left unrecorded. Use when a branch merges, a release ships, or a multi-stage task completes; right after a lessons pass, including when that pass found nothing worth recording; when someone trips over a stale doc, memory, comment, or README; and whenever the user asks "is this still true?", "anything out of date?", "clean up the notes", or "does the doc still match the code?". This is not for adding new knowledge — capturing a durable lesson is `distill-lessons`. It is also not for reorganizing a store whose sections have drifted into overlap or grown too long to read, which is `refile-rules`. This pass makes the record match reality — it corrects, retires, and where the work left state unrecorded, captures that state. It runs whether or not the work taught anything.
-version: 1.2.0
+version: 1.3.0
 license: GPL-3.0-or-later
 ---
 
@@ -23,7 +23,7 @@ Derive the scope from the work itself: the branch's `git log`, the files changed
 
 State the scope you settled on. If asked for something broader, say what you covered and what you deliberately did not.
 
-## 2. Apply the five gates
+## 2. Apply the six gates
 
 **Status that has moved on.** "Not yet merged", "still open", "parked", "in progress", "blocked on", "verified <date>". These go false by design the moment the thing they describe advances. If the work advanced it, fix the line or delete the entry.
 
@@ -36,6 +36,18 @@ State the scope you settled on. If asked for something broader, say what you cov
 **Lines a newer rule subsumes.** When a broad rule lands, the narrower rule it replaced usually survives beside it. Adding without subtracting is how an always-loaded file grows until nobody reads it.
 
 Subsuming folds two rules into one that still states both specifics. It is not licence to shorten. A rule fires because of its specificity, so a merge that reads more smoothly and names less has removed the trigger while looking like tidying — and that loss is invisible afterwards, because what's left still reads as true.
+
+**Claims that were never established.** The five gates above all detect something that *became* false: the branch merged, the number moved, a newer rule landed. This gate is for lines that were never true to begin with — a claim about how a vendor behaves, what a tool can detect, or what other teams do, written from recall and typeset as a conclusion. Nothing about them ever changes, so no amount of drift makes them stand out, and every pass that looks for change walks straight past them. They are the entries most likely to be years old and still steering decisions.
+
+The detector is **categorical, not positional**: any sentence whose subject is a system outside the repo. In-repo claims can be re-checked from the repo by anyone, forever; these cannot be re-checked from the repo at all, which is why they get the least scrutiny exactly where correction is hardest. Derive your search terms from that definition — crawler and vendor behaviour, ranking factors, what a tool can detect, industry convention, what other teams do — and not from the hits you have already found. A probe built from one cluster of hits finds that cluster again and reports zero everywhere else.
+
+That has happened. A sweep whose terms came from a dense passage about search crawlers fired five times inside that passage, treated the firing as a positive control, and returned zero across three other documents — where a wider pattern later found claims in all three. The terms were the giveaway: "crawler", "robots" and "sitemap" share no vocabulary with the claims that were missed, which ran to the shape "this analytics library anonymises IP by default" and "this mapping library has no such method on a polygon". The probe could not have matched those sentences, so its zero described the probe rather than the documents.
+
+Sourced and unsourced claims sit side by side in the same voice, so good attribution nearby is not evidence. In that same crawler passage, three claims named the vendor's published guidance and six others in identical register named nothing. Read the sentences; do not infer from the neighbourhood.
+
+**The fix is attribution, not deletion.** Supply a source, a date, the command that was run, or — for a ranking claim — the axis and the set compared. Delete only when none of those can be produced, and say that is why.
+
+Be honest that this is not a cheap gate. The other five are look-ups: you know the term, you grep, you compare. This one reads for subject matter across a document. Bound it the way step 1 bounds everything else — by *which files you open*, choosing the ones whose subject touches external systems at all — and not by narrowing the test back to a couple of predictable positions. Position has been tried and misses: these claims track what the author was writing *about*, so they land in ordinary body prose wherever a vendor, a browser, a spec, or a tool comes up. A cheap test that cannot find the category is worse than an expensive one you scope down to three files.
 
 ## 3. Verify before you delete
 
@@ -62,5 +74,5 @@ Report briefly what you checked and found *correct*. A pass that lists only prob
 - Dated historical statements that were true when written and are labelled as such.
 - Anything whose current truth you didn't actually check. An unverified guess about staleness is worse than leaving it alone.
 - Records outside the scope you declared in step 1. Note them for a later pass rather than expanding silently.
-- Prose you merely disagree with. This pass corrects what is false, not what is phrased differently than you'd phrase it.
+- Prose you merely disagree with. This pass corrects what is false, not what is phrased differently than you'd phrase it. Read this together with gate six, which is one bad reading away from licensing exactly that: a missing source is a checkable fact about the document — the sentence names an outside system and cites nothing, and anyone can confirm it — whereas finding the sentence overconfident, or badly put, or not how you'd say it, is taste. Gate six fires on the first and never on the second. If your proposed edit rewrites a line that already carries its source, you are outside this pass.
 - The *organization* of a store, as against the truth of its lines. Sections that have drifted into overlap, a file grown past the length anyone reads to the end, an entry half-subsumed by another three bullets up — all real problems, none of them this pass. They belong to `refile-rules`. Note what you saw and move on: rearranging under cover of a correction sweep is how a bounded, cheap pass becomes the expensive one nobody runs.

@@ -1,7 +1,7 @@
 ---
 name: distill-lessons
 description: Review a finished stretch of work for durable lessons and write each one to the right place — CLAUDE.md for standing instructions, memory for incidents, nowhere for the rest. Use this whenever a branch, plan, multi-stage task, or long debugging session wraps up; when context is about to be lost to a compaction or session reset; and whenever the user asks "any lessons?", "anything for CLAUDE.md?", "what did we learn?", "anything worth remembering?", "let's debrief", or otherwise asks what should be carried forward from the work. Also use it proactively at the end of substantial work even if the user doesn't ask — lessons left in a plan doc or scratch ledger are read by nobody. Two things this is NOT for — summarizing or recapping what happened, which is a report on the work rather than a decision about what outlives it; and edits already decided on, since "add X to CLAUDE.md" or "remember that I prefer Y" is a direct request to just do it. This pass is for deciding *what* is worth recording.
-version: 1.2.0
+version: 1.3.0
 license: GPL-3.0-or-later
 ---
 
@@ -101,11 +101,33 @@ Promotion into a permanent document is the moment to re-check what you're assert
 
 Pay particular attention to claims about the future — performance numbers, cost estimates, "option X was rejected because it needs Y." These get written with far less rigor than claims about current behavior, even though steering future work is their entire purpose. Measure the number. Re-derive the mechanism. Name it specifically, because a rationale that names its mechanism can be checked and "too invasive" cannot.
 
+**Rigor tends to follow correction history rather than checkability.** The claims you hedge carefully are the ones that have already failed visibly and been corrected; the categories that have not yet embarrassed anyone go in flat and unqualified, in the same voice as a measurement. That is a diagnosis, not a character flaw — it means you cannot find the weak claims by asking which ones feel uncertain. Sort by *kind* instead. Four kinds get written far more confidently than they were checked:
+
+| Kind | What makes it weak | What redeems it |
+|---|---|---|
+| **A claim about a system outside the repo** — a vendor, a crawler, a browser, a spec, what other teams do | It cannot be re-checked from the repo at all, and it decays on a schedule nobody tracks | A source or a date. "Google documents that the most restrictive robots directive wins" is the form |
+| **A counterfactual** — "linting would have caught this", "a test here would have failed" | It reads as a finding but names a run nobody performed | Run the tool against the code that had the bug, or cut the sentence |
+| **A superlative** — "highest-leverage", "the biggest item here" | It asserts a ranking across a set, on an axis nobody scored | Name the axis and the set compared, or write "worth doing" |
+| **A generalization about how work goes** — "the normal fate of a stopgap nobody wrote an intent down for" | Identical grammar to an earned one; the difference is entirely whether a case exists | The incident, printed beside it or linked from it |
+
+The counterfactual is the one worth running rather than reasoning about. An audit asserted that a single `eslint` pass "would have caught most of" four named bugs. The config it was describing enabled exactly one rule: the `ReferenceError` was caught, a duplicate key was not because that rule was off, an operator-precedence bug was covered by no enabled rule, and a wrong `getElementById` string is uncatchable by any linter in principle. One of four — in a sentence that also called it the highest-leverage gap. Neither claim survived being checked, and checking cost one file read.
+
+Sourced and unsourced claims coexist happily in the same document and the same voice, so nearby rigor is not evidence. In the section that produced the example above, three claims cited Google's published guidance by name while six others in the same register — "how nearly every AI/LLM crawler operates today", "`geo.*` meta tags haven't influenced Google ranking in well over a decade", the latter temporal and undated — cited nothing. The correct form was available and in use in the same section.
+
+**On the generalization row: this does not reverse step 3.** Step 3 tells you to generalize from the instance to the shape, and step 4 splits the rule into CLAUDE.md and the incident into memory. Read carelessly, "print the incident beside the generalization" contradicts both. It doesn't — step 4 already has the two cross-referencing rather than duplicating, and **the cross-reference is the anchor**. A rule in CLAUDE.md that links to the memory holding its case is anchored. What fails this gate is a generalization with neither the incident beside it nor a link to it: a claim about how software work goes, asserted from nothing, in the voice of experience.
+
 If you find an earlier claim was wrong, correct it in place and say it was wrong. A quietly softened figure still misleads.
 
 ## 6. Propose, then apply
 
 Show the user what you intend to write before writing it: for each destination, the path, a one-line reason, and the exact added lines as a diff. Seeing the real wording is what lets them judge it — a summary of what you plan to add is not reviewable.
+
+**The diff is the only moment register is judgeable, so judge it here.** Step 5 asks whether each claim is true; this asks what the wording does to a reader. Run one test over every device in the proposed lines: does it pay a reader who has already decided to read? These entries go to an audience that cannot leave — a colleague, or you in four months, obliged to act on the line. A phrase that *compresses* something true earns its space, because they unpack it and find the finding. A phrase that *sustains attention* is borrowed from writing for readers who could close the tab, and it buys nothing while raising apparent certainty.
+
+Two guards, and they bind as hard as the test itself:
+
+- **Confidence about what was done and observed stays flat and declarative.** A record padded with "may" and "appears to" is harder to act on, and it launders the same distinction in the other direction — hedging a measurement makes it read like a guess, which is the failure this section exists to prevent, mirrored. Hedge what is uncertain. Assert what you ran.
+- **Vivid phrasing that compresses something true nearby is kept, not trimmed.** "A test whose pass and fail states are indistinguishable is worse than no test" is doing work, and the incident sits in the next sentence. Trimming it to "unclear test outcomes are a problem" loses the trigger and gains nothing. This is a calibration, never a ban on writing well.
 
 **For every CLAUDE.md addition, give its size against the section it joins** — words added, section length, the ratio. Measure it; don't estimate it. Do this in the proposal rather than after, because bloat is nearly invisible in a diff read line by line and obvious the moment it's a ratio. If the number is embarrassing, the entry wants to be a memory with a one-line pointer, not a bullet.
 
