@@ -1,6 +1,6 @@
 {
   "skill_name": "reconcile-records",
-  "notes": "Prompts stay short and withhold detail on purpose — a user doesn't narrate a session back to the agent that was in it, and a prompt containing every fact lets the model skip step 1's scoping. Prior state a case depends on is described in expected_output as a precondition, not put in the user's mouth. Eval 1 is the core case and the one that distinguishes this skill from `distill-lessons`: the work taught nothing, so a lessons pass correctly produces nothing, and this pass must still find the falsified status line. It needs a seeded store containing a record that calls the work unmerged. Eval 2 guards the most destructive failure mode — deleting a dated historical statement because it reads like a stale one. Eval 3 is a near-miss that belongs to `distill-lessons`, not here. Eval 4 tests the deletion bar: the surviving copy must make the same claim, not merely contain the same words. Eval 5 covers gate five, the only gate with nothing stale to find: every other gate returns empty, so a shallow pass produces a clean bill of health and loses the state. It pairs with eval 1 — same 'nothing to see here' framing, but there the record is wrong and here it is absent. Expectations are written to be checkable from the transcript alone, and several are negative — for the near-miss cases the whole result is an action that must not happen.",
+  "notes": "Prompts stay short and withhold detail on purpose — a user doesn't narrate a session back to the agent that was in it, and a prompt containing every fact lets the model skip step 1's scoping. Prior state a case depends on is described in expected_output as a precondition, not put in the user's mouth. Eval 1 is the core case and the one that distinguishes this skill from `distill-lessons`: the work taught nothing, so a lessons pass correctly produces nothing, and this pass must still find the falsified status line. It needs a seeded store containing a record that calls the work unmerged. Eval 2 guards the most destructive failure mode — deleting a dated historical statement because it reads like a stale one. Eval 3 is a near-miss that belongs to `distill-lessons`, not here. Eval 4 tests the deletion bar: the surviving copy must make the same claim, not merely contain the same words. Eval 5 covers gate five, the only gate with nothing stale to find: every other gate returns empty, so a shallow pass produces a clean bill of health and loses the state. It pairs with eval 1 — same 'nothing to see here' framing, but there the record is wrong and here it is absent. Evals 6 and 7 both cover gate six but sit at different levels. Eval 6 tests detection: gates one to five are genuinely clean, so the gate has to fire on its own or the pass reports a clean store. Eval 7 tests null-result discipline, which is the harder half — the gate does fire there, and that firing is exactly what manufactures false confidence in the zeros returned everywhere else. Its fixture's zero-vocabulary-overlap requirement is the whole mechanism and is stated as a hard constraint: if the low-salience documents share any term with the crawler cluster, a narrow probe finds them by accident and the case stops testing anything. Note that `distill-lessons` also has an id 7, for an unrelated failure (an unanchored generalization) — different file, no collision, but the two are easy to conflate. Expectations are written to be checkable from the transcript alone, and several are negative — for the near-miss cases the whole result is an action that must not happen, and for eval 7 the whole result is an assertion that must not be made.",
   "evals": [
     {
       "id": 1,
@@ -83,6 +83,39 @@
         "The entry is not declined on the grounds that nothing here is a durable lesson",
         "The task is not handed off to distill-lessons",
         "The new entry is placed where the status of this work already lives, matching the form of neighbouring entries"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "never-established-claim-in-an-otherwise-clean-store",
+      "prompt": "shipped the analytics rework. do the notes still hold up?",
+      "expected_output": "Gates one through five all come back genuinely clean: no status has moved, no number was re-measured, nothing became re-derivable, no rule subsumes another, and the work left no state unrecorded. The single finding is a sentence asserting how a third-party analytics library behaves by default, written from recall, carrying no source and no date — a claim that was never established rather than one that went stale, which is why five change-detecting gates walk past it. Reporting the store clean is the failure this case exists for. The finding must be stated as an absence of attribution, not as an assertion that the claim is wrong: the pass has not checked the vendor's behaviour and is not required to. The fix is to supply a source or a date, and deletion is correct only if neither can be produced and the response says so.",
+      "files": [],
+      "expectations": [
+        "The store is not reported clean",
+        "The unsourced claim about the third-party library's default behaviour is located",
+        "The finding is stated as the absence of a source or date, not as the claim being false",
+        "Attribution is proposed as the fix rather than deletion",
+        "Deletion is proposed only on the condition that no source or date can be produced",
+        "Gates one through five are reported as checked and clean rather than silently omitted",
+        "No sentence that already carries a source is rewritten"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "positive-control-does-not-license-the-zeros",
+      "prompt": "audit docs need a sweep for unsourced outside claims. can you?",
+      "expected_output": "Requires a three-document store. One document carries a dense, lexically obvious cluster of unsourced claims about search and AI crawlers — robots directives, sitemaps, indexing. The other two carry unsourced external claims of the same category buried in ordinary body prose: an analytics library's default behaviour, a mapping library's API surface, what a directory name conventionally means. Hard fixture requirement, not a stylistic note: those two documents must share no vocabulary with the crawler cluster. If any crawler term also appears in them, a narrow probe finds them by accident and the case silently stops testing anything. The trap is that the obvious cluster fires, and a probe that fires feels like a validated instrument. It is not — terms taken from that cluster were only ever going to match that cluster, so a zero elsewhere is a fact about the probe, not about the documents. Correct behaviour is to derive terms from the category's definition rather than from the hits already in hand, and, whatever the sweep returns, to refuse to certify the other two documents clean on a control that ran inside the cluster it came from. Missing one of the two but declining to call it clean is a pass; finding the obvious cluster and reporting the rest clear is the failure.",
+      "files": [],
+      "expectations": [
+        "Search terms are derived from the definition of an outside-system claim rather than from the vocabulary of the crawler cluster",
+        "At least one search is run whose terms could not have been taken from the crawler cluster",
+        "Each of the two low-salience documents either has a claim located in it, or is explicitly reported as coverage-not-established rather than clean",
+        "The crawler cluster firing is not treated as evidence that the probe's vocabulary spans the category",
+        "No document is certified clean on the strength of a zero returned by a probe derived from another document's vocabulary",
+        "The response states how coverage was established, or what its sweep could have missed",
+        "Located claims are proposed for attribution rather than deletion",
+        "A zero result is not reported as a finding without the basis for it being given"
       ]
     }
   ]
