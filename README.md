@@ -13,6 +13,10 @@ The first two run back to back, and the second runs even when the first finds no
 isn't scheduled at all — it fires on evidence the other two produce while they're already standing
 in the file.
 
+A fourth plugin, [`grounded-output-style`](plugins/grounded-output-style), is a different kind of
+thing: not a workflow that runs at a boundary, but a working style that's live for the whole
+session.
+
 ## `distill-lessons`
 
 Reviews a finished stretch of work for durable lessons and writes each one where it will
@@ -76,6 +80,25 @@ headings alone; apply the placement criterion — always-loaded is for content w
 a moment you wouldn't know to go get it; re-file and merge but **never abbreviate**, since a rule
 fires on its specificity; propose as a manifest and prove the move by diffing the sorted rule lines.
 
+## `grounded-output-style`
+
+Carries a verification-first, claims-calibrated working style into any project via a
+`SessionStart` hook — the modern replacement for Claude Code's deprecated output-style file
+format.
+
+**The trap it closes.** Confident, well-formed prose reads as verified whether or not it was: a
+polished sentence and a carefully measured one read with the same apparent authority, though only
+one is backed by verified evidence, so a reader who must act on the writing has no way to tell
+them apart except by re-deriving the claim. That
+confidence is borrowed from a genre built for a different audience — technical writing, talks,
+threads — where the job is to hold a reader free to leave. The actual audience for a review or an
+audit cannot leave; they're already committed to acting on what's written. Applying the
+leaveable-audience voice to a can't-leave audience is what makes an unsourced guess and a
+line-cited measurement sound the same.
+
+See the plugin's own [README](plugins/grounded-output-style) for what it changes and its
+per-session cost.
+
 ## Install
 
 ```
@@ -83,10 +106,12 @@ fires on its specificity; propose as a manifest and prove the move by diffing th
 /plugin install distill-lessons@cgettings-skills
 /plugin install reconcile-records@cgettings-skills
 /plugin install refile-rules@cgettings-skills
+/plugin install grounded-output-style@cgettings-skills
 ```
 
 They work independently. The first two are designed to run back to back; the third fires only when
-one of them trips it.
+one of them trips it; the fourth is a standing style, not a workflow — install it only in projects
+where verification/audit/documentation writing is frequent enough to justify its per-session cost.
 
 ## Assumptions about your setup
 
