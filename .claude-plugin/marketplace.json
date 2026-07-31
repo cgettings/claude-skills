@@ -32,6 +32,15 @@
         "name": "cgettings"
       },
       "category": "productivity"
+    },
+    {
+      "name": "grounded-output-style",
+      "source": "./plugins/grounded-output-style",
+      "description": "An output style that carries a verification-first, claims-calibrated working style into any project — cheapest sufficient checks, sourced claims, no unearned confidence.",
+      "author": {
+        "name": "cgettings"
+      },
+      "category": "productivity"
     }
   ]
 }
