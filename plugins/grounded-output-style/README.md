@@ -1,11 +1,13 @@
 # grounded-output-style
 
-A `SessionStart` hook that carries a verification-first, claims-calibrated working style into
-any project. Claude Code's literal output-style file format is deprecated — the CLI's own
-changelog points instead to `--system-prompt-file`, `--append-system-prompt`, CLAUDE.md, or
-plugins. This plugin is that last option, built the same way Anthropic's own
-`explanatory-output-style` and `learning-output-style` rebuild their deprecated styles: a hook
-that injects instructions at session start rather than a static style file.
+An output style that carries a verification-first, claims-calibrated working style into any
+project. It ships as [`output-styles/grounded.md`](output-styles/grounded.md) — the real output
+style file format, appended to the system prompt with `keep-coding-instructions: true`, so it
+modifies how Claude reports and verifies without discarding its software engineering behavior.
+
+The style file format is current, not deprecated; only the standalone `/output-style` command
+was removed, in v2.1.91. Select the style through `/config` → **Output style** instead
+([docs](https://code.claude.com/docs/en/output-styles), fetched 2026-07-30).
 
 ## The trap this exists to close
 
@@ -46,8 +48,8 @@ the other three assume.
 This adds roughly 600 words of instructions to every session's context, every time — not just
 when the task touches verification or writing. That's a real, recurring tax, the same tradeoff
 Anthropic flags on their own output-style plugins. It's worth it if review/audit/documentation
-writing is a regular part of what you do in a given project; disable it in projects where it
-isn't.
+writing is a regular part of what you do in a given project; switch to another style in projects
+where it isn't.
 
 ## Install
 
@@ -56,13 +58,28 @@ isn't.
 /plugin install grounded-output-style@cgettings-skills
 ```
 
-Disable per-project with `/plugin` if you only want it active where verification writing is
-frequent.
+Then select it: `/config` → **Output style** → **Grounded**. Output style is part of the system
+prompt, which Claude Code reads once per session, so the change takes effect after `/clear` or in
+the next session.
+
+Selecting a style is exclusive — **Grounded** replaces whatever style is active, including
+built-ins like Proactive. Your choice is saved to `outputStyle` in
+`.claude/settings.local.json`, so it's per-project by default.
+
+If you'd rather it apply automatically wherever the plugin is enabled, add
+`force-for-plugin: true` to the frontmatter of [`output-styles/grounded.md`](output-styles/grounded.md).
+That's deliberately off here: it overrides the user's `outputStyle` setting, so enabling the
+plugin would silently take over a project where you'd picked something else.
+
+### Without the plugin
+
+The style file is self-contained. Copy it to `~/.claude/output-styles/grounded.md` for all
+projects, or `.claude/output-styles/grounded.md` for one.
 
 ## Relationship to CLAUDE.md
 
 This is a distillation of a `CLAUDE.md`'s verification and register rules, made portable. If your
-CLAUDE.md already states the same rules in full, the two overlap — the hook is for projects and
+CLAUDE.md already states the same rules in full, the two overlap — the style is for projects and
 machines that don't have that CLAUDE.md, not a replacement for a project's own standing
 instructions where richer rationale and repo-specific detail belong.
 

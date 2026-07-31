@@ -82,9 +82,9 @@ fires on its specificity; propose as a manifest and prove the move by diffing th
 
 ## `grounded-output-style`
 
-Carries a verification-first, claims-calibrated working style into any project via a
-`SessionStart` hook — the modern replacement for Claude Code's deprecated output-style file
-format.
+Carries a verification-first, claims-calibrated working style into any project as a real Claude
+Code output style, appended to the system prompt with `keep-coding-instructions: true` so it
+changes how Claude verifies and reports without discarding its engineering behavior.
 
 **The trap it closes.** Confident, well-formed prose reads as verified whether or not it was: a
 polished sentence and a carefully measured one read with the same apparent authority, though only
@@ -110,8 +110,10 @@ per-session cost.
 ```
 
 They work independently. The first two are designed to run back to back; the third fires only when
-one of them trips it; the fourth is a standing style, not a workflow — install it only in projects
-where verification/audit/documentation writing is frequent enough to justify its per-session cost.
+one of them trips it; the fourth is a standing style, not a workflow — after installing it, select
+it under `/config` → **Output style** → **Grounded**, and only in projects where
+verification/audit/documentation writing is frequent enough to justify its per-session cost.
+Selecting it replaces whatever output style is active, built-ins included.
 
 ## Assumptions about your setup
 
