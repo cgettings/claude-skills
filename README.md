@@ -1,21 +1,53 @@
 # cgettings-skills
 
-Three Claude Code skills for the moment work finishes. They're separate on purpose, and they ask
-different questions at different bars:
+Four Claude Code skills for the seams in a piece of work — where it starts, pauses, resumes, and
+finishes. They're separate on purpose, and they ask different questions at different bars:
 
 | Skill | Question | Runs |
 |---|---|---|
+| [`keep-ledger`](plugins/keep-ledger) | What's **done**, what's **proven**, what runs next? | At the start of multi-step work, and on every resume |
 | [`distill-lessons`](plugins/distill-lessons) | What **knowledge** is worth keeping? | Every work boundary |
 | [`reconcile-records`](plugins/reconcile-records) | What written thing **went false**? | Every work boundary, and more besides |
 | [`refile-rules`](plugins/refile-rules) | Does the store's **organization** still hold? | Only when tripped |
 
-The first two run back to back, and the second runs even when the first finds nothing. The third
-isn't scheduled at all — it fires on evidence the other two produce while they're already standing
-in the file.
+The first runs while the work is live rather than at its end; the other three run when it stops.
+Of those, the lessons and reconcile passes run back to back, and the second runs even when the
+first finds nothing. `refile-rules` isn't scheduled at all — it fires on evidence the other two
+produce while they're already standing in the file.
 
-A fourth plugin, [`grounded-output-style`](plugins/grounded-output-style), is a different kind of
+`keep-ledger` and `reconcile-records` are two halves of one loop: a ledger is a status record, so
+it's precisely what that pass's first two gates look for, and keeping one is what gives them
+something greppable to find.
+
+A fifth plugin, [`grounded-output-style`](plugins/grounded-output-style), is a different kind of
 thing: not a workflow that runs at a boundary, but a working style that's live for the whole
 session.
+
+## `keep-ledger`
+
+Keeps a resumable ledger for work that runs past one sitting — what is done, what proof actually
+ran, and the exact next command — in the tracked document that owns the work.
+
+**Why it's separate.** A plan says what to do. It does not say what happened, and after the first
+session that's the only thing a reader needs. The gap is invisible while you're in the session,
+because you *are* the record; it becomes the whole problem the moment you're not. So the failure
+it guards against isn't forgetting to keep a ledger — it's keeping one that lists steps and holds
+no state.
+
+Seven steps: write it at the start, because the moment you need it is the moment you can't write
+it; put it in the tracked document that owns the work; give every step a status, distinguishing
+parked from blocked by who acts next; record the proof that **ran**, not the proof you planned;
+point at landmarks rather than line numbers; update it in the commit that finishes each step; and
+on resume, treat the ledger and `git log` as outranking your own recollection.
+
+The load-bearing one is the fourth: a ledger recording the intended check rather than the executed
+one is worse than a ledger with no proof field at all, because the next session follows it.
+
+**Credit.** The ledger's shape is adapted from `subagent-driven-development` in
+[superpowers](https://github.com/obra/superpowers) by Jesse Vincent, which is where I first saw one
+specified rather than recommended. The plugin's own [README](plugins/keep-ledger) says what was
+borrowed and where this departs — chiefly that the ledger lives in a tracked document rather than a
+git-ignored workspace.
 
 ## `distill-lessons`
 
@@ -103,20 +135,24 @@ per-session cost.
 
 ```
 /plugin marketplace add cgettings/claude-skills
+/plugin install keep-ledger@cgettings-skills
 /plugin install distill-lessons@cgettings-skills
 /plugin install reconcile-records@cgettings-skills
 /plugin install refile-rules@cgettings-skills
 /plugin install grounded-output-style@cgettings-skills
 ```
 
-They work independently. The first two are designed to run back to back; the third fires only when
-one of them trips it; the fourth is a standing style, not a workflow — after installing it, select
+They work independently. The first runs while work is in flight and feeds the third; the second and
+third are designed to run back to back; the fourth fires only when one of them trips it; the fifth
+is a standing style, not a workflow — after installing it, select
 it under `/config` → **Output style** → **Grounded**, and only in projects where
 verification/audit/documentation writing is frequent enough to justify its per-session cost.
 Selecting it replaces whatever output style is active, built-ins included.
 
 ## Assumptions about your setup
 
+- **A git repository** — required by `keep-ledger`, whose whole argument is that a ledger survives
+  because it's committed. Without one it has nowhere to put the ledger that beats a scratch file.
 - **CLAUDE.md** — standard, and required for the "standing instructions" destination.
 - **A memory tier** — optional. If your setup has one, `distill-lessons` follows whatever format
   it specifies. If not, that destination collapses into CLAUDE.md or nowhere, and the skill says
@@ -129,18 +165,20 @@ Selecting it replaces whatever output style is active, built-ins included.
 ## Evals
 
 Each skill carries its own cases under `skills/<name>/evals/evals.json`, weighted toward
-near-misses — the prompts that look like a trigger and aren't. Sixteen cases in all: six for
-`distill-lessons`, five each for `reconcile-records` and `refile-rules`. Four of them turn on the
-workflow not running *at all*, and two more on the pass running and correctly producing nothing;
-most of the rest carry at least one expectation that some action must not be taken. Every case
-carries both an `expected_output` written for a human reader and an `expectations` array of
-individually checkable assertions, which is what `skill-creator`'s grader scores.
+near-misses — the prompts that look like a trigger and aren't. Twenty-six cases in all: seven each
+for `keep-ledger`, `distill-lessons`, and `reconcile-records`, five for `refile-rules`. Six of them
+turn on the workflow not running *at all*, and `distill-lessons` eval 2 on the pass running and
+correctly producing nothing; most of the rest carry at least one expectation that some action must
+not be taken. Every case carries both an `expected_output` written for a human reader and an
+`expectations` array of individually checkable assertions, which is what `skill-creator`'s grader
+scores.
 
-`refile-rules` also carries a `trigger_eval.json` — twenty phrasings with expected
-trigger/no-trigger outcomes, nine positive and eleven negative. It exists because all three skills
-describe a rule store going wrong and therefore compete for the same prompts, so eight of its
-negatives are prompts belonging squarely to the other two. The negative half is the actual test;
-passing the happy path proves nothing about separation.
+`refile-rules` and `keep-ledger` also carry a `trigger_eval.json` — phrasings with expected
+trigger/no-trigger outcomes, twenty for the first (nine positive) and twenty-two for the second
+(ten positive). They exist because all four skills describe a document going wrong and therefore
+compete for the same prompts, so eight of `refile-rules`' negatives and seven of `keep-ledger`'s
+are prompts belonging squarely to siblings. The negative half is the actual test; passing the happy
+path proves nothing about separation.
 
 Four `reconcile-records` cases need a seeded record store. Eval 1 needs a record calling the
 finished work unmerged. Eval 2 needs notes holding both a present-tense and a dated claim about the

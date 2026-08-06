@@ -1,0 +1,98 @@
+---
+name: keep-ledger
+description: Keep a resumable ledger — what is done, what proof actually ran, and the exact next command — in the tracked document that owns the work. Use when starting anything with more than one step (a plan about to be executed, a staging list, a migration, a multi-stage refactor), and use again when picking such work back up — a new session, a fresh context after a compaction or a session-limit reset, or when the user says "where were we", "pick this back up", "what's left on X", "did we finish Y". Also use when a plan or staging list turns out to list steps with no status. This is not for deciding what knowledge is worth keeping, which is `distill-lessons`, and not for sweeping a record store for what recent work made false, which is `reconcile-records` — though a stale or absent ledger is exactly what that pass is built to catch. It is also not a session recap or a handover summary — those describe what happened, and a ledger records only what a future session must act on.
+version: 1.0.0
+license: GPL-3.0-or-later
+---
+
+# Keep a ledger
+
+A plan says what to do. It does not say what happened — and after the first session, what happened is the only thing a reader needs.
+
+The gap is invisible while you are in the session, because you are the record. It becomes the entire problem the moment you are not: a fresh session opens the plan, cannot tell done from pending, and has two moves available, both wrong — redo work that landed, or skip work that didn't.
+
+So the failure this guards against is not forgetting to keep a ledger. It is keeping one that lists steps and holds no state.
+
+## 1. Write it at the start
+
+Every plan with more than one step gets a ledger, and it gets one before the first step runs — not when the context starts to feel tight.
+
+The moment you need it is the moment you cannot write it. A session that hits a limit does not get a turn to summarize itself first; a compaction does not ask. Whatever is on disk survives and nothing else does.
+
+Scale the ledger to the work rather than exempting the work. A three-step task's ledger is three lines with a status each, and costs about as much to write as saying you'll do it later. Ceremony out of proportion to the job is how a standing rule quietly stops being followed.
+
+## 2. Put it in the tracked document that owns the work
+
+Committed, in the repo, in the file a session picking this up would open first — the plan, the scoping memo, the design doc, the staging list. Not a scratch directory, not a git-ignored workspace, not a chat message.
+
+One case is the whole argument. A staging list living as §11 of a tracked scoping memo survived the session that wrote it, the branch, and three separate records passes, and was still the first thing a later session opened — because it was committed. Nothing in a scratch directory has that property: it is invisible to `git log`, absent from the next clone, and unreadable by anyone who wasn't in the room.
+
+Where no document owns the work yet, creating one **is** the first entry of the ledger. The smallest thing that can be committed beats the best thing that can't.
+
+## 3. Give every step a status
+
+The vocabulary, and the distinctions that matter:
+
+| Status | Says |
+|---|---|
+| **DONE `<date>`** | Landed. Carries its proof (step 4) and, if the prescribed proof was wrong, the correction |
+| **Not started** | Available. A session may pick it up |
+| **In progress** | Someone is mid-flight; name what is half-done |
+| **Parked** | A choice that was made and can be unmade. Say what would unpark it |
+| **BLOCKED on X** | Something outside this work must happen first |
+| **On a separate track** | Another person or workstream owns it. Say what the second-lander must re-read rather than assume |
+
+Parked and blocked are not synonyms, and the difference is who acts next. A step marked with neither reads as available, and a session will start it.
+
+Open the ledger with one line giving the shape before anyone reads six entries: **Status as of 2026-08-06: step 1 done; step 2 on a separate track; steps 3–6 untouched.**
+
+Close it, when the whole thing lands, with one line: done, the date, the commit range. That converts a live record into a dated historical one — which `reconcile-records` will then correctly leave alone instead of trying to freshen.
+
+**A status you did not check is worse than none.** Confirm from the repo — the commits, the file, the test run — never from your memory of the session or from the user's summary of it.
+
+## 4. Record the proof that ran, not the proof you planned
+
+This is the field that makes a wrong ledger dangerous rather than merely thin.
+
+A step's proof is written when the step is planned and executed when the step is done, and those are not the same claim. The written one is a guess about a repo you had not yet run it against. **A ledger recording the intended check rather than the executed one is worse than a ledger with no proof field at all, because the next session follows it.**
+
+So when the check that ran differs from the check that was written, correct the written one in place and say why it could not work. Do not quietly swap it: the reason the prescribed check failed is usually a property of the repo that will trip a later step the same way.
+
+The incident this comes from: a step prescribed "a clean build plus a `git diff` of `docs/`". That cannot work in that repo, because `docs/` holds a stale build from a different environment and the diff is dominated by the environment difference rather than by the change. What ran instead was two full production builds into separate temp directories, diffed with `diff -r` — 2,766 files and 1,158 pages each, differing only in three build-timestamp lines. The corrected entry says all of that, and says to use the same A/B form for the later step that needs the same diff.
+
+Write it in the house form — `[verified <date>: how]` — naming the command, its flags, and the numbers that came back. Same vocabulary as the audit docs, on purpose.
+
+## 5. Point at landmarks, not line numbers
+
+The next session's copy of the file has moved. Address things that survive an edit: the path plus the symbol, the function, the heading. Carry a line number if it helps, never as the only locator, and say when it moved — *now at `assets/js/nr-topic-spa/url.js:21` after the module split*.
+
+The same standard applies to what runs next. Write the exact command with its flags and what a pass looks like. "Run the characterization check" is a lookup task handed to the next session; `npm run characterize:nr -- --check`, zero diffs expected, is not.
+
+## 6. Update it as part of the step, not at the end
+
+The commit that finishes a step edits the ledger. There may be no end of session to do it at, and a ledger updated from recollection is a ledger written by the least reliable witness available.
+
+## 7. On resume, the ledger and `git log` outrank your recollection
+
+Read the ledger first, then check its status line against the commits before touching anything. If the two disagree, the repo is right, and correcting the ledger is the first edit of the session rather than something to do once the real work is done.
+
+This binds hardest exactly where it feels least necessary. After a compaction, "recollection" is a summary you wrote about a session, at a remove from the session. A user's recap is honest and abbreviated. Neither is evidence; the commits are.
+
+## What a ledger is not
+
+- **A second copy of the plan.** It points at the plan's steps and records their state. Two copies drift, and a reader can't tell which is current.
+- **A session recap.** Nobody picking the work up needs the narrative. Record only what they must act on.
+- **A restatement of `git log`.** What the commits already say, leave to them. The ledger holds what they can't: status, the proof that ran, and what comes next.
+- **A home for lessons.** What you learned belongs where it will actually be read, and `distill-lessons` decides where that is. A lesson parked in a ledger is read by the one workstream that opens the ledger — which is the failure that skill exists to fix.
+- **A status nobody verified.** Repeated because it is the cheapest thing here to get wrong and the most expensive downstream.
+
+## Credit
+
+The ledger's shape — the identity line, the `parked` / `BLOCKED` vocabulary, the completion line
+with its commit range, and the resume rule — is adapted from `subagent-driven-development` in
+[superpowers](https://github.com/obra/superpowers) (MIT). This plugin's README says what was
+borrowed and the one place it deliberately departs.
+
+## After this pass
+
+A ledger is a status record, which makes it the artifact `reconcile-records` is built to check: a step whose status has moved on is that pass's first gate, and work that ended mid-flight with nothing written down is its second. Keeping one is what gives those gates something greppable to find. Run that pass at the work's next boundary — it will find the ledger, and a found ledger is cheap to correct.

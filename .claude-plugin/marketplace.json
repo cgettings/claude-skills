@@ -25,6 +25,15 @@
       "category": "productivity"
     },
     {
+      "name": "keep-ledger",
+      "source": "./plugins/keep-ledger",
+      "description": "Keep a resumable ledger for work that spans sessions — what is done, what proof actually ran, and the exact next command — in the tracked document that owns the work.",
+      "author": {
+        "name": "cgettings"
+      },
+      "category": "productivity"
+    },
+    {
       "name": "refile-rules",
       "source": "./plugins/refile-rules",
       "description": "Reorganize a rule store whose structure stopped holding — overlapping sections, rules filed by feel, content in the always-loaded tier that had a trigger all along.",

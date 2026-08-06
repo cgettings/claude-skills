@@ -1,0 +1,25 @@
+[
+  {"query": "plan's approved, six steps, let's start", "should_trigger": true},
+  {"query": "this migration is going to take a few sessions", "should_trigger": true},
+  {"query": "picking the refactor back up — where were we?", "should_trigger": true},
+  {"query": "what's left on the dependency upgrade?", "should_trigger": true},
+  {"query": "did we finish the uhflist split or not?", "should_trigger": true},
+  {"query": "new session, continue the audit from where it stopped", "should_trigger": true},
+  {"query": "this staging list has six steps and no way to tell which are done", "should_trigger": true},
+  {"query": "step 3 landed, update the plan doc", "should_trigger": true},
+  {"query": "we're about to run out of context, make sure this survives", "should_trigger": true},
+  {"query": "four packages to upgrade, one at a time", "should_trigger": true},
+
+  {"query": "bump the version and push", "should_trigger": false},
+  {"query": "fix this typo in the README", "should_trigger": false},
+  {"query": "summarize what we did today", "should_trigger": false},
+  {"query": "any lessons from that?", "should_trigger": false},
+  {"query": "anything worth putting in CLAUDE.md?", "should_trigger": false},
+  {"query": "is any of this still true?", "should_trigger": false},
+  {"query": "anything out of date in the notes?", "should_trigger": false},
+  {"query": "just merged the auth branch, deleting it now", "should_trigger": false},
+  {"query": "this CLAUDE.md has got way too big", "should_trigger": false},
+  {"query": "where does this rule even belong?", "should_trigger": false},
+  {"query": "the plan doc has a typo in step 4's heading", "should_trigger": false},
+  {"query": "what does step 4 of the plan actually mean?", "should_trigger": false}
+]

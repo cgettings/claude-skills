@@ -1,0 +1,109 @@
+{
+  "skill_name": "keep-ledger",
+  "notes": "Prompts stay short and withhold detail on purpose — a user does not narrate a session back to the agent that was in it, and a prompt carrying every fact lets the model skip the checking the skill exists to force. Prior state a case depends on is described in expected_output as a precondition, never put in the user's mouth. Eval 1 is the mandate at its weakest moment: the work is interesting, the ledger is not, and deferring it is the natural move. Eval 2 tests where the ledger goes when nothing owns the work yet, and its trap is environmental rather than reasoned — a session scratchpad directory is offered by the harness and is the path of least resistance, and it fails the one property that matters. Eval 3 is the core case and the one the skill was written for: the prescribed proof cannot work, so marking the step done against it is a fail even though the step genuinely landed. Eval 4 tests the resume rule, where the ledger itself is the thing that is wrong; trusting it is the failure, and so is redoing the work. Eval 5 tests the status vocabulary at its only genuinely ambiguous point — a step someone else now owns is neither in progress nor blocked, and leaving it unmarked makes it read as available. Evals 6 and 7 are near-misses: one guards against a hard mandate becoming ceremony on single-step work, the other against the ledger absorbing content that belongs to `distill-lessons`. Expectations are checkable from the transcript alone, and the near-miss cases are scored mostly on actions that must not happen.",
+  "evals": [
+    {
+      "id": 1,
+      "name": "ledger-before-the-first-step",
+      "prompt": "plan looks good. six steps. start on step 1.",
+      "expected_output": "The ledger is written before step 1 runs, into the plan document itself, and committed. The failure this case exists for is the natural one: the work is interesting and the bookkeeping is not, so the agent starts step 1 and says it will record progress as it goes. That defers the artifact past the only point at which it is guaranteed to get written — a session that hits a limit gets no turn to summarize itself. Each of the six steps must carry a status, and the five untouched ones must be marked as such rather than left blank. A header line giving the shape as of today is expected. Requires a plan document with six steps and no status fields.",
+      "files": [],
+      "expectations": [
+        "A ledger is created before any work on step 1 begins",
+        "All six steps carry an explicit status, including the untouched ones",
+        "The ledger is written into the tracked plan document rather than a scratch file or the conversation",
+        "A status-as-of line giving the overall shape is written at the top",
+        "Recording progress is not deferred to the end of the session or to 'as I go'",
+        "The ledger's creation is committed rather than left uncommitted in the working tree"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "no-document-owns-the-work-yet",
+      "prompt": "four packages to upgrade, one at a time, each needs its own test run. let's start.",
+      "expected_output": "Multi-step work with no plan doc, no memo, and no staging list — nothing owns it. Correct behaviour is to create the smallest document that can be committed and put the ledger in it. The trap is environmental rather than reasoned: the session has a scratchpad directory available and it is the path of least resistance, but a ledger there is invisible to git log, absent from the next clone, and unreadable by anyone who wasn't in the room — the one property that makes a ledger worth writing. Writing it to the scratchpad, to a git-ignored path, or keeping it in the conversation are all the same failure. Deciding no ledger is needed is also a fail: four steps with four separate test runs is exactly the shape this covers.",
+      "files": [],
+      "expectations": [
+        "A tracked document is created to hold the ledger",
+        "The ledger is not written to the session scratchpad or any git-ignored path",
+        "The ledger is not left as conversation-only state",
+        "The document created is minimal rather than an elaborate plan",
+        "All four packages appear as steps with a status each",
+        "The work is not started without a ledger on the grounds that it is only four packages"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "proof-as-run-not-as-planned",
+      "prompt": "partials are gone. mark step 1 off.",
+      "expected_output": "The step genuinely landed, so marking it done is right — but the ledger prescribes a proof that cannot work in this repo, and marking the step done against that prescription is the failure this skill was written for. Precondition: step 1's proof field reads 'clean build plus a git diff of docs/', and docs/ holds a stale build from a different environment, so that diff is dominated by the environment difference rather than by the change. The agent must establish that, run a check that does work — two builds of the same environment into separate directories, diffed — and then correct the written proof in place, saying why the original could not work. Silently substituting the executed check for the prescribed one is a fail: the reason the prescription was wrong is a property of the repo, and a later step in the same list prescribes the same docs/ diff. The numbers the check returned belong in the entry.",
+      "files": [],
+      "expectations": [
+        "The step is not marked done on the strength of the prescribed docs/ diff",
+        "The reason the prescribed check cannot work in this repo is stated",
+        "A check that does work is actually run, not merely described",
+        "The written proof is corrected in place rather than silently replaced",
+        "The corrected entry names the command and the counts the check returned",
+        "The later step prescribing the same docs/ diff is flagged or corrected too",
+        "The completed step carries a date"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "resume-repo-outranks-the-ledger",
+      "prompt": "picking the migration back up. where were we?",
+      "expected_output": "Precondition: the ledger says step 3 is not started, and the commits show it landed two days ago. Both available failures are scored. Trusting the ledger and redoing step 3 is one; the other is quieter — answering 'where were we' from the ledger alone, reporting step 3 as pending, and handing the user a confident wrong status without ever looking at the commits. Correct behaviour is to read the ledger first, then check it against git log before acting, and on finding the disagreement to treat the repo as right and correct the ledger as the first edit of the session. A context summary or the user's own recollection is not evidence either way.",
+      "files": [],
+      "expectations": [
+        "The ledger is read first",
+        "The ledger's status is checked against the commits before any work begins",
+        "The disagreement between the ledger and the repo is identified",
+        "The repo is treated as authoritative, not the ledger",
+        "Step 3 is not redone",
+        "The ledger correction is made before proceeding to the next step",
+        "Step 3 is not reported as pending to the user"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "a-step-someone-else-now-owns",
+      "prompt": "the other team is fixing those values on their own branch, so step 2 is off our plate.",
+      "expected_output": "The only genuinely ambiguous point in the status vocabulary. The step is not in progress — nobody here is mid-flight on it. It is not blocked, because nothing outside the work has to happen before this work can continue. Leaving it unmarked is the real failure: an unmarked step reads as available and a future session will pick it up, duplicating another team's branch. It should be marked as being on a separate track, dated, and carry the one thing the second lander needs — that whichever change lands second should re-read the file rather than assume its shape. The top status line should be updated to match.",
+      "files": [],
+      "expectations": [
+        "Step 2 is given an explicit status rather than left blank or deleted",
+        "The status distinguishes a separate track from blocked and from in progress",
+        "The entry is dated",
+        "The entry says what the second change to land must re-read rather than assume",
+        "The status-as-of line at the top of the ledger is updated to match",
+        "Step 2 is not simply removed from the ledger"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "near-miss-single-step-work",
+      "prompt": "bump the version and push.",
+      "expected_output": "One step. No ledger, no plan document, no status line — just do it. This case exists because the mandate is deliberately hard ('any multi-step plan'), and a hard mandate over-applied is how a standing rule earns a reputation for ceremony and stops being followed at all. Creating a tracked document to record a version bump is the failure. Noting the change in an existing ledger, if one is already open for related work, is fine and not what this case scores.",
+      "files": [],
+      "expectations": [
+        "No ledger is created",
+        "No new tracked document is created to hold status",
+        "The version bump and push are performed",
+        "The response does not propose adding a ledger for this work"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "near-miss-lesson-not-ledger-content",
+      "prompt": "that ORM truncation thing cost us two hours. worth writing down somewhere?",
+      "expected_output": "A durable lesson, offered while a ledger happens to be open. It belongs wherever `distill-lessons` routes it — CLAUDE.md, memory, or nowhere. Writing it into the ledger is the failure: a lesson parked in a ledger is read only by the one workstream that opens that ledger, which is the exact evaporation the lessons pass exists to prevent. Routing it to `distill-lessons`, or answering the question directly, are both correct.",
+      "files": [],
+      "expectations": [
+        "The lesson is not written into the ledger",
+        "The response routes the question to distill-lessons or answers it directly",
+        "No status fields are edited in response to a lesson",
+        "The ledger is not treated as a general-purpose notes file"
+      ]
+    }
+  ]
+}
