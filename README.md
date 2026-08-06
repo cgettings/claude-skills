@@ -82,10 +82,14 @@ schedules anyone to look. This pass is that schedule, and it applies to more occ
 lessons pass does: after a merge, after a release, when someone trips over a stale doc, or as a
 periodic sweep.
 
-Four steps: bound the scope to what the work touched; apply five gates for the kinds of thing
+Four steps: bound the scope to what the work touched; apply six gates for the kinds of thing
 that go false or go missing; verify before deleting — including confirming the *claim* survives elsewhere,
 not merely the keyword; propose the exact edits with evidence for what makes each current
 version false.
+
+The sixth gate is the odd one out and the expensive one: claims that were never established rather
+than claims that went false. Nothing about them ever changes, so five gates that detect *change*
+walk straight past them.
 
 ## `refile-rules`
 
