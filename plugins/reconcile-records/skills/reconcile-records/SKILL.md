@@ -1,7 +1,7 @@
 ---
 name: reconcile-records
-description: Find and fix records that recent work made false — status lines that have moved on, numbers something re-measured, notes that became re-derivable, rules a newer rule replaced, and state the work left unrecorded. Use when a branch merges, a release ships, or a multi-stage task completes; right after a lessons pass, including when that pass found nothing worth recording; when someone trips over a stale doc, memory, comment, or README; and whenever the user asks "is this still true?", "anything out of date?", "clean up the notes", or "does the doc still match the code?". This is not for adding new knowledge — capturing a durable lesson is `distill-lessons`. It is also not for reorganizing a store whose sections have drifted into overlap or grown too long to read, which is `refile-rules`. This pass makes the record match reality — it corrects, retires, and where the work left state unrecorded, captures that state. It runs whether or not the work taught anything.
-version: 1.3.0
+description: Find and fix records that recent work made false — status lines that have moved on, numbers something re-measured, notes that became re-derivable, rules a newer rule replaced, and state the work left unrecorded. Use when a branch merges, a release ships, or a multi-stage task completes; right after a lessons pass, including when that pass found nothing worth recording; when someone trips over a stale doc, memory, comment, or README; and whenever the user asks "is this still true?", "anything out of date?", "clean up the notes", or "does the doc still match the code?". This is not for adding new knowledge — capturing a durable lesson is `distill-lessons`. It is also not for reorganizing a store whose sections have drifted into overlap or grown too long to read, which is `refile-rules`. Keeping a status record while work is live is `keep-ledger`; this pass checks one. This pass makes the record match reality — it corrects, retires, and where the work left state unrecorded, captures that state. It runs whether or not the work taught anything.
+version: 1.4.0
 license: GPL-3.0-or-later
 ---
 
@@ -27,7 +27,11 @@ State the scope you settled on. If asked for something broader, say what you cov
 
 **Status that has moved on.** "Not yet merged", "still open", "parked", "in progress", "blocked on", "verified <date>". These go false by design the moment the thing they describe advances. If the work advanced it, fix the line or delete the entry.
 
+A ledger — the per-step status record `keep-ledger` keeps in the document that owns the work — is written to be checked exactly this way: one line per step, each carrying a status and a date. Where one exists, start there.
+
 **Status that was never written down.** The mirror of the gate above, and the one people skip because nothing stale is staring at them. Work that ends mid-flight leaves state no record holds: a branch that shipped but is unmerged, which stages of a plan landed, a verification deferred to a window that hasn't come, a decision taken but never filed. That state is usually the most perishable thing the session produced — it lives only in a transcript that is about to be summarized away. Write it where the status of that work already lives, in the same form as its neighbours. Judge it by whether a future session would be stuck without it, never by whether it taught anything: this is bookkeeping, and holding it to a lessons bar is how it goes unrecorded.
+
+`keep-ledger` writes this state while the work is live, which is the only time it is cheap to write. Where no ledger was kept, this gate is what stands between that state and a transcript about to be summarized away — so when it fires, say so, because a ledger written now costs less than this gate firing again at the next boundary.
 
 **Numbers something re-measured.** If a recent measurement contradicts what a record states, the record is wrong now. Correct it in place and say it was wrong — a quietly updated figure still misleads the next reader, who has no way to know it moved.
 
