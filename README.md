@@ -23,6 +23,11 @@ A fifth plugin, [`grounded-output-style`](plugins/grounded-output-style), is a d
 thing: not a workflow that runs at a boundary, but a working style that's live for the whole
 session.
 
+A sixth, [`keep-session-warm`](plugins/keep-session-warm), is different again — an operational tool
+rather than a workflow or a style, and the only one here that's Windows-only. It stands opposite
+`keep-ledger` on the same gap: a ledger preserves what the *next* session needs to know, a keepwarm
+preserves what *this* one already has loaded.
+
 ## `keep-ledger`
 
 Keeps a resumable ledger for work that runs past one sitting — what is done, what proof actually
@@ -135,6 +140,39 @@ line-cited measurement sound the same.
 See the plugin's own [README](plugins/grounded-output-style) for what it changes and its
 per-session cost.
 
+## `keep-session-warm`
+
+Keeps a Claude Code session's prompt cache warm across a gap you aren't working through —
+overnight, over a weekend — so resuming it is a cache read rather than a full-prefix rewrite.
+Windows and Task Scheduler.
+
+**Why it's separate.** A keepwarm is easy to build and easy to build wrong, and the wrong version
+is indistinguishable from the right one from the outside. It runs on schedule, exits zero, and
+writes a log full of successes — while every ping refreshes a cache entry the morning resume will
+never read. You pay for the pings *and* the rewrite. So the thing to get right isn't the schedule.
+It's the match, plus a check that the match still holds.
+
+The cache is a strict prefix match, so a ping helps only if it lands on the same chain — the same
+*lineage* — that the next interactive resume will use. Measured on one session, byte-identical,
+seconds apart (2026-08-07, Claude Code 2.1.220, Opus 5): resumed with the session's own environment
+it read 37,950 cached tokens and wrote 19; resumed from the clean environment Task Scheduler
+supplies, it read 12,424 and wrote 22,150. The second lineage then warms up perfectly well, which
+is exactly why the failure is invisible.
+
+So `/keepwarm-start` pins the lineage keys, probes them, refuses to register when the probe doesn't
+land, and seeds the ping baseline from what it measured. That last one closes a hole the running
+keepwarm can't close itself: divergence is caught by watching the cache read fall below a
+high-water mark, so a keepwarm on the wrong lineage from its first ping would set that mark from
+the wrong number and clear its own bar all night. `/keepwarm-check` runs the probe alone, for
+diagnosing a session; `/keepwarm-status` reports schedule state and accumulated cost; and
+`/keepwarm-stop` unregisters, which you want before resuming the session interactively.
+
+**What isn't established.** That this one variable splits the lineage is verified and reproduced;
+that it's the *only* such variable isn't — it's what showed up, not the result of a sweep. The
+probe measures the thing directly and stays the authority after an upgrade changes something the
+docs never knew about. The plugin's own [README](plugins/keep-session-warm) carries the full
+measurement table and the break-even arithmetic.
+
 ## Install
 
 ```
@@ -144,6 +182,7 @@ per-session cost.
 /plugin install reconcile-records@cgettings-skills
 /plugin install refile-rules@cgettings-skills
 /plugin install grounded-output-style@cgettings-skills
+/plugin install keep-session-warm@cgettings-skills
 ```
 
 They work independently. The first runs while work is in flight and feeds the third; the second and
@@ -151,7 +190,8 @@ third are designed to run back to back; the fourth fires only when one of them t
 is a standing style, not a workflow — after installing it, select
 it under `/config` → **Output style** → **Grounded**, and only in projects where
 verification/audit/documentation writing is frequent enough to justify its per-session cost.
-Selecting it replaces whatever output style is active, built-ins included.
+Selecting it replaces whatever output style is active, built-ins included. The sixth is unrelated
+to the rest and only useful on Windows; skip it elsewhere.
 
 ## Assumptions about your setup
 
@@ -163,14 +203,19 @@ Selecting it replaces whatever output style is active, built-ins included.
   so rather than inventing a store to write to.
 - **An always-loaded memory index** — optional. The hook-length rule only applies if your memory
   system has one.
-- **Session transcripts** at `~/.claude/projects/<project-slug>/*.jsonl` — used only to recover
-  user corrections, which artifacts never record.
+- **Session transcripts** at `~/.claude/projects/<project-slug>/*.jsonl` — used by
+  `distill-lessons` to recover user corrections, which artifacts never record, and by
+  `keep-session-warm` to locate the session and to read its lineage keys when it can't take them
+  from a live environment.
+- **Windows, PowerShell, and Task Scheduler** — required by `keep-session-warm` alone, which
+  registers a scheduled task and ships PowerShell scripts. The other five are platform-agnostic.
 
 ## Evals
 
-Each skill carries its own cases under `skills/<name>/evals/evals.json`, weighted toward
-near-misses — the prompts that look like a trigger and aren't. Twenty-six cases in all: seven each
-for `keep-ledger`, `distill-lessons`, and `reconcile-records`, five for `refile-rules`. Six of them
+Each of the four workflow skills carries its own cases under `skills/<name>/evals/evals.json`,
+weighted toward near-misses — the prompts that look like a trigger and aren't. Twenty-six cases in
+all: seven each for `keep-ledger`, `distill-lessons`, and `reconcile-records`, five for
+`refile-rules`. `grounded-output-style` and `keep-session-warm` carry none. Six of them
 turn on the workflow not running *at all*, and `distill-lessons` eval 2 on the pass running and
 correctly producing nothing; most of the rest carry at least one expectation that some action must
 not be taken. Every case carries both an `expected_output` written for a human reader and an
