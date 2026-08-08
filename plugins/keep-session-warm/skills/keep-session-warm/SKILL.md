@@ -66,13 +66,24 @@ Each ping appends one line:
 2026-08-07 11:43:26 BASE  read=38138 write=19 cost=$0.0195 (baseline established)
 2026-08-07 11:43:29 OK    read=38157 write=22 cost=$0.0195
 2026-08-07 11:44:27 MISS  read=12424 write=21877 cost=$0.2252  lineage diverged: read fell 67.5% below high-water 38179; unregistered 'ClaudeKeepwarm-...'
+2026-08-08 00:48:54 RESET read=0 write=58782 cost=$0.3909  prefix rewritten (system_changed): read fell 100% below high-water 30648; re-baselined and continuing
 ```
 
-`BASE` sets the high-water mark. `OK` means the read held. `MISS` means it collapsed while the write ballooned — the signature of a lineage switch — and the task unregisters itself rather than spending the night refreshing a chain nobody will resume into.
+`BASE` sets the high-water mark. `OK` means the read held. `MISS` and `RESET` both mean it collapsed while the write ballooned — and they are the same measurement, split by a second question.
 
 That detection rests on one property: on a healthy chain the cache read only ever grows, because the prefix only grows. A read that falls sharply cannot happen without the prefix changing. The write-size guard alongside it stops a small session's noise from tripping the check — a collapsed read with a 22-token write is an artifact, not a divergence.
 
-**A `MISS` is not a tool failure to be retried.** It means the session stopped being protected at that timestamp, and resuming it will pay the rewrite. The useful response is to find out what moved — a Claude Code upgrade changing the harness preamble, a different effort level, an MCP server changing the tool list — not to restart the keepwarm and hope.
+But *the prefix changed* has two causes with opposite responses, and the numbers alone cannot separate them. The pings may have drifted onto another lineage, in which case continuing refreshes a chain nobody will resume into. Or something outside the keepwarm may have rewritten the prefix under the session — and then the ping that paid for the rewrite has already re-warmed the new one, so stopping forfeits every hour that remains.
+
+What separates them is a field the API returns and `claude -p` does not print: `cache_miss_reason`, read back out of the session transcript. `system_changed` and `tools_changed` mean the prefix was rewritten, and the keepwarm logs `RESET`, re-baselines its high-water mark to what the ping just wrote, and keeps running. Every other value — and an absent one — unregisters as before. That default is deliberate: the field is missing outright on some genuine misses, so nothing unproven gets to buy a reprieve.
+
+What triggers it is not anything the keepwarm controls, and not always identifiable afterwards. A server-side tool-roster flip does it: on 2026-08-08 one dropped `TodoWrite` for `TaskCreate`/`TaskGet`/`TaskList`/`TaskUpdate`, rewriting the deferred-tool listing in the system prompt with CLI version, model, effort and directory all unchanged, and cost a keepwarm the remaining seven hours of its night. But a `system_changed` observed the same day on a throwaway session had **no roster delta recorded at all**, on the same entrypoint, effort and directory — so the roster is one cause rather than the cause, and a `RESET` line is not evidence that the roster is what moved.
+
+**A `MISS` is not a tool failure to be retried.** It means the session stopped being protected at that timestamp, and resuming it will pay the rewrite. The useful response is to find out what moved — a Claude Code upgrade changing the harness preamble, or a different effort level — not to restart the keepwarm and hope.
+
+**A `RESET` is not a failure at all.** The session stayed protected. The only thing worth reading off it is the cost: each one is a full-prefix rewrite that got billed, so several in a night is worth investigating even though none of them broke anything.
+
+**Which is why continuing is capped at three.** Absorbing a rewrite is right when rewrites are occasional, because the ping that paid for one has re-warmed the new prefix. It stops being right if the prefix keeps moving — an uncapped keepwarm would buy a rewrite every interval all night and log each as a healthy line, and a rewrite is billed at full prefix rate: $0.39 on a 59K-token session, and a recorded 363,713-token rewrite on a large one came to about $3.64. The fourth rewrite therefore stops the keepwarm and logs `reset budget exhausted` rather than `lineage diverged`, because nothing diverged and the next reader should not go looking. The budget is a lifetime total, not a consecutive streak: a healthy ping in between two rewrites does not refill it. `-MaxResets` changes it.
 
 ## 5. What else breaks it
 
@@ -86,6 +97,14 @@ That detection rests on one property: on a healthy chain the cache read only eve
 The entrypoint finding is measured on this machine, on Claude Code 2.1.220, between `claude-vscode` and a clean environment. That one variable splits the lineage is verified and reproduced three times. That it is the *only* such variable is not — it is the one that showed up, not the result of an exhaustive sweep. Treat the probe as the authority, not this file: it measures the thing directly, and it will keep being right after an upgrade changes something this paragraph never knew about.
 
 **`MISS` does not distinguish a diverged lineage from a lapsed one.** Both produce a collapsed read and a large write, and the detector cannot tell them apart. A machine that slept through several intervals and let the cache expire will trip the same abort as a genuine lineage switch. The abort is still the right response — in both cases the session stopped being protected — but do not read the log line as proof that something changed about the prompt prefix. Check whether the machine was awake first; the power pre-flight at registration is there to make that the less likely explanation.
+
+`cache_miss_reason` does not close that gap. **Which value a TTL lapse reports has not been measured** — no lapse with a known cause appears in the transcripts the classifier was built from — so a lapse may well arrive as an unrecognised or absent reason and unregister, which is the behaviour wanted anyway. Do not infer from a `MISS` line that the reason field ruled a lapse out.
+
+**The rule the `RESET` branch rests on is verified live; the branch firing on a real miss is not.** Keep the two apart.
+
+The rule — that `system_changed` and `tools_changed` re-warm the prefix they invalidated — comes from 217 transcripts and 25,675 assistant records swept on 2026-08-08: of 23 `system_changed` and 63 `tools_changed` misses, every one whose session made a following request had that request served from cache, with no genuine counterexample. A live instance then landed the same day, unplanned, on a throwaway session: a ping took `read=16101 write=22931` with `cache_miss_reason: system_changed`, and the next ping read **39,032** for a 22-token write and $0.02. Recovery after a real miss is measured, not inferred.
+
+What has *not* been watched is the branch itself taking that decision unattended — the live miss happened outside the script, and the script's own next run was an ordinary `OK`. The branch is exercised by a harness that fabricates a transcript record per reason, because a real `system_changed` cannot be summoned on demand.
 
 ## Commands
 

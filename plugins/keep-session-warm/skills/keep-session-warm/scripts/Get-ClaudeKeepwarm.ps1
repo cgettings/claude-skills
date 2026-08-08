@@ -14,6 +14,12 @@
     point the session was no longer being kept warm, and resuming it will pay
     a full-prefix rewrite. ERROR means pings are failing outright.
 
+    "OK (with resets)" is a working night, not a degraded one. A RESET ping
+    hit a rewritten prompt prefix — something outside the keepwarm changed the
+    system prompt, most often a server-side tool-roster flip — paid one rewrite,
+    re-warmed the new prefix, and carried on. Only the count of them is
+    interesting: each one is a rewrite that got billed.
+
 .PARAMETER SessionId
     Report on one session. Defaults to every registered keepwarm.
 
@@ -81,6 +87,7 @@ foreach ($id in $sessionIds) {
     # status, so counting the tags reconstructs the night.
     $okCount = @($lines | Where-Object { $_ -match '\sOK\s' }).Count
     $missCount = @($lines | Where-Object { $_ -match '\sMISS\s' }).Count
+    $resetCount = @($lines | Where-Object { $_ -match '\sRESET\s' }).Count
     $errorCount = @($lines | Where-Object { $_ -match '\sERROR\s' }).Count
 
     # Sum the per-ping costs the log recorded, so the night has a running total.
@@ -91,10 +98,14 @@ foreach ($id in $sessionIds) {
 
     # Worst outcome seen wins: a night that ended in a MISS was not a success,
     # however many OK lines came before it.
+    # A RESET is deliberately not a worse outcome than OK: the keepwarm kept
+    # running and the session stayed warm. It is surfaced in its own count
+    # rather than in the verdict.
     $status = if ($missCount -gt 0) { 'MISS' }
         elseif ($lines.Count -eq 0) { 'NoPingsYet' }
         elseif ($errorCount -gt 0 -and $okCount -eq 0) { 'ERROR' }
         elseif ($errorCount -gt 0) { 'OK (with errors)' }
+        elseif ($resetCount -gt 0) { 'OK (with resets)' }
         else { 'OK' }
 
     # The high-water mark, when the state file survives.
@@ -116,8 +127,13 @@ foreach ($id in $sessionIds) {
         Pings            = $lines.Count
         OkPings          = $okCount
         MissPings        = $missCount
+        ResetPings       = $resetCount
         ErrorPings       = $errorCount
         CacheHighWater   = if ($state) { $state.MaxRead } else { $null }
+        # What the next ping will measure its reset budget against. Read from
+        # state rather than counted from the log, because that is the copy the
+        # budget decision actually uses.
+        ResetBudgetUsed  = if ($state) { [int]$state.ResetCount } else { $null }
         TotalCostUsd     = [math]::Round($totalCost, 4)
         LogPath          = $logPath
         RecentLog        = if ($Tail -gt 0) { $lines | Select-Object -Last $Tail } else { $null }

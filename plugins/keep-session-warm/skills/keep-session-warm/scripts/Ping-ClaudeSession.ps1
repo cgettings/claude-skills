@@ -4,6 +4,11 @@
     cache read/write/cost, and unregisters the scheduled task if the ping
     stopped hitting the session's cache lineage.
 
+    A collapsed read alone does not mean that, though, so it is not the whole
+    test: the same numbers are produced when something rewrites the prompt
+    prefix under the session, and that case re-warms itself. The API's
+    cache_miss_reason tells the two apart, and only the first unregisters.
+
 .DESCRIPTION
     Resumes -SessionId with -Prompt via `claude -p --resume`. When the ping's
     rendered prompt prefix matches the one the target session builds, the call
@@ -76,6 +81,19 @@
     prompt-caching documentation as read 2026-08-07, so a write below it cannot
     represent a meaningful rewrite on any model.
 
+.PARAMETER MaxResets
+    How many prefix rewrites to absorb over the life of the keepwarm before
+    stopping anyway. Counted in total, not consecutively, and carried in the
+    state file.
+
+    This is a spend cap, not a correctness control. Continuing through a rewrite
+    is right when rewrites are occasional, because the ping that paid for one
+    has re-warmed the new prefix. It stops being right if the prefix keeps
+    moving: every rewrite is billed at full prefix rate — $0.39 on a 59K-token
+    session, and a recorded 363,713-token rewrite on a large one cost ~$3.64 —
+    so an uncapped keepwarm could buy one every interval all night and log each
+    as a healthy line. Default 3.
+
 .EXAMPLE
     & .\Ping-ClaudeSession.ps1 -SessionId 'd6f79d29-...' -ProjectDir 'C:\src\app' -LogPath 'C:\temp\ping.log'
 
@@ -86,6 +104,11 @@
 
 .OUTPUTS
     PSCustomObject with Status, CacheRead, CacheWrite, CostUsd, and Detail.
+
+    Status is one of BASE (high-water mark established), OK (healthy read),
+    RESET (the prefix was rewritten by something outside this keepwarm; the
+    mark was re-baselined and the schedule left running), MISS (the lineage
+    diverged; the task unregistered itself), or ERROR (the ping never landed).
 #>
 [CmdletBinding()]
 param(
@@ -98,7 +121,8 @@ param(
     [ValidateSet('low', 'medium', 'high', 'xhigh', 'max')][string]$Effort,
     [string]$Prompt = 'Acknowledge and take no action.',
     [double]$ReadDropThreshold = 0.5,
-    [int]$MinWriteTokens = 4096
+    [int]$MinWriteTokens = 4096,
+    [int]$MaxResets = 3
 )
 
 # PowerShell 7.3+ can turn native stderr into a terminating error depending on
@@ -130,6 +154,13 @@ function New-PingResult {
         Detail     = $Detail
     }
 }
+
+# Get-CacheMissReason lives in its own file so it can be dot-sourced and
+# replayed against real transcripts without sending a ping. A missing file
+# leaves the function undefined, which the miss path below treats as an
+# unknown reason — the conservative branch.
+$reasonHelper = Join-Path $PSScriptRoot 'Get-CacheMissReason.ps1'
+if (Test-Path -LiteralPath $reasonHelper) { . $reasonHelper }
 
 # STEP 1 — move into the project directory.
 # --resume resolves the session relative to the current directory, so this must
@@ -237,10 +268,11 @@ if ($null -eq $state -or $null -eq $state.MaxRead) {
     Write-PingLog "$timestamp BASE  $measurements (baseline established)"
     if ($StatePath) {
         [PSCustomObject]@{
-            SessionId = $SessionId
-            MaxRead   = $read
-            PingCount = 1
-            FirstPing = $timestamp
+            SessionId  = $SessionId
+            MaxRead    = $read
+            PingCount  = 1
+            ResetCount = 0
+            FirstPing  = $timestamp
         } | ConvertTo-Json | Set-Content -LiteralPath $StatePath -Encoding utf8
     }
     return New-PingResult -Status 'BASE' -Read $read -Write $write -Cost $cost -Detail 'baseline established'
@@ -252,11 +284,65 @@ if ($null -eq $state -or $null -eq $state.MaxRead) {
 $maxRead = [int]$state.MaxRead
 $diverged = ($read -lt ($maxRead * $ReadDropThreshold)) -and ($write -gt $MinWriteTokens)
 
-# Diverged: log it loudly and take the task down, since continuing would spend
-# the night refreshing a chain nobody will resume into.
+# A miss is detected by the numbers above, then classified by the reason the
+# API gave for it — because the two outcomes are opposite. A diverged lineage
+# means continuing would spend the night refreshing a chain nobody will resume
+# into. A rewritten prefix means this very ping re-warmed the new one, and
+# stopping would throw away every hour that remains.
 if ($diverged) {
     $dropPercent = [math]::Round((1 - ($read / [double]$maxRead)) * 100, 1)
-    $detail = "lineage diverged: read fell $dropPercent% below high-water $maxRead"
+    $reason = if (Get-Command Get-CacheMissReason -ErrorAction SilentlyContinue) {
+        Get-CacheMissReason -Read $read -Write $write -SessionId $SessionId -ProjectDir $ProjectDir
+    } else { $null }
+
+    # Measured over 217 transcripts / 25,675 assistant records on 2026-08-08: of
+    # 23 system_changed and 63 tools_changed misses, every one whose session had
+    # a following request had that request read the new prefix back from cache.
+    #
+    # This is the branch a keepwarm needs most, because what triggers it is
+    # nothing the keepwarm controls or can predict: a server-side tool-roster
+    # flip mid-gap rewrites the system prompt text, and unregistering on that
+    # forfeits the rest of the night to save a single ping.
+    $resetCount = [int]$state.ResetCount + 1
+    if (($reason -in @('system_changed', 'tools_changed')) -and $resetCount -le $MaxResets) {
+        $detail = "prefix rewritten ($reason): read fell $dropPercent% below high-water $maxRead; re-baselined and continuing (reset $resetCount of $MaxResets)"
+        Write-PingLog "$timestamp RESET $measurements  $detail"
+
+        # Re-baseline to the write, not the read. What this ping paid to write
+        # IS the prefix later pings will read, so carrying the old mark forward
+        # would make the next perfectly healthy ping look diverged in turn.
+        if ($StatePath) {
+            [PSCustomObject]@{
+                SessionId  = $SessionId
+                MaxRead    = $write
+                PingCount  = [int]$state.PingCount + 1
+                ResetCount = $resetCount
+                FirstPing  = $state.FirstPing
+            } | ConvertTo-Json | Set-Content -LiteralPath $StatePath -Encoding utf8
+        }
+
+        return New-PingResult -Status 'RESET' -Read $read -Write $write -Cost $cost -Detail $detail
+    }
+
+    # Everything else takes the task down, including an absent or unrecognised
+    # reason. Failure-closed on purpose: `unavailable` is not a miss signal at
+    # all (median read-drop 0%, minimum -89% — the read grew), and the field is
+    # missing outright on some genuine misses, so no unproven value gets to buy
+    # a reprieve here.
+    # One case reaching here is not a divergence: a rewrite reason that has run
+    # out of budget. Continuing is only correct while the rewrites are
+    # occasional — each one is billed at full prefix rate, so a prefix that
+    # keeps moving turns "keep the session warm" into an open tab. Past the
+    # budget the keepwarm stops and says why, rather than quietly buying
+    # another rewrite every interval for the rest of the night.
+    $because = if ($reason -in @('system_changed', 'tools_changed')) {
+        "reset budget exhausted after $MaxResets rewrite(s), latest $reason"
+    } elseif ($reason) {
+        "lineage diverged ($reason)"
+    } else {
+        'lineage diverged'
+    }
+    $detail = "${because}: read fell $dropPercent% below high-water $maxRead"
     $line = "$timestamp MISS  $measurements  $detail"
 
     if ($TaskName) {
@@ -278,11 +364,15 @@ Write-PingLog "$timestamp OK    $measurements"
 # Max() rather than assignment: the mark should only ever climb, which is the
 # property the divergence test in step 8b depends on.
 if ($StatePath) {
+    # ResetCount is carried, not recomputed. The budget is a total over the
+    # keepwarm's life, so a healthy ping in between two rewrites must not
+    # quietly refill it.
     [PSCustomObject]@{
-        SessionId = $SessionId
-        MaxRead   = [math]::Max($maxRead, $read)
-        PingCount = [int]$state.PingCount + 1
-        FirstPing = $state.FirstPing
+        SessionId  = $SessionId
+        MaxRead    = [math]::Max($maxRead, $read)
+        PingCount  = [int]$state.PingCount + 1
+        ResetCount = [int]$state.ResetCount
+        FirstPing  = $state.FirstPing
     } | ConvertTo-Json | Set-Content -LiteralPath $StatePath -Encoding utf8
 }
 
