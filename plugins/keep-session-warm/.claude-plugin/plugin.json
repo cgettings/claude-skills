@@ -1,6 +1,6 @@
 {
   "name": "keep-session-warm",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Keep a Claude Code session's prompt cache warm across a gap you are not working through, and detect the failure where the keepwarm refreshes a cache lineage the resume will never read.",
   "author": {
     "name": "cgettings"
