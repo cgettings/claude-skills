@@ -43,15 +43,6 @@
       "category": "productivity"
     },
     {
-      "name": "keep-session-warm",
-      "source": "./plugins/keep-session-warm",
-      "description": "Keep a Claude Code session's prompt cache warm across a gap you are not working through — and catch the failure where the keepwarm refreshes a cache lineage the resume will never read.",
-      "author": {
-        "name": "cgettings"
-      },
-      "category": "productivity"
-    },
-    {
       "name": "grounded-output-style",
       "source": "./plugins/grounded-output-style",
       "description": "An output style that carries a verification-first, claims-calibrated working style into any project — cheapest sufficient checks, sourced claims, no unearned confidence.",
