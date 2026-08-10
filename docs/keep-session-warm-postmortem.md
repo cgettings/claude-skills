@@ -95,13 +95,7 @@ results above are therefore real nulls, not a dead probe.
   this; see the `effort-switch-cache-lineages` notes, which concern a different
   mechanism and still hold.
 
-## Two incidental findings
-
-**Transcript files are not uniformly JSONL.** Session `2f3996cb`'s transcript is
-pretty-printed JSON objects concatenated, 2,855 lines for 97 objects. Any tool
-parsing `~/.claude/projects/**/*.jsonl` line-by-line — as
-`Resolve-ClaudeSessionContext.ps1` did with `Get-Content -Tail 200` — yields zero
-records against that shape and cannot distinguish it from an empty result.
+## One incidental finding
 
 **A `ValidateSet`-typed PowerShell parameter validates on every assignment, not
 only at binding.** `if (-not $Effort) { $Effort = $context.Effort }` throws when the
