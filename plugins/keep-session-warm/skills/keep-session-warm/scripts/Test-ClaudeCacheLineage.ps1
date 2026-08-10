@@ -71,7 +71,14 @@ $scriptDir = Split-Path -Parent $PSCommandPath
 
 $context = Resolve-ClaudeSessionContext -SessionId $SessionId -ProjectDir $ProjectDir
 if (-not $Entrypoint) { $Entrypoint = $context.Entrypoint }
-if (-not $Effort) { $Effort = $context.Effort }
+# Guard the assignment, not just the use: PowerShell enforces a ValidateSet on
+# every assignment to the parameter variable, not only at binding. A session
+# whose transcript records no effort resolves to $null here, and assigning that
+# throws "the value  is not a valid value for the Effort variable" before any
+# of the code below runs. Sessions created by `claude -p` record no effort field
+# at all (verified 2026-08-09, CLI 2.1.220), so this is reachable, not
+# theoretical. Leaving $Effort empty is correct: STEP 2 below omits the key.
+if (-not $Effort -and $context.Effort) { $Effort = $context.Effort }
 
 # A probe-only log, kept apart from the real keepwarm's ping log.
 $probeLog = Join-Path $env:TEMP "claude-keepwarm-probe-$SessionId.log"
