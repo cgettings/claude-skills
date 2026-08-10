@@ -1,7 +1,228 @@
 ---
-status: not started
-audience: an implementing agent on a cheap model (Haiku or Sonnet)
+status: closed — plugin retired 2026-08-09
+audience: historical record; see docs/keep-session-warm-postmortem.md
 date: 2026-08-09
+---
+
+## Ledger
+
+**CLOSED 2026-08-09. Tasks 1-4 landed and pass; Tasks 5-8 will not be done.**
+The live testing this plan commissioned falsified the tool's core premise: a
+`claude -p --resume` ping maintains a different prompt-cache entry from the one
+an interactive session resumes into, and no configuration joins them. The
+plugin was withdrawn from the marketplace rather than finished. The verdict,
+the measurements and what was ruled out are in
+`docs/keep-session-warm-postmortem.md`, which is written to outlive this
+directory. Everything below is the working record that produced it.
+
+Status as of 2026-08-09: Tasks 1-4 done — Tasks 2, 3 and 4 all rescoped around
+the falsified premise below, each with its correction recorded. Tasks 5-6 not
+started; neither depends on the premise. Task 7 planned for this pass; Task 8
+explicitly skipped (65-minute wait, user declined for this session). Spend so
+far this session: ~$0.48.
+
+**THE TOOL'S CORE PREMISE IS FALSIFIED. Measured 2026-08-09 against two real
+interactive VS Code Haiku 4.5 sessions started for this test, `b6ff4e93` and
+`cf9026f0`, both in `c:\Users\Chris\Documents\Projects\claude-skills`.**
+
+A `claude -p --resume` ping cannot warm an interactive session's prefix. It
+maintains a *separate* cache entry, and the boundary between them is fixed.
+
+| what ran | read | write | prefix | read frac | cost |
+|---|---|---|---|---|---|
+| `cf9026f0` own interactive turn | 19,740 | 18,023 | 37,763 | — | — |
+| `b6ff4e93` own interactive turn | 19,740 | 17,903 | 37,643 | — | — |
+| plain ping → `cf9026f0` | 18,269 | 18,395 | 36,664 | **0.498** | $0.0390 |
+| ping with `--ide` → `b6ff4e93` | 18,269 | 18,268 | 36,537 | **0.500** | $0.0387 |
+| 2nd consecutive plain ping → `cf9026f0` | 36,664 | 99 | 36,763 | **0.997** | $0.0041 |
+
+Three things this establishes:
+
+1. **A ping rewrites half the prefix of a real interactive session**, every
+   time it is the first to run against it. `--ide` made no difference: the read
+   was byte-identical at 18,269.
+2. **18,269 is a hard constant.** It is the same value on every `claude -p`
+   first-resume measured this session — in a bare `$env:TEMP` throwaway with no
+   CLAUDE.md, no plugins and no MCP servers, *and* in this project with all
+   three. So the shared segment sits upstream of every project-specific thing,
+   and no roster alignment can extend it. The roster hypothesis that motivated
+   this experiment is dead.
+3. **Pings warm each other, not the session.** The second ping read 36,664 —
+   exactly what the first ping wrote — at read fraction 0.997. That is the
+   healthy-looking `OK` line the keepwarm log has been reporting all along. It
+   is real, and it refers to a cache entry the interactive client never reads.
+
+The interactive base (19,740) and the headless base (18,269) are different
+lengths, so the two are distinct entries from early on. Best case, a ping
+refreshes shared blocks worth ~18K of reads ≈ $0.002 on Haiku, while costing
+$0.0041 per warm ping and $0.039 for the first. **The ping costs more than the
+benefit it could possibly deliver, and the ratio does not improve on a larger
+model — both sides scale together.**
+
+Consequence for Task 8: it is no longer the deciding test. It would measure the
+size of a benefit now known to be smaller than its own cost.
+
+Two sessions `b6ff4e93` and `cf9026f0` are the user's and were left in place;
+each carries the "Acknowledge and take no action." turns these pings appended.
+
+---
+
+**LOAD-BEARING PREMISE FALSIFIED — read before starting any remaining task.**
+The plan assumes a divergence can be forced on a throwaway by probing it with a
+mismatched lineage key. It cannot. Measured 2026-08-09 on throwaway
+`3ec7a40d-3411-4214-9658-54e2c6538c8b` (Haiku 4.5, 32,435-token prefix), five
+`Ping-ClaudeSession.ps1` calls varying both keys:
+
+| probe | CLAUDE_CODE_ENTRYPOINT | --effort | read | write | read fraction |
+|---|---|---|---|---|---|
+| baseline | `claude-vscode` | medium | 32,495 | 48 | 1.00 |
+| entrypoint differs | `keepwarm-live-divergence-probe` | medium | 32,543 | 64 | 1.00 |
+| effort differs | `claude-vscode` | high | 32,607 | 53 | 1.00 |
+| both differ | `keepwarm-live-divergence-probe` | max | 32,660 | 52 | 1.00 |
+| back to baseline | `claude-vscode` | medium | 32,712 | 53 | 1.00 |
+
+Neither key split the lineage. **Positive control, so this is a real null and
+not a dead instrument:** the same session's first `--resume` in
+`New-ThrowawaySession.ps1` STEP 6 reported read 18,269 / write 14,226 with
+`cache_miss_reason=system_changed` — the instrument does register a rewrite when
+one happens.
+
+Scope of the claim: this is measured on a session *created* by `claude -p`. It
+does not establish that entrypoint is inert on an interactive session, which is
+where `SKILL.md`'s 37,950-read-vs-12,424-read measurement was taken. The
+plausible mechanism is that `claude -p --resume` renders the headless system
+prompt regardless of these variables, so they only move the prefix an
+*interactive* client builds. Settling that requires buying a rewrite on a real
+interactive session, which Ground rule 3 forbids.
+
+Siblings resting on the same premise, all suspect until re-derived:
+- Task 2 case 2 (`forced divergence` → `Diverged`) — **falsified**, observed `Warm`.
+- Task 3 case 2 (`Start-ClaudeKeepwarm.ps1` refuses with `LineageProbeFailed`) —
+  will not fire; the probe returns `Warm`.
+- Task 4 (`MISS` branch unregisters a real task) — needs a different trigger.
+  The state file's high-water mark is a candidate that does not require buying a
+  rewrite, but the `MISS` branch also consults `cache_miss_reason`, so check
+  that path before assuming it works.
+- Task 7 (rapid-invocation runbook) uses a different mechanism and may survive.
+- `SKILL.md` §3's "single variable measured to split the cache lineage" is now
+  known not to hold for headless-created sessions. Reconciliation is a separate
+  pass; do not edit `SKILL.md` here.
+
+- **Task 1 (`tests/New-ThrowawaySession.ps1`): DONE 2026-08-09.**
+  [verified 2026-08-09: dot-sourced the script, called `New-ThrowawaySession`,
+  got SessionId `d49e1194-8d18-4393-8176-5386e9a83210`, Model
+  `claude-haiku-4-5`, ModelPinHolds `True`, PrefixTokens 32433, CostUsd
+  0.0614; called `Remove-ThrowawaySession` and confirmed both TranscriptPath
+  and ProjectDir returned `Test-Path -eq $false` afterward.]
+  **Correction to the plan's assumed JSON shape:** `claude -p --output-format
+  json` carries no top-level `model` field (CLI 2.1.220) — the model used is
+  the sole key of `usage.modelUsage`, whose value's `canonicalModel` names it.
+  The script reads it via a `Get-ResultModel` helper; every later task that
+  inspects a `claude -p` result for its model must do the same, not read
+  `.model`.
+  **Four defects corrected 2026-08-09 after the first pass:** (a) the nested
+  `Assert-SpendCap` mutated `$script:spent`, which in a dot-sourced file is the
+  *calling* script's scope, not the function's — so the cap was checked against
+  an accumulator tangled with the caller's own; it is now a pure predicate taking
+  `-Spent`/`-Cap`. (b) `--effort medium` was added to the create call on the
+  theory it would populate the transcript's `effort` field; it does not (see
+  Task 2 entry) and has been removed. (c) `$PSCommandPath` was used to locate
+  `scripts/`, which resolves to the *caller's* path once dot-sourced and `$null`
+  from an interactive prompt; now captured as `$KeepwarmTestsDir = $PSScriptRoot`
+  at dot-source time. (d) the returned object now carries `Effort = 'medium'`,
+  the value callers must pass explicitly.
+- **Task 2 (`tests/Test-LiveLineageVerdicts.ps1`): DONE 2026-08-09**, with case 2
+  rescoped from "forced divergence" to "entrypoint mismatch is inert" per the
+  falsified premise above — user decision, this session.
+  [verified 2026-08-09: `PASS=6 FAIL=0`, exit 0, on throwaway
+  `09e8ab18-3f47-4d8d-832e-cd8859f0d980` (Haiku 4.5, ModelPinHolds True,
+  32,435-token prefix). case 1 read 32,524 / write 53 / frac 1.00 `Warm`;
+  case 2 read 32,577 / write 68 / frac 1.00 `Warm`; case 3 read 32,645 /
+  write 51 / frac 1.00 `Warm`; all three left no state file. Total spend
+  $0.0723 against a $1.00 cap. Cleanup confirmed after the run: no
+  `keepwarm-live-*` scratch dir, no `*keepwarm*` project dir, no probe log.]
+  Case 2's null has now replicated on three independent throwaways
+  (`675923f7`, `3ec7a40d`, `09e8ab18`). The assertion was inverted rather than
+  deleted so a future CLI that makes entrypoint load-bearing again breaks it.
+  **Correction to the plan's prescribed proof:** the plan's expected result for
+  this task was a `Diverged` verdict. That cannot be produced by this harness;
+  what ran instead is the five-probe two-variable sweep recorded above, whose
+  positive control is the `system_changed` rewrite in `New-ThrowawaySession.ps1`
+  STEP 6. Any later task prescribing "force a divergence" needs the same
+  substitution.
+  Also fixed here: the script passes `-Effort` explicitly on every probe, and
+  removes the probe log in its `finally` — `Get-ClaudeKeepwarm.ps1` globs
+  `claude-keepwarm-*.log`, so a stray probe log makes the user's status report
+  list a phantom session `probe-<id>` (two such strays were found on disk from
+  the first pass and deleted).
+- **Ground rule 7 exception, granted by the user 2026-08-09:** two one-line
+  guards in `scripts/`, both the same bug. `Test-ClaudeCacheLineage.ps1:74` and
+  `Start-ClaudeKeepwarm.ps1:154` both did `if (-not $Effort) { $Effort =
+  $context.Effort }`. PowerShell enforces a `ValidateSet` on every assignment to
+  a parameter variable, not only at binding, so a session resolving to a `$null`
+  effort throws before any later code runs. Both now read `if (-not $Effort -and
+  $context.Effort)`. `Start-ClaudeKeepwarm.ps1:233`'s own comment already named
+  this hazard for the probe splat while line 154 performed the failing
+  assignment. Everything else in `scripts/` remains untouched.
+- **Task 3 (`tests/Test-LiveStartGate.ps1`): DONE 2026-08-09.**
+  [verified 2026-08-09: `PASS=18 FAIL=0`, exit 0, on throwaway
+  `47f118ac-6655-4dc1-b1b8-f5c1fe0dd555`. Case 1 registered with
+  `Verdict=Warm`, `ProbeRead=32504`, state `MaxRead=32504` matching,
+  `EstimatedPings=6`; `Stop-ClaudeKeepwarm.ps1 -PassThru` returned
+  `Action=Unregistered` and the task was gone. Case 3 threw
+  `LineageProbeFailed,Start-ClaudeKeepwarm.ps1` with no task and no state file
+  left. Case 4 threw `PromptQuoting,...` and `TranscriptNotFound,...`. Foreign
+  `ClaudeKeepwarm-*` set was `(none)` before and `(none)` after. Total spend
+  $0.0687.]
+  **Correction to the plan's prescribed proof for case 2.** The plan asked for
+  a `Diverged` verdict from a mismatched `-Entrypoint`, and for `Start` to
+  refuse. Neither happens: the probe returned `Warm` (read 32,551) and `Start`
+  **registered the task anyway**. The case now asserts that, because it is the
+  actionable finding — the gate does not protect against a wrong entrypoint on
+  a `claude -p` session.
+  **Substituted proof for the refusal branch.** `Start-ClaudeKeepwarm.ps1:247`
+  throws `LineageProbeFailed` on `Diverged` *or* `ProbeFailed`, so case 3
+  reaches the same `throw` by the second route: a `claude.cmd` stub emitting
+  `@exit /b 1`, prepended to `$env:PATH` for the duration of the case and
+  restored in a nested `finally`. Deterministic, and costs no tokens because
+  the stub exits before any API call. Use this technique for any later task
+  needing a probe failure.
+- **Task 4 (`tests/Test-LiveMissAbort.ps1`): DONE 2026-08-09.**
+  [verified 2026-08-09: `PASS=9 FAIL=0`, exit 0, on throwaway
+  `38117766-710f-4745-955a-1d2b04441ae4`. A real task
+  `ClaudeKeepwarm-38117766-...` was registered, then one ping returned
+  `Status=MISS` (read 32,725 / write 57), the task was confirmed gone, and the
+  log line read: `MISS  read=32725 write=57 cost=$0.0036  lineage diverged:
+  read fell 75% below high-water 130712; unregistered
+  'ClaudeKeepwarm-38117766-710f-4745-955a-1d2b04441ae4'` — with no `FAILED to
+  unregister`. Foreign task set `(none)` before and after. Total spend $0.0698.]
+  **Correction to the plan's prescribed proof.** The plan's step 2 said to
+  trigger the miss by pinging with the wrong entrypoint. That produces a
+  healthy read, not a miss. What ran instead: seed the state file's `MaxRead`
+  to 4x the probe read (130,712) and pass `-MinWriteTokens 10`, which satisfies
+  both halves of the divergence test at `Ping-ClaudeSession.ps1:285` using a
+  healthy ping's own numbers.
+  **Scope of what this proves, stated because the substitution narrows it.**
+  Everything downstream of the decision is real and previously unobserved: the
+  branch is entered, the reason lookup runs against a real transcript,
+  `Unregister-ScheduledTask` fires on a real registered task, the task is gone,
+  and the log says so. The *detection* is not proven — the numbers entering the
+  comparison are healthy ones. The offline suite covers that arithmetic.
+  **Real `cache_miss_reason` measured, answering the plan's step 4 with a
+  genuine value.** The first `--resume` after a `claude -p` create reliably
+  reports `system_changed` with a large write — read 18,269 / write 14,409 on
+  this run, and 18,269 read on all five throwaways created this session. This
+  is the one real cache miss the harness observes; `New-ThrowawaySession.ps1`
+  now surfaces it as `FirstResumeRead`/`FirstResumeWrite`/`FirstResumeReason`
+  rather than discarding it. The MISS ping itself had no reason at all, which
+  is what routed it past the RESET branch — asserted, to keep the manufactured
+  trigger honest about what it manufactured.
+- Tasks 5-6: not started.
+- Task 7 (manual, rapid-invocation divergence): not started, planned.
+- Task 8 (manual, TTL lapse, 65 min wait): **skipped this session** — user
+  declined when asked. Mark `not run` in the results file per the plan's own
+  allowance.
+
 ---
 
 # Live test coverage for keep-session-warm

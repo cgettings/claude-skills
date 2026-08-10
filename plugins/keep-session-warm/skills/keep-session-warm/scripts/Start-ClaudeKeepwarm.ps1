@@ -151,7 +151,14 @@ try {
 # Explicit parameters win; anything not given falls back to what was detected.
 $ProjectDir = $context.ProjectDir
 if (-not $Entrypoint) { $Entrypoint = $context.Entrypoint }
-if (-not $Effort) { $Effort = $context.Effort }
+# Guard the assignment, not just the use. Line ~233 below already omits -Effort
+# from the probe splat when it is empty, for exactly this reason — but an
+# unguarded assignment here throws first: PowerShell enforces a ValidateSet on
+# every assignment to the parameter variable, not only at binding, so resolving
+# a session that records no effort ($null) fails before that splat is reached.
+# Sessions created by `claude -p` record no effort field at all (verified
+# 2026-08-09, CLI 2.1.220).
+if (-not $Effort -and $context.Effort) { $Effort = $context.Effort }
 
 if (-not $Entrypoint) {
     Write-Warning 'Could not read CLAUDE_CODE_ENTRYPOINT from the transcript. Pings will run with a clean environment, which is the measured cache-divergence case. Pass -Entrypoint explicitly.'
