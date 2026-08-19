@@ -1,14 +1,48 @@
 # Plugin revision pass — 2026-08
 
-**Status as of 2026-08-19: all nine steps done, plus a prose pass after step 8 (recorded there).**
+**Status as of 2026-08-19: all nine steps done, plus a prose pass after step 8 (recorded there).
+The work is commit `ad81025` on branch `plugin-revision-pass`, open as PR #6 into `main` and not
+yet merged.**
 
-Close this out with the date and the commit range once the work has landed and been reviewed. That
-converts it from a live ledger into a dated historical record, which `reconcile-records` will then
-leave alone rather than try to freshen.
+`[verified 2026-08-19: gh pr view 6 → state OPEN, mergedAt null, mergeStateStatus CLEAN;
+git merge-base --is-ancestor HEAD origin/main → exit 1]`
 
-**Known gap, carried deliberately:** the rewritten evals in step 7 have never been *run*. Their JSON
-validity and counts are verified; whether the new case 2 and case 4 actually discriminate is
-asserted, not measured. Running them needs `skill-creator`'s grader.
+**This is not the historical close-out.** That one — done, the date, the commit range — belongs to
+whoever merges, and it is what converts this from a live ledger into a dated record that
+`reconcile-records` will leave alone instead of trying to freshen. Do it then, not now.
+
+## State a cold session would otherwise be stuck without
+
+None of this is recoverable from `git log` on this repo.
+
+- **The branch was pushed manually by the user**, not by this session and not by a hook — checked,
+  `.git/hooks/` holds no active hooks. Do not infer an automatic push exists.
+- **The lessons pass ran and its output went outside this repo.** Four edits landed in
+  `C:\Users\Chris\.claude\CLAUDE.md`: the serializer clause appended to the formatter bullet under
+  Code philosophy (144 → 194 words), the structural-description clause added to the docs-commit
+  rule under Verifying a claim before it hardens, a new "a pass that corrects under-hedging cannot
+  see over-hedging" bullet in Claims & register (867 → 932 words), and — from step 3, earlier — the
+  amendment removing the reconcile-after-distill requirement. A supporting memory,
+  `json-roundtrip-reformats-hand-formatted-files`, was written to the `claude-skills` project store
+  with an index hook of 152 characters. **Nothing in this repo records any of that.**
+- **`refile-rules` was then run against that same global CLAUDE.md and correctly changed nothing.**
+  Proved byte-identical against a snapshot, and by a sorted diff of all 43 rule lines. The findings
+  worth not re-deriving: the 336-word `Nothing commits without my say-so` bullet is 3.5× the 96-word
+  median and **fails the specifics-inventory bar** — fourteen items, none droppable — so it is step
+  5's explicit non-qualifying case, not a target. The single qualifying edit found (lines 61 and 63
+  both quote the "pass and fail states are indistinguishable" example) was declined at ~15 words on
+  a 932-word section. Do not re-open either without a new reason.
+
+## Open items
+
+- **The rewritten evals in step 7 have never been run.** Their JSON validity and counts are
+  verified; whether the new case 2 and case 4 discriminate is asserted, not measured. Running them
+  needs `skill-creator`'s grader. Case 4 is the one that matters — it is what stops the shortening
+  capability becoming a general compression licence, and PR #6 carries a note asking that it not be
+  deleted as redundant with case 2.
+- **A `reconcile-records` pass is earned by the merge, not by this ledger.** Under the coupling
+  removed in step 3 it would have been automatic; it now runs on its own trigger, and a merge is
+  one.
 
 Nine-item revision agreed in session on 2026-08-19. The user proposed eight changes and accepted
 one reshaping (step 2) and one added condition (step 4) after pushback. This document is the
