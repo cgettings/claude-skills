@@ -5,8 +5,8 @@ actually be read.
 
 **What it isn't.** Not a session recap, not a post-mortem, not a handover summary. Those
 describe what happened. This decides what's worth carrying forward — and throws away most of
-it. Most sessions yield zero to two durable lessons, and saying "nothing" is a normal outcome
-rather than a failure.
+it. There's no target number: yield tracks when the pass ran at least as much as how instructive
+the work was, and saying "nothing" is an ordinary outcome rather than a failure.
 
 ## When it runs
 
@@ -21,7 +21,8 @@ report rather than a decision about what outlives the work; and an edit already 
 
 ## The six steps
 
-1. **Decide whether there's anything here** — a candidate needs a nameable cost, or it's trivia.
+1. **Decide whether there's anything here** — the throttle is per candidate, not a quota. Each one
+   needs a nameable cost, or it's trivia.
 2. **Reflect**, grounded in artifacts on disk rather than recall — the branch's `git log`, the
    plan doc, the scratch ledger, and the transcript only for what artifacts can't hold.
 3. **Generalize** each candidate from an instance to a reusable shape. If you can't state the
@@ -42,13 +43,18 @@ report rather than a decision about what outlives the work; and an edit already 
 /plugin install distill-lessons@cgettings-skills
 ```
 
-Designed to run back to back with [`reconcile-records`](../reconcile-records), which corrects
-what this work made false. That pass runs even when this one finds nothing.
+## Siblings
 
-Filing is also the moment structural drift becomes visible, and this is the only pass standing in
-the destination file when it does. If two sections could plausibly hold an entry, or a rule that
-already existed couldn't be narrowed into a checkable form, that's reported as a finding about the
-file and handed to [`refile-rules`](../refile-rules). This pass never reorganizes anything itself.
+Its pair is [`refile-rules`](../refile-rules). This pass decides what is worth recording and where
+it goes; that one repairs the *where* when the structure can no longer hold it. Filing is when a
+store's boundaries actually get tested — you are in the file, trying to put something in it — so if
+two sections could plausibly hold an entry, or a rule that already existed couldn't be narrowed
+into a checkable form, that's reported as a finding about the file and handed over. This pass never
+reorganizes anything itself.
+
+[`reconcile-records`](../reconcile-records) is a neighbour, not a required next step. It corrects
+what went false rather than adding what's new, and its own triggers already include the boundary
+you're standing on. Recommend it when there's reason to think this work falsified something.
 
 ## Assumptions about your setup
 

@@ -1,7 +1,7 @@
 ---
 name: keep-ledger
-description: Keep a resumable ledger — what is done, what proof actually ran, and the exact next command — in the tracked document that owns the work. Use when starting anything with more than one step (a plan about to be executed, a staging list, a migration, a multi-stage refactor), and use again when picking such work back up — a new session, a fresh context after a compaction or a session-limit reset, or when the user says "where were we", "pick this back up", "what's left on X", "did we finish Y". Also use when a plan or staging list turns out to list steps with no status. This is not for deciding what knowledge is worth keeping, which is `distill-lessons`, and not for sweeping a record store for what recent work made false, which is `reconcile-records` — though a stale or absent ledger is exactly what that pass is built to catch. It is also not a session recap or a handover summary — those describe what happened, and a ledger records only what a future session must act on.
-version: 1.0.0
+description: Keep a resumable ledger — what is done, what proof actually ran, and the exact next command — in the tracked document that owns the work, written so a session that was not there can run the next step from it alone. Use when starting anything with more than one step (a plan about to be executed, a staging list, a migration, a multi-stage refactor), and use again when picking such work back up — a new session, a fresh context after a compaction or a session-limit reset, or when the user says "where were we", "pick this back up", "what's left on X", "did we finish Y". Also use when a plan or staging list turns out to list steps with no status. This is not for deciding what knowledge is worth keeping, which is `distill-lessons`, and not for sweeping a record store for what recent work made false, which is `reconcile-records` — though a stale or absent ledger is exactly what that pass is built to catch. It is also not a session recap or a handover summary — those describe what happened, and a ledger records only what a future session must act on.
+version: 1.1.0
 license: GPL-3.0-or-later
 ---
 
@@ -68,9 +68,22 @@ The next session's copy of the file has moved. Address things that survive an ed
 
 The same standard applies to what runs next. Write the exact command with its flags and what a pass looks like. "Run the characterization check" is a lookup task handed to the next session; `npm run characterize:nr -- --check`, zero diffs expected, is not.
 
-## 6. Update it as part of the step, not at the end
+## 6. Update it as part of the step, then check it against a cold session
 
 The commit that finishes a step edits the ledger. There may be no end of session to do it at, and a ledger updated from recollection is a ledger written by the least reliable witness available.
+
+**Then ask one question before moving on: could a session that was not here run the next step from this document alone?** Finishing a plan in one sitting is a common case, not a safe assumption, and the ledger is written against the case where it isn't.
+
+The question has a mechanical form, and it is cheaper than it sounds: **write out the literal next command.** If you cannot write it without a fact the ledger does not hold, that fact is what to record. Nothing else needs auditing.
+
+Four things strand a cold session, and none of them is a step status — which is how a ledger can look complete and still fail:
+
+- **A decision taken, and what was rejected with it.** A session that does not know an option was considered and dropped will re-argue it or quietly undo it. Record the choice and the reason once.
+- **Environment state.** The branch, the worktree, a seeded fixture, a temp directory, a service left running, a checkout that is not where someone would assume. None of it is in the repo, and all of it goes with the session.
+- **What was deliberately deferred, and what would un-defer it.** Otherwise it reads as an oversight — or as done.
+- **Uncommitted state.** What is in the working tree and why it has not been committed.
+
+**Asking costs a sentence; recording happens only when the answer isn't "nothing".** That asymmetry is what makes the check affordable every step, and it is why the check does not license a ledger out of proportion to the work. §1 still holds: a three-step task's ledger is still three lines with a status each.
 
 ## 7. On resume, the ledger and `git log` outrank your recollection
 
@@ -93,6 +106,8 @@ with its commit range, and the resume rule — is adapted from `subagent-driven-
 [superpowers](https://github.com/obra/superpowers) (MIT). This plugin's README says what was
 borrowed and the one place it deliberately departs.
 
-## After this pass
+## Siblings
 
-A ledger is a status record, which makes it the artifact `reconcile-records` is built to check: a step whose status has moved on is that pass's first gate, and work that ended mid-flight with nothing written down is its second. Keeping one is what gives those gates something greppable to find. Run that pass at the work's next boundary — it will find the ledger, and a found ledger is cheap to correct.
+**`reconcile-records` is this skill's pair.** A ledger is a status record, which makes it exactly the artifact that pass is built to check: a step whose status has moved on is its first gate, and work that ended mid-flight with nothing written down is its second. Keeping one is what gives those gates something greppable to find. Run that pass at the work's next boundary — it will find the ledger, and a found ledger is cheap to correct.
+
+`distill-lessons` and `refile-rules` are the other pair, and neither takes input from here. A lesson parked in a ledger is read by the one workstream that opens the ledger, which is the failure the first of those exists to fix.

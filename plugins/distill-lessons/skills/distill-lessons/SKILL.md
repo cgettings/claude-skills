@@ -1,7 +1,7 @@
 ---
 name: distill-lessons
 description: Review a finished stretch of work for durable lessons and write each one to the right place — CLAUDE.md for standing instructions, memory for incidents, nowhere for the rest. Use this whenever a branch, plan, multi-stage task, or long debugging session wraps up; when context is about to be lost to a compaction or session reset; and whenever the user asks "any lessons?", "anything for CLAUDE.md?", "what did we learn?", "anything worth remembering?", "let's debrief", or otherwise asks what should be carried forward from the work. Also use it proactively at the end of substantial work even if the user doesn't ask — lessons left in a plan doc or scratch ledger are read by nobody. Two things this is NOT for — summarizing or recapping what happened, which is a report on the work rather than a decision about what outlives it; and edits already decided on, since "add X to CLAUDE.md" or "remember that I prefer Y" is a direct request to just do it. This pass is for deciding *what* is worth recording.
-version: 1.3.0
+version: 1.4.0
 license: GPL-3.0-or-later
 ---
 
@@ -17,20 +17,20 @@ The hard part is not noticing lessons. It's throwing most of them away and putti
 
 ## 1. Decide whether there's anything here
 
-Most stretches of work yield **zero to two** durable lessons. A session can be long, difficult, and successful and still produce nothing worth writing down — that's the normal case, not a failure.
+There is no target number, in either direction. Yield tracks *when* this pass ran at least as much as how instructive the work was: a proactive pass at a boundary nobody flagged often finds nothing, while a pass someone invoked because the session felt instructive starts from a stronger prior and tends to find more. Both are ordinary results, and neither number tells you anything about the entries themselves.
 
-A candidate is worth considering only if you can name what it cost, or would cost next time: time lost, a wrong claim shipped, a bug that survived review, a gap that stayed open. If you can't attach a cost, you're about to spend prompt space on trivia.
+**The throttle is per candidate, not a quota.** A candidate is worth considering only if you can name what it cost, or would cost next time: time lost, a wrong claim shipped, a bug that survived review, a gap that stayed open. If you can't attach a cost, you're about to spend prompt space on trivia.
 
-Say plainly when the answer is nothing. Manufacturing a lesson to look thorough makes every future session read one more line for no benefit.
+A session can be long, difficult, and successful and still produce nothing worth writing down. Say plainly when that is the answer — manufacturing a lesson to look thorough makes every future session read one more line for no benefit. A long list meets the same bar item by item: it asserts that every entry passed, not that the work was unusually instructive.
 
 ## 2. Reflect
 
 Look back over the work and ask:
 
-- **What did I get wrong?** Not the typo — the reasoning that produced it. Errors are the richest source because they recur in the same shape.
-- **What context was missing that cost me time?** Something you had to derive empirically that the repo could simply have stated. These are the highest-value project entries, and they're easy to miss because by now you know the answer and it feels obvious.
+- **What did I get wrong?** Not the typo — the reasoning that produced it. Start with the errors, because they often recur in the same shape, and the entry has a known next occurrence.
+- **What context was missing that cost me time?** Something you had to derive empirically that the repo could simply have stated. These make good project entries, and they're easy to miss because by now you know the answer and it feels obvious.
 - **What worked that isn't obvious?** A verification approach, an ordering, a cheap proof that replaced an expensive one.
-- **What did the user correct me on?** Direct correction is the strongest signal available. Capture the principle behind it, not just the specific fix.
+- **What did the user correct me on?** A direct correction is the strongest signal here — no inference required. Capture the principle behind it, not just the specific fix.
 
 Don't answer these from your memory of the session — that memory is a summary you already wrote, and the gap between what you think happened and what happened is where the lessons are. Ground the pass in what's on disk:
 
@@ -81,7 +81,7 @@ Otherwise, three destinations. Apply the test, not the vibe.
 
 **Memory — incidents and context.** Is this the story of what happened, or state a future session would need to pick the work up? Memory holds the narrative, the numbers, the *why* — everything that would bloat CLAUDE.md. Follow whatever memory format the environment specifies — one fact per file, with frontmatter and an index line, is one common shape. If the environment has no memory tier at all, this destination collapses into CLAUDE.md or nowhere; say so plainly rather than inventing a store to write to.
 
-If your memory system keeps an always-loaded index — a file of pointers read every session, with the memories themselves opened only on demand — that index line is a pointer, not a summary. It is loaded every session while the file behind it is not, so a hook that swells into a paragraph moves the cost back into the always-loaded tier and defeats the split it exists to make. Keep it under ~120 characters — enough to decide whether to open the file, never enough to stand in for it. Re-compress the hook whenever you touch the memory; this drift is silent and surfaces months later as a bloated index. Before compressing, confirm the file behind it actually makes the claims you're about to drop — a hook is sometimes *newer* than its file, and grepping for the keyword proves the word is present, not the claim.
+If your memory system keeps an always-loaded index — a file of pointers read every session, with the memories themselves opened only on demand — that index line is a pointer, not a summary. It is loaded every session while the file behind it is not, so a hook that swells into a paragraph moves the cost back into the always-loaded tier and defeats the split it exists to make. Keep it under ~150 characters — enough to decide whether to open the file, never enough to stand in for it. Re-compress the hook whenever you touch the memory; this drift is silent and surfaces months later as a bloated index. Before compressing, confirm the file behind it actually makes the claims you're about to drop — a hook is sometimes *newer* than its file, and grepping for the keyword proves the word is present, not the claim.
 
 **Nowhere.** Can it be easily re-derived from the code, git history, an audit doc, or an existing CLAUDE.md line? Then saving it creates a second copy that will go stale and contradict the first. This is the correct destination for most candidates.
 
@@ -122,7 +122,7 @@ If you find an earlier claim was wrong, correct it in place and say it was wrong
 
 Show the user what you intend to write before writing it: for each destination, the path, a one-line reason, and the exact added lines as a diff. Seeing the real wording is what lets them judge it — a summary of what you plan to add is not reviewable.
 
-**The diff is the only moment register is judgeable, so judge it here.** Step 5 asks whether each claim is true; this asks what the wording does to a reader. Run one test over every device in the proposed lines: does it pay a reader who has already decided to read? These entries go to an audience that cannot leave — a colleague, or you in four months, obliged to act on the line. A phrase that *compresses* something true earns its space, because they unpack it and find the finding. A phrase that *sustains attention* is borrowed from writing for readers who could close the tab, and it buys nothing while raising apparent certainty.
+**The diff is where register is judgeable against the real wording, so judge it here.** Step 5 asks whether each claim is true; this asks what the wording does to a reader. Run one test over every device in the proposed lines: does it pay a reader who has already decided to read? These entries go to an audience that cannot leave — a colleague, or you in four months, obliged to act on the line. A phrase that *compresses* something true earns its space, because they unpack it and find the finding. A phrase that *sustains attention* is borrowed from writing for readers who could close the tab, and it buys nothing while raising apparent certainty.
 
 Two guards, and they bind as hard as the test itself:
 
@@ -147,8 +147,8 @@ If step 4 turned up a problem with the *destination* — two sections that could
 
 If the user asks you to save something in these categories, don't refuse and don't comply mechanically — ask what was non-obvious about it, and record *that* instead. Usually there's a real lesson underneath a request to "remember this."
 
-## After this pass
+## Siblings
 
-Adding is only half of keeping a record useful. The work you just finished is also the best evidence that something already written is now *wrong* — a status line that has moved on, a number this work re-measured, a note the code now states better.
+**`refile-rules` is this skill's pair.** This pass decides what is worth recording and where it goes; that one repairs the *where* when the destination's structure can no longer hold it. The handoff runs one way, from here — step 4 is standing in the destination file at the moment that file's boundaries get tested, and step 6 reports what the attempt to file revealed. Nothing here reorganizes anything itself.
 
-That is a different pass with a different bar, and it belongs to `reconcile-records`. Run it after this one, **including when this one found nothing** — work invalidates records whether or not it teaches anything.
+`reconcile-records` is a neighbour rather than a required next step. It asks whether what is already written went *false* — a status line that has moved on, a number this work re-measured, a note the code now states better. Its own triggers already include the boundary you are standing on, so it does not need a handoff from here. Recommend it when you have reason to think this work falsified something already written. Finishing this pass is not that reason.

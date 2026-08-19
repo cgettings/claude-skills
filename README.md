@@ -3,21 +3,28 @@
 Four Claude Code skills for the seams in a piece of work — where it starts, pauses, resumes, and
 finishes. They're separate on purpose, and they ask different questions at different bars:
 
-| Skill | Question | Runs |
-|---|---|---|
-| [`keep-ledger`](plugins/keep-ledger) | What's **done**, what's **proven**, what runs next? | At the start of multi-step work, and on every resume |
-| [`distill-lessons`](plugins/distill-lessons) | What **knowledge** is worth keeping? | Every work boundary |
-| [`reconcile-records`](plugins/reconcile-records) | What written thing **went false**? | Every work boundary, and more besides |
-| [`refile-rules`](plugins/refile-rules) | Does the store's **organization** still hold? | Only when tripped |
+| Pair | Skill | Question | Runs |
+|---|---|---|---|
+| Status | [`keep-ledger`](plugins/keep-ledger) | What's done, what's proven, what runs next? | While the work is live — at the start, and on every resume |
+| | [`reconcile-records`](plugins/reconcile-records) | What written thing went false? | Once the work has moved on: a merge, a release, a completed task |
+| Knowledge | [`distill-lessons`](plugins/distill-lessons) | What knowledge is worth keeping? | Every work boundary |
+| | [`refile-rules`](plugins/refile-rules) | Does the store's organization still hold? | Only when tripped |
 
-The first runs while the work is live rather than at its end; the other three run when it stops.
-Of those, the lessons and reconcile passes run back to back, and the second runs even when the
-first finds nothing. `refile-rules` isn't scheduled at all — it fires on evidence the other two
-produce while they're already standing in the file.
+They pair off two ways.
 
-`keep-ledger` and `reconcile-records` are two halves of one loop: a ledger is a status record, so
-it's precisely what that pass's first two gates look for, and keeping one is what gives them
-something greppable to find.
+`keep-ledger` and `reconcile-records` are **one record seen at two times**. A ledger is a status
+record, so it's precisely what that pass's first two gates look for, and keeping one is what gives
+them something greppable to find. The first writes status while it's still cheap to write; the
+second checks it once the work has moved on.
+
+`distill-lessons` and `refile-rules` **split one question**. The first decides what's worth
+recording and where it goes; the second repairs the *where* when the structure can no longer hold
+it. The second isn't scheduled at all — it fires on evidence the first produces while it's already
+standing in the file, which is when a store's boundaries actually get tested.
+
+The two pairs are independent. A lessons pass that found nothing is not a reason to skip a
+reconcile pass — work falsifies records whether or not it teaches anything — and one that found
+something isn't a reason to run one. Each pass has its own triggers.
 
 A fifth plugin, [`grounded-output-style`](plugins/grounded-output-style), is a different kind of
 thing: not a workflow that runs at a boundary, but a working style that's live for the whole
@@ -40,8 +47,16 @@ no state.
 Seven steps: write it at the start, because the moment you need it is the moment you can't write
 it; put it in the tracked document that owns the work; give every step a status, distinguishing
 parked from blocked by who acts next; record the proof that **ran**, not the proof you planned;
-point at landmarks rather than line numbers; update it in the commit that finishes each step; and
-on resume, treat the ledger and `git log` as outranking your own recollection.
+point at landmarks rather than line numbers; update it in the commit that finishes each step, then
+check it against a cold session; and on resume, treat the ledger and `git log` as outranking your
+own recollection.
+
+**The cold-session check is step 6's second half.** Finishing a plan in one sitting is a common
+case, not a safe assumption, so after each step: could someone who wasn't here run the next step
+from this document alone? The mechanical form is to write out the literal next command — if you
+can't, the fact you're missing is the one to record. Four things strand a cold session and none of
+them is a step status: a decision taken and what was rejected with it, environment state, what was
+deliberately deferred, and uncommitted state.
 
 The load-bearing one is the fourth: a ledger recording the intended check rather than the executed
 one is worse than a ledger with no proof field at all, because the next session follows it.
@@ -59,8 +74,8 @@ actually be read.
 
 **What it isn't.** Not a session recap, not a post-mortem, not a handover summary. Those
 describe what happened. This decides what's worth carrying forward — and throws away most of
-it. Most sessions yield zero to two durable lessons, and saying "nothing" is a normal
-outcome rather than a failure.
+it. There's no target number: yield tracks when the pass ran at least as much as how instructive
+the work was, and saying "nothing" is an ordinary outcome rather than a failure.
 
 Six steps: decide whether there's anything here at all; reflect, grounded in artifacts on disk
 rather than recall; generalize each candidate from an instance to a reusable shape; route the
@@ -107,17 +122,26 @@ checked. But a rule that can't be found doesn't fire, and a rule that doesn't fi
 indistinguishable from one that was never written — the file still reads well, every line in it is
 still true, and the failure surfaces somewhere else entirely.
 
-**Why it isn't scheduled.** Knowing where something lives is itself part of retrieval, and every
-reorganization spends that down. So it needs a trigger, and the triggers come from the other two
-passes while they're already standing in the file: a lessons pass that couldn't tell which section
-an entry belonged to, a rule that already existed and couldn't be narrowed into a checkable form, a
-measurement taken in passing — or someone simply asking.
+**Run it on demand whenever you want** — "this has got too big", "I can never find anything in
+here", or just pointing it at a file. That's the whole gate, and it's the common way to use it.
+What it won't do is start itself: knowing where something lives is part of retrieval, and every
+reorganization spends that down, so unprompted it needs a lessons pass that couldn't tell which
+section an entry belonged to, a rule that existed and couldn't be narrowed into a checkable form,
+or a measurement taken in passing.
 
-Six steps: don't run speculatively; diagnose before moving anything, because length is a symptom
-shared by every cause; test the boundaries by predicting where existing entries live from the
-headings alone; apply the placement criterion — always-loaded is for content whose moment of need is
-a moment you wouldn't know to go get it; re-file and merge but **never abbreviate**, since a rule
-fires on its specificity; propose as a manifest and prove the move by diffing the sorted rule lines.
+Six steps: check that something triggered this; diagnose before moving anything, because length is
+a symptom shared by every cause; test the boundaries by predicting where existing entries live from
+the headings alone; apply the placement criterion — always-loaded is for content whose moment of
+need is a moment you wouldn't know to go get it; re-file, merge, and shorten only against a
+specifics inventory; propose a two-class manifest and prove each class its own way.
+
+**It can shorten an entry, under a bar.** The default is still that a move preserves text byte for
+byte — that's what makes a reorganization provable by diffing the sorted rule lines. But re-filing
+alone can't remove real redundancy, so shortening is available where a specifics inventory shows
+nothing that makes the rule fire was lost: every named artifact, command, path, number, condition
+and incident must survive into the new text or be declared a deliberate drop. It changes how much
+text a rule takes; only `distill-lessons` changes what it asserts. Moves and edits are proposed as
+separate classes and can be accepted separately.
 
 ## `grounded-output-style`
 
@@ -126,14 +150,14 @@ Code output style, appended to the system prompt with `keep-coding-instructions:
 changes how Claude verifies and reports without discarding its engineering behavior.
 
 **The trap it closes.** Confident, well-formed prose reads as verified whether or not it was: a
-polished sentence and a carefully measured one read with the same apparent authority, though only
-one is backed by verified evidence, so a reader who must act on the writing has no way to tell
-them apart except by re-deriving the claim. That
-confidence is borrowed from a genre built for a different audience — technical writing, talks,
-threads — where the job is to hold a reader free to leave. The actual audience for a review or an
-audit cannot leave; they're already committed to acting on what's written. Applying the
-leaveable-audience voice to a can't-leave audience is what makes an unsourced guess and a
-line-cited measurement sound the same.
+polished sentence and a carefully measured one carry the same apparent authority, though only one
+rests on something checked, so a reader who must act on the writing has no way to tell them apart
+except by re-deriving the claim. Where that confidence comes from, the plugin marks as a guess — it
+reads as borrowed from a genre built for a different audience, technical writing and talks and
+threads, where the job is to hold a reader free to leave. The half that doesn't depend on the guess
+is the half that matters: the audience for a review or an audit cannot leave, they're already
+committed to acting on what's written, and applying the leaveable-audience voice to them is what
+makes an unsourced guess and a line-cited measurement sound the same.
 
 See the plugin's own [README](plugins/grounded-output-style) for what it changes and its
 per-session cost.
@@ -161,9 +185,9 @@ and how, and what remains true. The code and its four live test scripts are in g
 /plugin install grounded-output-style@cgettings-skills
 ```
 
-They work independently. The first runs while work is in flight and feeds the third; the second and
-third are designed to run back to back; the fourth fires only when one of them trips it; the fifth
-is a standing style, not a workflow — after installing it, select
+They work independently, and pair off as above: `keep-ledger` feeds `reconcile-records`, and
+`distill-lessons` trips `refile-rules`. The fifth is a standing style, not a workflow — after
+installing it, select
 it under `/config` → **Output style** → **Grounded**, and only in projects where
 verification/audit/documentation writing is frequent enough to justify its per-session cost.
 Selecting it replaces whatever output style is active, built-ins included. The sixth is unrelated
@@ -195,11 +219,15 @@ not be taken. Every case carries both an `expected_output` written for a human r
 scores.
 
 `refile-rules` and `keep-ledger` also carry a `trigger_eval.json` — phrasings with expected
-trigger/no-trigger outcomes, twenty for the first (nine positive) and twenty-two for the second
-(ten positive). They exist because all four skills describe a document going wrong and therefore
-compete for the same prompts, so eight of `refile-rules`' negatives and seven of `keep-ledger`'s
-are prompts belonging squarely to siblings. The negative half is the actual test; passing the happy
-path proves nothing about separation.
+trigger/no-trigger outcomes, twenty-two each (ten positive apiece). They exist because all four
+skills describe a document going wrong and therefore compete for the same prompts, so nine of
+`refile-rules`' negatives and seven of `keep-ledger`'s are prompts belonging squarely to siblings.
+The negative half is the actual test; passing the happy path proves nothing about separation.
+
+`refile-rules`' newest negative is *"reword the caching rule so it's clearer"*. It's there because
+that skill can now change a rule's text, so the trigger set has to draw the line the skill draws:
+rewording for clarity changes what a rule asserts and belongs to `distill-lessons`; shortening a
+redundant entry doesn't and belongs to `refile-rules`.
 
 Four `reconcile-records` cases need a seeded record store. Eval 1 needs a record calling the
 finished work unmerged. Eval 2 needs notes holding both a present-tense and a dated claim about the

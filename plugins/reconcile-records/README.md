@@ -11,16 +11,24 @@ schedules anyone to look. This pass is that schedule.
 ## When it runs
 
 After a merge, after a release, when a multi-stage task completes, when someone trips over a
-stale doc, or as a periodic sweep — a wider set of occasions than a lessons pass. It also runs
-right after [`distill-lessons`](../distill-lessons), **including when that pass found nothing**:
-a session can teach you nothing and still merge a branch that falsifies a status line written
-last week.
+stale doc, or as a periodic sweep — a wider set of occasions than a lessons pass. A lessons pass
+that found **nothing** is not a reason to skip this one: a session can teach you nothing and still
+merge a branch that falsifies a status line written last week. One that found something isn't a
+reason to run it either — the trigger is the work boundary, which this pass has in its own right.
 
 It is not for adding new knowledge — capturing a durable lesson belongs to
 [`distill-lessons`](../distill-lessons). It is also not for reorganizing a store whose sections have
 drifted into overlap or grown too long to read, which is [`refile-rules`](../refile-rules). Note
 what you saw and move on: rearranging under cover of a correction sweep is how a bounded, cheap pass
 becomes the expensive one nobody runs.
+
+## Siblings
+
+Its pair is [`keep-ledger`](../keep-ledger), which writes status while the work is live — the only
+time that's cheap to write — where this pass checks the same record once the work has moved on.
+Gates one and two are aimed squarely at what a ledger produces, so where one exists this pass is
+fast, and where none was kept, gate two is what stands between that state and a transcript about to
+be summarized away.
 
 ## The four steps
 
