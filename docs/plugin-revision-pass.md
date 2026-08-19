@@ -1,15 +1,15 @@
 # Plugin revision pass — 2026-08
 
-**Status as of 2026-08-19: all nine steps done, plus a prose pass after step 8 (recorded there).
-The work is commit `ad81025` on branch `plugin-revision-pass`, open as PR #6 into `main` and not
-yet merged.**
+**CLOSED 2026-08-19. All nine steps done, plus a prose pass after step 8 (recorded there). Merged
+to `main` as `811e3e1` via PR #6; the work is `ad81025..811e3e1`.**
 
-`[verified 2026-08-19: gh pr view 6 → state OPEN, mergedAt null, mergeStateStatus CLEAN;
-git merge-base --is-ancestor HEAD origin/main → exit 1]`
+`[verified 2026-08-19: gh pr view 6 → state MERGED, mergedAt 2026-08-19T18:36:07Z, mergeCommit
+811e3e1; git status --porcelain clean against 811e3e1; the quota, the "never abbreviate" absolute
+and the old grounded section list confirmed absent from the working tree by grep]`
 
-**This is not the historical close-out.** That one — done, the date, the commit range — belongs to
-whoever merges, and it is what converts this from a live ledger into a dated record that
-`reconcile-records` will leave alone instead of trying to freshen. Do it then, not now.
+**This is now a dated historical record, not a live ledger.** Everything below describes what was
+true when the work landed. `reconcile-records` should leave it alone rather than try to freshen it;
+a status that has already been closed out is not a status that has moved on.
 
 ## State a cold session would otherwise be stuck without
 
@@ -40,9 +40,26 @@ None of this is recoverable from `git log` on this repo.
   needs `skill-creator`'s grader. Case 4 is the one that matters — it is what stops the shortening
   capability becoming a general compression licence, and PR #6 carries a note asking that it not be
   deleted as redundant with case 2.
-- **A `reconcile-records` pass is earned by the merge, not by this ledger.** Under the coupling
-  removed in step 3 it would have been automatic; it now runs on its own trigger, and a merge is
-  one.
+- **A `reconcile-records` pass ran 2026-08-19, after the merge.** The merge was its trigger; under
+  the coupling removed in step 3 it would have followed the lessons pass automatically instead.
+  Scope: the files in `ad81025..811e3e1`, `docs/keep-session-warm-postmortem.md`, the project memory
+  store, and the global CLAUDE.md lines naming these skills. It re-derived all six README counts as
+  correct — 26 eval cases (7/7/7/5), both trigger sets 22 with 10 positive, grounded 1,016 words,
+  four workflow skills — and found one stale status: this ledger's own "not yet merged" line, fixed
+  in the same commit.
+  - **Gate 6 was not re-run.** It was swept across all 11 shipped files in step 8 the same day,
+    finding every outside-system claim sourced. Relying on that rather than repeating it hours later.
+  - **`docs/keep-session-warm-postmortem.md` was checked for falsified cross-references (none — it
+    names no revised skill) but not swept for gate 6.** It is the doc here densest with external
+    claims about Claude Code's cache behaviour, the work never touched it, and a gate-6 pass over it
+    is a real separate job. Left undone deliberately, not overlooked.
+  - **One item deferred to the next lessons pass**, because fixing it adds knowledge rather than
+    correcting a falsehood: the `preamble-confident-prose-trap` memory mandates stating the trap's
+    *hypothesized* source, and following it literally is what produced three flat unhedged statements
+    of that source in shipped files, which step 8 then had to correct. The memory is incomplete about
+    how to apply itself rather than false.
+- **Branch `plugin-revision-pass` still exists** locally and on `origin` at the close-out. It is
+  fully merged into `main` and safe to delete; nothing here depends on it surviving.
 
 Nine-item revision agreed in session on 2026-08-19. The user proposed eight changes and accepted
 one reshaping (step 2) and one added condition (step 4) after pushback. This document is the
