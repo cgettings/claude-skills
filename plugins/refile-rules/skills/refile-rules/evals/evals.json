@@ -1,6 +1,6 @@
 {
   "skill_name": "refile-rules",
-  "notes": "Prompts stay short and withhold the state they turn on, following the sibling skills — a user does not describe their own CLAUDE.md back to the agent, and a prompt that names the problem lets the model skip the diagnosis in step 2. Prior state is given in expected_output as a precondition. None of these cases ship a fixture; each says what a fixture would have to make true, the way `reconcile-records`' cases do. Cases 3 and 4 are the two judgeable without one — 3 from the response alone, 4 from whether any move is proposed at all — so they are written hardest. Case 2 is the most valuable case here: the skill's central prohibition is that behavioural rules are re-filed and merged but never abbreviated, and 'this file is too long' is the exact prompt that invites the violation. Case 4 pairs with it, same complaint about length and the opposite correct answer, so a model that treats length as the finding fails one of the two whichever way it leans. Case 5 sets the placement criterion against size directly: the longest entry in the file is the one that must stay. Several expectations are negative, and for cases 3 and 4 the whole result is an action that must not happen.",
+  "notes": "Prompts stay short and withhold the state they turn on, following the sibling skills — a user does not describe their own CLAUDE.md back to the agent, and a prompt that names the problem lets the model skip the diagnosis in step 2. Prior state is given in expected_output as a precondition. None of these cases ship a fixture; each says what a fixture would have to make true, the way `reconcile-records`' cases do. Cases 3 and 4 are the two judgeable without one — 3 from the response alone, 4 from whether any move is proposed at all — so they are written hardest. Case 2 is the most load-bearing here: the skill permits shortening an entry, but only against a specifics inventory, and 'get it down' is the exact prompt that invites the unbounded version. Case 4 pairs with it — same complaint about length, opposite correct answer — so a model that treats length as the finding fails one of the two whichever way it leans, and it is also where the edit branch is expected to be declined. Case 5 sets the placement criterion against size directly: the longest entry in the file is the one that must stay, and must not be shortened either. Case 2 additionally tests that a direct request is accepted as a trigger in its own right. Several expectations are negative, and for cases 3 and 4 the whole result is an action that must not happen.",
   "evals": [
     {
       "id": 1,
@@ -15,25 +15,31 @@
         "The reason for excluding the just-filed entry is given as it measuring recall rather than structure",
         "Merging the two overlapping sections is proposed",
         "A distinction invented to justify keeping the two sections separate is not proposed",
-        "The proposal is presented as a manifest accounting for every rule, not as a diff to read",
-        "No rule's wording is changed as part of the move"
+        "The proposal is presented as a two-class manifest accounting for every rule, not as a diff to read",
+        "No rule's wording is changed as part of the move",
+        "The merge of the two sections' overlapping rules is declared as an edit with its inventory, not as a move"
       ]
     },
     {
       "id": 2,
-      "name": "too-long-must-not-abbreviate",
+      "name": "too-long-shorten-only-against-inventory",
       "prompt": "my CLAUDE.md has got out of hand. can you get it down?",
-      "expected_output": "The central case. Requires a store mixing three things: verification and judgment rules that must stay, language or tool conventions with natural triggers that should relocate to on-demand skills, and at least one pair of entries that genuinely say the same thing. The correct pass relocates the triggered content, merges the duplicate pair into an entry still stating both specifics, and leaves every surviving rule byte-for-byte as it was. The failure this case exists for is compression — rewriting rules shorter to satisfy the request. It is the tempting answer because it is the most direct reading of 'get it down', and because the result still reads as true. Any surviving rule that has been reworded is a fail regardless of how much space it saved, and so is a merged entry that names less than the two it replaced.",
+      "expected_output": "The central case, and an on-demand run — the request is itself the trigger, so step 1 is settled and no further justification for running is needed. Requires a store mixing three things: verification and judgment rules that must stay, language or tool conventions with natural triggers that should relocate to on-demand skills, and at least one pair of entries that genuinely say the same thing. Correct: relocate the triggered content, and propose the duplicate pair as a merge in the edits class with an inventory showing the merged form states the union of both. Every other surviving rule stays byte-for-byte as it was. The failure this case exists for is still compression — rewriting rules shorter to satisfy 'get it down' — but the bar is now checkable rather than a prohibition: shortening is available only where a specifics inventory shows nothing that makes a rule fire was lost, and an entry that is long because it carries four conditions and an incident does not qualify at all. Shortening proposed without an inventory is a fail. So is any edit that changes what a rule asserts, rather than how much text it takes.",
       "files": [],
       "expectations": [
-        "No surviving rule is reworded, summarised, or shortened",
+        "The request alone is treated as sufficient trigger, without hunting for one of the unprompted triggers",
         "Language or tool conventions are relocated to on-demand skills rather than deleted",
         "A pointer is left behind for each relocated body of content",
         "The verification and judgment rules are kept in the always-loaded file",
+        "The manifest separates moves from edits rather than presenting one undifferentiated list",
+        "The duplicate pair is proposed as an edit, not as a move",
         "Any merged entry still states the specifics of both entries it replaces",
-        "The reason given for not compressing is that specificity is what makes a rule fire",
-        "A manifest accounts for every rule as moved, merged, relocated, or deleted",
-        "A mechanical check on the sorted rule lines is proposed or run to prove nothing changed silently"
+        "Every proposed edit carries a specifics inventory with each item marked carried over or deliberately dropped with a reason",
+        "No entry is shortened on the grounds of its length alone",
+        "No entry is both moved and reworded within the same manifest line",
+        "No edit changes what a rule asserts, as against how much text it takes",
+        "A mechanical check on the sorted rule lines is proposed for the moves class",
+        "The moves and the edits are offered for separate approval"
       ]
     },
     {
@@ -54,14 +60,15 @@
       "id": 4,
       "name": "long-but-boundaries-hold",
       "prompt": "this CLAUDE.md has got pretty long. worth reorganizing?",
-      "expected_output": "Requires a long file whose sections are all genuinely distinct — every entry predictable from its heading alone. Pairs with case 2: the same complaint about length, the opposite correct answer. The pass should apply the boundary test, find it passes, and conclude that no reorganization is warranted, saying plainly that length is not itself a finding. Shuffling anyway is the failure. Recommending compression as the fallback since there is nothing to re-file is a second and worse failure. Noting that relocating triggered content is the only lossless way to shorten it, and that little here qualifies, is a good answer.",
+      "expected_output": "Requires a long file whose sections are all genuinely distinct — every entry predictable from its heading alone — and whose entries each carry their own specifics. Pairs with case 2: the same complaint about length, the opposite correct answer. The pass should apply the boundary test, find it passes, and conclude that no reorganization is warranted, saying plainly that length is not itself a finding. Shuffling anyway is the failure. Reaching for the shortening branch as a fallback is the second and worse failure, and it is the one the skill's edit capability newly makes available — nothing here meets the inventory bar, because no entry is redundant with another and none is padded with prose that names nothing. Considering that branch and explicitly ruling it out on those grounds is a good answer; reaching for it because there was nothing to re-file is not. Noting that relocating triggered content is the only lossless way to shorten this file, and that little here qualifies, is also a good answer.",
       "files": [],
       "expectations": [
         "The conclusion is that no reorganization is warranted",
         "No rule is moved, merged, or relocated",
         "The boundary test is actually applied rather than the conclusion being asserted",
         "The response states that length alone is not a finding",
-        "Compressing or shortening the rules is not offered as an alternative",
+        "No shortening or compression of any rule is proposed",
+        "If the shortening branch is raised at all, it is ruled out because no entry meets the specifics-inventory bar, not because shortening is forbidden",
         "The conclusion is stated plainly rather than padded with a list of marginal changes"
       ]
     },
@@ -69,7 +76,7 @@
       "id": 5,
       "name": "placement-criterion-beats-size",
       "prompt": "this file grows every time we pick up another language. is that how it should work?",
-      "expected_output": "Requires an always-loaded store holding both language and tool conventions (R, PowerShell, workflow YAML) and general verification rules, where the single longest entry in the file is a verification rule. Correct: the conventions relocate to on-demand skills, because an open .R file or a workflow YAML is a better trigger than a rule sitting in a file being read for other reasons, and each leaves a pointer. The discriminating part is the long verification rule, which must stay — there is no event that fires when you are about to state an estimate as a measurement, so nothing will summon it except its already being there. Moving it out because it is the biggest thing in the file is the failure this case exists for, and the prompt's framing around growth makes size the salient axis on purpose.",
+      "expected_output": "Requires an always-loaded store holding both language and tool conventions (R, PowerShell, workflow YAML) and general verification rules, where the single longest entry in the file is a verification rule. Correct: the conventions relocate to on-demand skills, because an open .R file or a workflow YAML is a better trigger than a rule sitting in a file being read for other reasons, and each leaves a pointer. The discriminating part is the long verification rule, which must stay — there is no event that fires when you are about to state an estimate as a measurement, so nothing will summon it except its already being there. Moving it out because it is the biggest thing in the file is the failure this case exists for, and the prompt's framing around growth makes size the salient axis on purpose. The edit branch gives this case a second way to fail: the long verification rule is now the obvious candidate for shortening, and it does not qualify — it is long because it names its conditions and its incident, which is what the inventory protects. Shortening it is the same error as relocating it, reached by a different route.",
       "files": [],
       "expectations": [
         "The language and tool conventions are identified as belonging in on-demand skills",
@@ -78,7 +85,8 @@
         "The longest verification rule is not relocated on the grounds of its size",
         "The criterion is stated as whether the moment of need is one you would know to go get it",
         "A pointer is left in the always-loaded file for each relocated skill",
-        "No relocated or retained rule is reworded in the process"
+        "The longest verification rule is not shortened, and length alone is not treated as qualifying an entry for the edit branch",
+        "No relocated or retained rule is reworded as part of a move"
       ]
     }
   ]

@@ -8,6 +8,7 @@
   {"query": "should these language conventions be in CLAUDE.md or in a skill?", "should_trigger": true},
   {"query": "the lessons pass said it couldn't tell which section to file that under", "should_trigger": true},
   {"query": "that rule was already in here and it still didn't fire", "should_trigger": true},
+  {"query": "the same rule is written out in three places in here, can you consolidate them", "should_trigger": true},
 
   {"query": "is any of this still true?", "should_trigger": false},
   {"query": "anything out of date in the notes?", "should_trigger": false},
@@ -19,5 +20,6 @@
   {"query": "anything worth putting in CLAUDE.md?", "should_trigger": false},
   {"query": "add a line to CLAUDE.md about running e2e headed on apple silicon", "should_trigger": false},
   {"query": "what's in CLAUDE.md right now?", "should_trigger": false},
-  {"query": "reformat this file to wrap at 80 columns", "should_trigger": false}
+  {"query": "reformat this file to wrap at 80 columns", "should_trigger": false},
+  {"query": "reword the caching rule so it's clearer", "should_trigger": false}
 ]

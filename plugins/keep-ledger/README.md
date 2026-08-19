@@ -19,11 +19,16 @@ step runs — and again on every resume, when a new session, a compaction, or a 
 reset means the person reading the plan wasn't the person who wrote it.
 
 It is not for deciding what knowledge is worth keeping, which is
-[`distill-lessons`](../distill-lessons), and not for sweeping a record store for what recent
-work made false, which is [`reconcile-records`](../reconcile-records) — though a stale or
-absent ledger is exactly what that pass is built to catch. It is also not a session recap or a
-handover summary: those describe what happened, and a ledger records only what a future
-session must act on.
+[`distill-lessons`](../distill-lessons). It is also not a session recap or a handover summary:
+those describe what happened, and a ledger records only what a future session must act on.
+
+## Siblings
+
+Its pair is [`reconcile-records`](../reconcile-records). A ledger is a status record, so it's
+precisely what that pass's first two gates look for — a step whose status has moved on, and work
+that ended mid-flight with nothing written down. Keeping one is what gives those gates something
+greppable to find, and a found ledger is cheap to correct. The two halves divide by when they run:
+this one while the work is live, that one once it has moved on.
 
 ## The seven steps
 
@@ -41,8 +46,14 @@ session must act on.
    say why it couldn't work.
 5. **Point at landmarks, not line numbers** — the path plus the symbol, and the exact next
    command with its flags and what a pass looks like.
-6. **Update it as part of the step**, in the commit that finishes the step. There may be no end
-   of session to do it at.
+6. **Update it as part of the step**, in the commit that finishes the step — there may be no end
+   of session to do it at — then check it against a cold session: could someone who wasn't here
+   run the next step from this document alone? The mechanical form is to write out the literal
+   next command; if you can't, the missing fact is what to record. Four things strand a cold
+   session and none of them is a step status: a decision taken and what was rejected with it,
+   environment state, what was deliberately deferred, and uncommitted state. Asking costs a
+   sentence and recording happens only when the answer isn't "nothing", which is the asymmetry that
+   makes it affordable every step.
 7. **On resume, the ledger and `git log` outrank your recollection.** If the ledger and the repo
    disagree, the repo is right, and correcting the ledger is the first edit of the session.
 
