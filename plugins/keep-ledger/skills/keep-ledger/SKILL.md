@@ -1,7 +1,7 @@
 ---
 name: keep-ledger
 description: Keep a resumable ledger — what is done, what proof actually ran, and the exact next command — in the tracked document that owns the work, written so a session that was not there can run the next step from it alone. Use when starting anything with more than one step (a plan about to be executed, a staging list, a migration, a multi-stage refactor), and use again when picking such work back up — a new session, a fresh context after a compaction or a session-limit reset, or when the user says "where were we", "pick this back up", "what's left on X", "did we finish Y". Also use when a plan or staging list turns out to list steps with no status. This is not for deciding what knowledge is worth keeping, which is `distill-lessons`, and not for sweeping a record store for what recent work made false, which is `reconcile-records` — though a stale or absent ledger is exactly what that pass is built to catch. It is also not a session recap or a handover summary — those describe what happened, and a ledger records only what a future session must act on.
-version: 1.1.0
+version: 1.2.0
 license: GPL-3.0-or-later
 ---
 
@@ -35,7 +35,7 @@ The vocabulary, and the distinctions that matter:
 
 | Status | Says |
 |---|---|
-| **DONE `<date>`** | Landed. Carries its proof (step 4) and, if the prescribed proof was wrong, the correction |
+| **DONE `<date>`** | Landed, and names the commit that holds it. Carries its proof (step 4) and, if the prescribed proof was wrong, the correction |
 | **Not started** | Available. A session may pick it up |
 | **In progress** | Someone is mid-flight; name what is half-done |
 | **Parked** | A choice that was made and can be unmade. Say what would unpark it |
@@ -44,7 +44,19 @@ The vocabulary, and the distinctions that matter:
 
 Parked and blocked are not synonyms, and the difference is who acts next. A step marked with neither reads as available, and a session will start it.
 
-Open the ledger with one line giving the shape before anyone reads six entries: **Status as of 2026-08-06: step 1 done; step 2 on a separate track; steps 3–6 untouched.**
+**A DONE row names the commit that holds it.** A status phrase — *done*, *unpushed*, *unmerged* — asserts a relationship between the work and a ref it does not name, and each is falsified by a different event: a commit, a push, a merge. A reader cannot tell from the phrase which event would falsify it, so nobody knows what to re-check or when. A hash is an identity rather than a relationship, and identities do not go false: `A @ 3ce4b8f2b3` survives the push, the merge, and the deletion of `A`, and lets a reader derive the relationship they actually need at the moment they need it — `git merge-base --is-ancestor 3ce4b8f2b3 production`, which exits non-zero for *no*. The branch name stays in the cell as the readable locator; the hash is the half that still resolves without it. What the row itself claims stays narrow: a fact about that commit, and about nothing downstream of it until the branch merges.
+
+| # | Step | Commit | Status | Proof that ran |
+|---|---|---|---|---|
+| 4 | Duplicate `id` in the nav partial | `A @ d0fc7e1753` | **DONE 2026-08-21** | axe `duplicate-id`, 0 violations over 4 pages |
+| 5 | Duplicate `id` in the masthead | `A @ d0fc7e1753` | **DONE 2026-08-21** | same run |
+| 9 | Unused print stylesheet import | *no commit* — the partial emits zero CSS | **DONE 2026-08-21** | `sass` build of the partial alone, 0 bytes out |
+
+One commit closing several steps is ordinary: the hash is not a unique key, and two rows carrying the same one record that they were a single authoring error. A step that closes with no commit at all says so in that cell, in words. **The cell is never left blank** — blank has one meaning and needs to keep it, which is the gap between the work landing and the ledger commit that records where.
+
+The incident: nine rows like these, each **DONE**, dated, and carrying a proof of zero axe violations over four pages — beside a Branch column reading `A` and a working tree holding all of it. `git status --porcelain` returned 16 modified files; `git log` showed nothing since the branch point. The paragraph above the table did say "nothing is committed yet", so the fact was on the page. It was not in the field carrying the verdict, and the field carrying the verdict is the one that gets acted on.
+
+Open the ledger with one line giving the shape before anyone reads six entries — and give it the same scope the rows carry, because a correction made in a row does not travel up to it: **Status as of 2026-08-06: step 1 done on `A`, unmerged; step 2 on a separate track; steps 3–6 untouched.**
 
 Close it, when the whole thing lands, with one line: done, the date, the commit range. That converts a live record into a dated historical one — which `reconcile-records` will then correctly leave alone instead of trying to freshen.
 
@@ -70,7 +82,11 @@ The same standard applies to what runs next. Write the exact command with its fl
 
 ## 6. Update it as part of the step, then check it against a cold session
 
-The commit that finishes a step edits the ledger. There may be no end of session to do it at, and a ledger updated from recollection is a ledger written by the least reliable witness available.
+The ledger is updated as part of the step, not at an end of session that may never arrive; a ledger written from recollection is written by the least reliable witness available.
+
+A row naming its own commit cannot be written by that commit, so the order is fixed: **the work commits first, then one ledger commit fills in the hashes.** Batch it — seven task commits followed by one ledger commit naming all seven, rather than alternating. That ledger commit does not name itself and has no need to: the row names the *work's* commit, which is what a later session has to find, and a commit holding only bookkeeping is not.
+
+A rebase, a squash-merge, or an amend invalidates every hash in the ledger, so refresh the column in the same operation that rewrote them. A stale hash is worse than the bare branch name it replaced: it reads as precise and resolves to nothing. This is the one case where the phrase form is cheaper, and worth saying plainly — the hash column shifts the cost of keeping a status true rather than removing it, and a rebase is when the whole table's bill arrives at once.
 
 **Then ask one question before moving on: could a session that was not here run the next step from this document alone?** Finishing a plan in one sitting is a common case, not a safe assumption, and the ledger is written against the case where it isn't.
 
@@ -89,13 +105,15 @@ Four things strand a cold session, and none of them is a step status — which i
 
 Read the ledger first, then check its status line against the commits before touching anything. If the two disagree, the repo is right, and correcting the ledger is the first edit of the session rather than something to do once the real work is done.
 
+The hashes are what make that check mechanical. `git cat-file -e <hash>^{commit}` says whether a row still points at anything — one that no longer resolves means the history moved under the ledger, not that the step came undone — and `git branch -a --contains <hash>` says where the work has reached since, which is the question a DONE row deliberately does not answer.
+
 This binds hardest exactly where it feels least necessary. After a compaction, "recollection" is a summary you wrote about a session, at a remove from the session. A user's recap is honest and abbreviated. Neither is evidence; the commits are.
 
 ## What a ledger is not
 
 - **A second copy of the plan.** It points at the plan's steps and records their state. Two copies drift, and a reader can't tell which is current.
 - **A session recap.** Nobody picking the work up needs the narrative. Record only what they must act on.
-- **A restatement of `git log`.** What the commits already say, leave to them. The ledger holds what they can't: status, the proof that ran, and what comes next.
+- **A restatement of `git log`.** What the commits already say, leave to them. The ledger holds what they can't: status, the proof that ran, and what comes next. The hash in a DONE row is not an exception to this — it is the join key into the log, not a copy of what the log holds.
 - **A home for lessons.** What you learned belongs where it will actually be read, and `distill-lessons` decides where that is. A lesson parked in a ledger is read by the one workstream that opens the ledger — which is the failure that skill exists to fix.
 - **A status nobody verified.** Repeated because it is the cheapest thing here to get wrong and the most expensive downstream.
 
