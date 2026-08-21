@@ -1,7 +1,7 @@
 ---
 name: keep-ledger
 description: Keep a resumable ledger — what is done, what proof actually ran, and the exact next command — in the tracked document that owns the work, written so a session that was not there can run the next step from it alone. Use when starting anything with more than one step (a plan about to be executed, a staging list, a migration, a multi-stage refactor), and use again when picking such work back up — a new session, a fresh context after a compaction or a session-limit reset, or when the user says "where were we", "pick this back up", "what's left on X", "did we finish Y". Also use when a plan or staging list turns out to list steps with no status. This is not for deciding what knowledge is worth keeping, which is `distill-lessons`, and not for sweeping a record store for what recent work made false, which is `reconcile-records` — though a stale or absent ledger is exactly what that pass is built to catch. It is also not a session recap or a handover summary — those describe what happened, and a ledger records only what a future session must act on.
-version: 1.2.0
+version: 1.3.0
 license: GPL-3.0-or-later
 ---
 
@@ -44,7 +44,11 @@ The vocabulary, and the distinctions that matter:
 
 Parked and blocked are not synonyms, and the difference is who acts next. A step marked with neither reads as available, and a session will start it.
 
-**A DONE row names the commit that holds it.** A status phrase — *done*, *unpushed*, *unmerged* — asserts a relationship between the work and a ref it does not name, and each is falsified by a different event: a commit, a push, a merge. A reader cannot tell from the phrase which event would falsify it, so nobody knows what to re-check or when. A hash is an identity rather than a relationship, and identities do not go false: `A @ 3ce4b8f2b3` survives the push, the merge, and the deletion of `A`, and lets a reader derive the relationship they actually need at the moment they need it — `git merge-base --is-ancestor 3ce4b8f2b3 production`, which exits non-zero for *no*. The branch name stays in the cell as the readable locator; the hash is the half that still resolves without it. What the row itself claims stays narrow: a fact about that commit, and about nothing downstream of it until the branch merges.
+**Record identities; derive relationships.** A ledger holds two kinds of fact and they age completely differently. An identity — a commit hash, a file path, the date an event happened — is stable: `3ce4b8f2b3` is that commit through a push, a merge, someone else's rebase, and the deletion of the branch it sat on. A relationship is two refs evaluated at a moment: *unpushed*, *unmerged*, *no PR open*, *8 commits ahead*. Each is true only until something moves, and each is falsified by a different event, which the phrase gives no hint of — so nobody knows what to re-check or when. Write the identity down; leave the relationship to be derived (§5).
+
+**So a DONE row names the commit that holds it.** DONE is a relationship, and it survives this vocabulary because the hash and the date turn it into an identity: `A @ 3ce4b8f2b3` says what landed and when, and lets a reader derive the part they actually need at the moment they need it — `git merge-base --is-ancestor 3ce4b8f2b3 production`, which exits non-zero for *no*. The branch name stays in the cell as the readable locator; the hash is the half that still resolves without it. What the row itself claims stays narrow: a fact about that commit, and about nothing downstream of it until the branch merges.
+
+Two limits, and both bite. A hash cited for *what it identifies* is stable — "these seven commits are the task work"; a hash cited for *what it is currently the tip of* is a relationship in an identity's clothes, and it moves on the next commit. Pin the range, not the tip. And only relationships the repo can answer are derivable at all: **Parked**, **BLOCKED on X**, and **On a separate track** are relationships too, no command returns them, and that is exactly why a ledger has to hold them.
 
 | # | Step | Commit | Status | Proof that ran |
 |---|---|---|---|---|
@@ -80,6 +84,14 @@ The next session's copy of the file has moved. Address things that survive an ed
 
 The same standard applies to what runs next. Write the exact command with its flags and what a pass looks like. "Run the characterization check" is a lookup task handed to the next session; `npm run characterize:nr -- --check`, zero diffs expected, is not.
 
+It applies again to every relationship you were about to write as a status (§3). Write the command that derives it, and what its answer looks like:
+
+```
+git log --oneline BASE..HEAD                             # the task commits
+git rev-list --left-right --count origin/BRANCH...HEAD   # 0 0 means pushed
+gh pr list --head BRANCH                                 # a PR, and against which base
+```
+
 ## 6. Update it as part of the step, then check it against a cold session
 
 The ledger is updated as part of the step, not at an end of session that may never arrive; a ledger written from recollection is written by the least reliable witness available.
@@ -91,6 +103,10 @@ A rebase, a squash-merge, or an amend invalidates every hash in the ledger, so r
 **Then ask one question before moving on: could a session that was not here run the next step from this document alone?** Finishing a plan in one sitting is a common case, not a safe assumption, and the ledger is written against the case where it isn't.
 
 The question has a mechanical form, and it is cheaper than it sounds: **write out the literal next command.** If you cannot write it without a fact the ledger does not hold, that fact is what to record. Nothing else needs auditing.
+
+Then run it backwards, over the same two sections: **for each status phrase, name the command in the next-command block that would falsify it.** If you can name one, that phrase is a snapshot in a record's clothes. The overlap is not a coincidence to watch for — the next-command block exists to change the state the status block describes, so the two are adjacent by construction and one action apart by design. A resume block reading `# expect 8 commits` was falsified by committing the ledger correction written directly above it.
+
+The incident: *unpushed, no PR* went into a ledger and two memory records at about 11:00 and was false inside the half hour, because the user pushed — which is what the ledger's own next-command block had told them to do. Three files went false at once, from a single action the document itself had asked for. A relationship does not merely go stale; it spawns copies that then go stale independently. Every hash in those same records needed no correction at all.
 
 Four things strand a cold session, and none of them is a step status — which is how a ledger can look complete and still fail:
 

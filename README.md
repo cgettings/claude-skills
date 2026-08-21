@@ -46,11 +46,11 @@ no state.
 
 Seven steps: write it at the start, because the moment you need it is the moment you can't write
 it; put it in the tracked document that owns the work; give every step a status, distinguishing
-parked from blocked by who acts next, and naming in each DONE row the commit that holds it; record
-the proof that **ran**, not the proof you planned; point at landmarks rather than line numbers;
-update it as part of each step, the work committing first and one ledger commit filling in the
-hashes, then check it against a cold session; and on resume, treat the ledger and `git log` as
-outranking your own recollection.
+parked from blocked by who acts next, and recording identities while leaving relationships to be
+derived, so each DONE row names the commit that holds it; record the proof that **ran**, not the
+proof you planned; point at landmarks rather than line numbers; update it as part of each step,
+the work committing first and one ledger commit filling in the hashes, then check it against a
+cold session; and on resume, treat the ledger and `git log` as outranking your own recollection.
 
 **The cold-session check is step 6's second half.** Finishing a plan in one sitting is a common
 case, not a safe assumption, so after each step: could someone who wasn't here run the next step

@@ -40,14 +40,16 @@ this one while the work is live, that one once it has moved on.
    document *is* the first entry.
 3. **Give every step a status** — done, not started, in progress, parked, BLOCKED on X, on a
    separate track. Parked and blocked aren't synonyms; the difference is who acts next. A step
-   marked with neither reads as available, and a session will start it. A DONE row names the
-   commit that holds it, not just the branch: it's a fact about that commit and about nothing
-   downstream of it until the branch merges.
+   marked with neither reads as available, and a session will start it. Record identities and
+   derive relationships: a hash is stable, while *unpushed* and *unmerged* are true only until
+   something moves. So a DONE row names the commit that holds it, not just the branch — it's a
+   fact about that commit and about nothing downstream of it until the branch merges.
 4. **Record the proof that ran, not the proof you planned.** The written check is a guess about
    a repo you hadn't run it against yet. When they differ, correct the written one in place and
    say why it couldn't work.
 5. **Point at landmarks, not line numbers** — the path plus the symbol, and the exact next
-   command with its flags and what a pass looks like.
+   command with its flags and what a pass looks like. A relationship you were about to write as
+   a status takes the same form: the command that derives it, and its expected answer.
 6. **Update it as part of the step** — there may be no end of session to do it at. A row can't be
    written by the commit it names, so the work commits first and one ledger commit fills in the
    hashes. Then check it against a cold session: could someone who wasn't here
@@ -56,7 +58,9 @@ this one while the work is live, that one once it has moved on.
    session and none of them is a step status: a decision taken and what was rejected with it,
    environment state, what was deliberately deferred, and uncommitted state. Asking costs a
    sentence and recording happens only when the answer isn't "nothing", which is the asymmetry that
-   makes it affordable every step.
+   makes it affordable every step. Then run it backwards: for each status phrase, name the command
+   in the next-command block that would falsify it. The two are adjacent by construction, so if you
+   can name one, that phrase is a snapshot in a record's clothes.
 7. **On resume, the ledger and `git log` outrank your recollection.** If the ledger and the repo
    disagree, the repo is right, and correcting the ledger is the first edit of the session.
    Resolving the ledger's hashes is the cheapest form of that check.
