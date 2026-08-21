@@ -1,6 +1,6 @@
 {
   "name": "keep-ledger",
-  "version": "1.1.0",
+  "version": "1.3.0",
   "description": "Keep a resumable ledger for work that spans sessions — what is done, what proof actually ran, and the exact next command — in the tracked document that owns the work.",
   "author": {
     "name": "cgettings"

@@ -46,10 +46,11 @@ no state.
 
 Seven steps: write it at the start, because the moment you need it is the moment you can't write
 it; put it in the tracked document that owns the work; give every step a status, distinguishing
-parked from blocked by who acts next; record the proof that **ran**, not the proof you planned;
-point at landmarks rather than line numbers; update it in the commit that finishes each step, then
-check it against a cold session; and on resume, treat the ledger and `git log` as outranking your
-own recollection.
+parked from blocked by who acts next, and recording identities while leaving relationships to be
+derived, so each DONE row names the commit that holds it; record the proof that **ran**, not the
+proof you planned; point at landmarks rather than line numbers; update it as part of each step,
+the work committing first and one ledger commit filling in the hashes, then check it against a
+cold session; and on resume, treat the ledger and `git log` as outranking your own recollection.
 
 **The cold-session check is step 6's second half.** Finishing a plan in one sitting is a common
 case, not a safe assumption, so after each step: could someone who wasn't here run the next step
@@ -209,8 +210,8 @@ to the rest and only useful on Windows; skip it elsewhere.
 ## Evals
 
 Each of the four workflow skills carries its own cases under `skills/<name>/evals/evals.json`,
-weighted toward near-misses — the prompts that look like a trigger and aren't. Twenty-six cases in
-all: seven each for `keep-ledger`, `distill-lessons`, and `reconcile-records`, five for
+weighted toward near-misses — the prompts that look like a trigger and aren't. Twenty-seven cases
+in all: eight for `keep-ledger`, seven each for `distill-lessons` and `reconcile-records`, five for
 `refile-rules`. `grounded-output-style` carries none. Six of them
 turn on the workflow not running *at all*, and `distill-lessons` eval 2 on the pass running and
 correctly producing nothing; most of the rest carry at least one expectation that some action must
@@ -240,6 +241,21 @@ of the missing record is inferable without being spelled out.
 
 `distill-lessons` eval 1 needs a fixture of a different kind: a session transcript. The rejected
 suggestion it expects to be recovered appears in no artifact, which is the whole point of the case.
+
+## Checks
+
+`scripts/check-versions.sh` asserts that every plugin's `.claude-plugin/plugin.json` version matches
+its skill's frontmatter `version:`. The two are kept by hand in separate files and have drifted apart
+at least four times, in both directions — the manifest ahead of the skill as often as behind it. Run
+it before committing anything that touches a version.
+
+```
+sh scripts/check-versions.sh ; echo $?    # 0 = all match, 1 = at least one does not
+```
+
+It exits non-zero on its informative answer, so chain it with `;` rather than `&&`. Verified against
+`f13c38d`, a commit that really was mismatched: it reports `reconcile-records 1.3.0 != 1.4.0` and
+exits 1.
 
 ## License
 

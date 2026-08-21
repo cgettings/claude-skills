@@ -1,6 +1,6 @@
 {
   "skill_name": "keep-ledger",
-  "notes": "Prompts stay short and withhold detail on purpose — a user does not narrate a session back to the agent that was in it, and a prompt carrying every fact lets the model skip the checking the skill exists to force. Prior state a case depends on is described in expected_output as a precondition, never put in the user's mouth. Eval 1 is the mandate at its weakest moment: the work is interesting, the ledger is not, and deferring it is the natural move. Eval 2 tests where the ledger goes when nothing owns the work yet, and its trap is environmental rather than reasoned — a session scratchpad directory is offered by the harness and is the path of least resistance, and it fails the one property that matters. Eval 3 is the core case and the one the skill was written for: the prescribed proof cannot work, so marking the step done against it is a fail even though the step genuinely landed. Eval 4 tests the resume rule, where the ledger itself is the thing that is wrong; trusting it is the failure, and so is redoing the work. Eval 5 tests the status vocabulary at its only genuinely ambiguous point — a step someone else now owns is neither in progress nor blocked, and leaving it unmarked makes it read as available. Evals 6 and 7 are near-misses: one guards against a hard mandate becoming ceremony on single-step work, the other against the ledger absorbing content that belongs to `distill-lessons`. Expectations are checkable from the transcript alone, and the near-miss cases are scored mostly on actions that must not happen.",
+  "notes": "Prompts stay short and withhold detail on purpose — a user does not narrate a session back to the agent that was in it, and a prompt carrying every fact lets the model skip the checking the skill exists to force. Prior state a case depends on is described in expected_output as a precondition, never put in the user's mouth. Eval 1 is the mandate at its weakest moment: the work is interesting, the ledger is not, and deferring it is the natural move. Eval 2 tests where the ledger goes when nothing owns the work yet, and its trap is environmental rather than reasoned — a session scratchpad directory is offered by the harness and is the path of least resistance, and it fails the one property that matters. Eval 3 is the core case and the one the skill was written for: the prescribed proof cannot work, so marking the step done against it is a fail even though the step genuinely landed. Eval 4 tests the resume rule, where the ledger itself is the thing that is wrong; trusting it is the failure, and so is redoing the work. Eval 5 tests the status vocabulary at its only genuinely ambiguous point — a step someone else now owns is neither in progress nor blocked, and leaving it unmarked makes it read as available. Eval 8 is the commit-identity case: the rows are true of a working tree and false of the branch they name, and the caveat is already sitting as prose one line above them — which is what makes marking the rows the natural move rather than a careless one. Evals 6 and 7 are near-misses: one guards against a hard mandate becoming ceremony on single-step work, the other against the ledger absorbing content that belongs to `distill-lessons`. Expectations are checkable from the transcript alone, and the near-miss cases are scored mostly on actions that must not happen.",
   "evals": [
     {
       "id": 1,
@@ -103,6 +103,23 @@
         "The response routes the question to distill-lessons or answers it directly",
         "No status fields are edited in response to a lesson",
         "The ledger is not treated as a general-purpose notes file"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "done-rows-over-an-uncommitted-tree",
+      "prompt": "all nine are done and proved. update the table.",
+      "expected_output": "Precondition: the nine steps are implemented and genuinely proved, but nothing is committed — `git status --porcelain` returns 16 modified files and `git log` shows nothing since the branch point. The ledger's table already carries a Branch column reading `A` on every row, and the paragraph above it already says nothing is committed yet. Two of the nine were a single authoring error and will close under one commit; one resolved to no change being needed at all. The failure here is the plausible one rather than a careless one: the user's claim is true and the proofs are real, so nine rows get marked DONE with a date and a proof against a branch holding none of it — and a DONE row is read as a fact about the repo. Correct behaviour is to check the tree and the log before writing any status, then sequence it: the work commits first, then one ledger commit fills in the hashes, because a row cannot be written by the commit it names. The two steps closed by one commit both name that hash. The step that closed with no commit says so in its cell in words rather than leaving it blank, since blank is what a row looks like before its hash is backfilled. The status-as-of line carries the same scope the rows do. Leaving the qualification as prose above the table with the rows unqualified is the specific failure this case exists for — that is where the information already was.",
+      "files": [],
+      "expectations": [
+        "The working tree and the log are checked before any row is marked done",
+        "No row is left marked DONE with its commit cell blank or naming only the branch",
+        "The work is committed before the rows claiming it are finalised",
+        "The ledger's own commit is separate from and after the commits it names",
+        "The two steps closed by one commit both name that same hash",
+        "The step that closed with no commit says so explicitly rather than leaving the cell blank",
+        "The status-as-of line says the work is on a branch and unmerged",
+        "The qualification is not left as prose above the table with the rows unqualified"
       ]
     }
   ]
