@@ -242,6 +242,21 @@ of the missing record is inferable without being spelled out.
 `distill-lessons` eval 1 needs a fixture of a different kind: a session transcript. The rejected
 suggestion it expects to be recovered appears in no artifact, which is the whole point of the case.
 
+## Checks
+
+`scripts/check-versions.sh` asserts that every plugin's `.claude-plugin/plugin.json` version matches
+its skill's frontmatter `version:`. The two are kept by hand in separate files and have drifted apart
+at least four times, in both directions — the manifest ahead of the skill as often as behind it. Run
+it before committing anything that touches a version.
+
+```
+sh scripts/check-versions.sh ; echo $?    # 0 = all match, 1 = at least one does not
+```
+
+It exits non-zero on its informative answer, so chain it with `;` rather than `&&`. Verified against
+`f13c38d`, a commit that really was mismatched: it reports `reconcile-records 1.3.0 != 1.4.0` and
+exits 1.
+
 ## License
 
 Copyright (C) 2026 Chris Gettings
