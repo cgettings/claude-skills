@@ -44,10 +44,10 @@ proved but deliberately not applied, because the firing test that would license 
 run. To undo: `rm -rf ~/.claude/lessons/`.
 
 **Next command.** Task 3 step 5 — the firing measurement, the one gate everything downstream sits
-on. The probe is written and unrun at
-`<scratch>/firing_probe.py` (see the step-5 note in §5 Task 3 for what it does and why the
-originally-named instrument could not). Re-cut the section first, since the probe asserts it
-appears exactly once in the live file:
+on. The probe is written and unrun at `scripts/measure-rule-firing.py` (see the step-5 note in §5
+Task 3 for what it does, how to read each outcome, and why the originally-named instrument could
+not). It refuses to run if the section is not found exactly once in the live file, so the check
+below is what it does first anyway:
 
 ```sh
 awk '/^### Validating the instrument/,/^### Verifying a claim/' ~/.claude/CLAUDE.md | head -n -1 | wc -c
@@ -573,17 +573,35 @@ something already points at it. These are evidence, so they are files.
    numbers from it as agreement.**
 
    What step 5 needs instead is a **behavioural probe**, written and unrun at
-   `<scratch>/firing_probe.py`. Three arms differing only in this section of `~/.claude/CLAUDE.md`:
-   **A** full (10,858 B), **B** split (8,048 B), **C** deleted. Arm C is load-bearing — without a
-   floor, A≈B cannot be told apart from a probe that never saw the section. Five queries, each
-   presenting a situation **without** the rule's own vocabulary (§this section's own rule about eval
-   prompts that hand over the fact under test), scored blind by a judge run with the global
-   `CLAUDE.md` moved aside. Q5 is a control: its bullet is byte-identical in A and B, so A-vs-B is
-   the probe's noise floor and A-vs-C its sensitivity to the section existing at all.
+   `scripts/measure-rule-firing.py`. Three arms differing only in this section of
+   `~/.claude/CLAUDE.md`: **A** full (10,858 B), **B** split (8,048 B), **C** deleted — built from
+   `docs/task-3-section-{before,after}.md` and verified to differ by exactly 2,810 B and 10,858 B
+   `[checked 2026-08-25]`. Arm C is load-bearing: without a floor, A≈B cannot be told apart from a
+   probe that never saw the section. Five queries, each presenting a situation **without** the
+   rule's own vocabulary — which is this section's own rule about eval prompts that hand over the
+   fact under test. Q5 is a control: its bullet is byte-identical in A and B, so A-vs-B is the
+   probe's noise floor and A-vs-C its sensitivity to the section existing at all.
 
    Reading: `A≈B>C` split is safe; `A>B≈C` **stop, §3b is wrong**; `A≈B≈C` probe is dead and
-   licenses no conclusion either way. Estimated ~$5-8 for 5 queries x 3 arms x 2 repeats = 30 runs,
-   from §1's measured 43,380-token baseline — an estimate, not a measurement.
+   licenses no conclusion either way.
+
+   **The judge is one call per response and is never batched.** Independent calls are independent
+   by construction; batched ones are not, and coupling the instrument to save money on a 2-repeat
+   experiment is the wrong trade. It runs on `claude-haiku-4-5` with the global `CLAUDE.md` moved
+   aside, and **that swap is itself checked** — `claude-opus-5` re-judges a random 10 of the 30 and
+   the agreement rate is reported. Below 90%, re-judge everything on Opus before reading any arm
+   difference: low agreement is a fact about the judge, not about the split.
+
+   **Cost, revised 2026-08-25 against real pricing** (Opus 5 `$5`/`$25` per Mtok, cache read 0.1x,
+   write 1.25x — the earlier `~$5-8` here was computed against a wrong `$15`/Mtok input rate):
+   **~$2 if the prefix cache holds, ~$11 if it never hits.** The probe leg is ~71% of that and is
+   irreducible — 30 cold sessions x ~43K of fixed prefix *is* the experiment; only fewer arms or
+   fewer repeats would move it, and both weaken the design. Estimated from §1's measured
+   43,380-token baseline, which was measured in-repo while the probe runs from a workdir, so it is
+   conservative — an estimate, not a measurement.
+
+   That ratio is itself a datapoint for §3c: the global `CLAUDE.md` is **11,973 of the 43,380
+   tokens on every invocation, 27.6%**. The probe is expensive for the reason the spec exists.
 
 **If firing degrades, stop.** §3b is wrong and §3c's ceilings are unreachable by this route. Say
 so here and report before continuing.
@@ -606,8 +624,11 @@ and two checks crashed instead of reporting, which exits non-zero and reads as a
 trusted on its first all-pass, this task would have reported a clean proof from an instrument with
 two dead arms.
 
-**Not applied.** `~/.claude/CLAUDE.md` is untouched. The split exists as
-`<scratch>/section-after.md` and applying it is gated on step 5.
+**Not applied.** `~/.claude/CLAUDE.md` is untouched. The split is `docs/task-3-section-after.md`,
+its pre-split source is `docs/task-3-section-before.md`, and applying it is gated on step 5.
+`scripts/verify-split.py` re-proves the whole thing from those two files plus `~/.claude/lessons/`
+in about a second, and exits non-zero on any failure — that being its informative answer, chain it
+with `;`.
 
 ### Task 4: Route the file-triggered content
 
