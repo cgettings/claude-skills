@@ -11,7 +11,7 @@ the one thing here that is still a hypothesis.
 |---|---|---|---|---|
 | 1 | Falsify the user-scope `paths:` premise | `0f82133` — no code commit; the result **is** §5 Task 1 below | **DONE 2026-08-25** | `InstructionsLoaded` hook log + model self-report, 2 sessions, 4 arms, 5 controls, all passed. Verbatim log line in §5 Task 1 |
 | 2 | Record the real baseline | `0f82133` — no code commit; the result **is** §1 below | **DONE 2026-08-25** | differential token measurement, 11 `claude -p` runs, each arm controlled by the same hook log. Method, and the two arms it voided, in §1 |
-| 3 | Pilot the recognition/evidence split on one section | — | **Steps 1-4 DONE, step 5 BLOCKED 2026-08-25** | split built and proved lossless: 17 bullets, **10,858 -> 8,048 B (-25.9%)**, all 14 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection. **Firing not measured** — see the step-5 note in §5 Task 3 |
+| 3 | Pilot the recognition/evidence split on one section | `c9b7204` | **Steps 1-4 DONE, step 5 BLOCKED 2026-08-25** | split built and proved lossless: 17 bullets, **10,858 -> 8,048 B (-25.9%)**, all 14 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection. **Firing not measured** — see the step-5 note in §5 Task 3 |
 | 4 | Route the file-triggered content | — | **Not started** — unblocked by Task 1 | — |
 | 5 | Roll the split across the rest of global CLAUDE.md | — | **BLOCKED on Task 3** | — |
 | 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
