@@ -11,7 +11,7 @@ the one thing here that is still a hypothesis.
 |---|---|---|---|---|
 | 1 | Falsify the user-scope `paths:` premise | `0f82133` — no code commit; the result **is** §5 Task 1 below | **DONE 2026-08-25** | `InstructionsLoaded` hook log + model self-report, 2 sessions, 4 arms, 5 controls, all passed. Verbatim log line in §5 Task 1 |
 | 2 | Record the real baseline | `0f82133` — no code commit; the result **is** §1 below | **DONE 2026-08-25** | differential token measurement, 11 `claude -p` runs, each arm controlled by the same hook log. Method, and the two arms it voided, in §1 |
-| 3 | Pilot the recognition/evidence split on one section | — | **Not started** | — |
+| 3 | Pilot the recognition/evidence split on one section | — | **Steps 1-4 DONE, step 5 BLOCKED 2026-08-25** | split built and proved lossless: 17 bullets, **10,858 -> 8,048 B (-25.9%)**, all 14 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection. **Firing not measured** — see the step-5 note in §5 Task 3 |
 | 4 | Route the file-triggered content | — | **Not started** — unblocked by Task 1 | — |
 | 5 | Roll the split across the rest of global CLAUDE.md | — | **BLOCKED on Task 3** | — |
 | 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
@@ -36,15 +36,23 @@ The probe rule and trigger files Task 1 created are **already deleted** — neit
 nor the repo's `.claude/rules/` exists again, so nothing extra loads into any session. Confirm with
 `ls ~/.claude/rules/` (expect "No such file or directory").
 
-**Next command.** Task 3, step 1 — inventory the pilot section before editing a word of it:
+**A second piece of live environment state, added 2026-08-25 by Task 3.** `~/.claude/lessons/`
+now exists and holds **14 files / 19,677 B** — the evidence moved out of the pilot section, each
+containing its original bullet verbatim. Nothing loads them; they are read only when a rule's
+`[[pointer]]` is followed. **`~/.claude/CLAUDE.md` itself is UNCHANGED** — the split is built and
+proved but deliberately not applied, because the firing test that would license applying it has not
+run. To undo: `rm -rf ~/.claude/lessons/`.
+
+**Next command.** Task 3 step 5 — the firing measurement, the one gate everything downstream sits
+on. The probe is written and unrun at
+`<scratch>/firing_probe.py` (see the step-5 note in §5 Task 3 for what it does and why the
+originally-named instrument could not). Re-cut the section first, since the probe asserts it
+appears exactly once in the live file:
 
 ```sh
 awk '/^### Validating the instrument/,/^### Verifying a claim/' ~/.claude/CLAUDE.md | head -n -1 | wc -c
-# expect 10858
+# expect 10858 — if not, the section moved and section-before.md must be re-cut before anything else
 ```
-
-If that returns something else, the section has been edited since 2026-08-25 and §1's baseline
-needs the same treatment as the note below it before Task 3's before/after means anything.
 
 The problem this solves: `distill-lessons` routes standing instructions to CLAUDE.md, so every
 lesson that qualifies grows a file loaded into every session, forever. `refile-rules` can shrink
@@ -555,11 +563,51 @@ something already points at it. These are evidence, so they are files.
 3. Every evidence item is locatable in the lesson file, or named here as a deliberate drop with a
    reason. No item is excused by the result reading better.
 4. Measure: section bytes before and after.
-5. **Measure firing**, via `scripts/run-trigger-evals.py`: same eval set against the full section
-   and the split section. A trim that reads well and fires worse is a loss.
+5. **Measure firing.** ~~via `scripts/run-trigger-evals.py`~~ — **that instrument cannot answer
+   this question, established 2026-08-25 before it was run.** It reports one signal: which `Skill`
+   the model invokes first. The pilot section names **zero** skills `[verified: grep for every
+   installed skill name over the section returned 0]`, so that signal is invariant to whether these
+   bullets are full, trimmed, or deleted outright. Running it would return two identical pass counts
+   — the exact failure this section's own "a fixture field identical across every case it covers is
+   dead, not passing" bullet describes. **Do not run it here and do not read a matching pair of
+   numbers from it as agreement.**
+
+   What step 5 needs instead is a **behavioural probe**, written and unrun at
+   `<scratch>/firing_probe.py`. Three arms differing only in this section of `~/.claude/CLAUDE.md`:
+   **A** full (10,858 B), **B** split (8,048 B), **C** deleted. Arm C is load-bearing — without a
+   floor, A≈B cannot be told apart from a probe that never saw the section. Five queries, each
+   presenting a situation **without** the rule's own vocabulary (§this section's own rule about eval
+   prompts that hand over the fact under test), scored blind by a judge run with the global
+   `CLAUDE.md` moved aside. Q5 is a control: its bullet is byte-identical in A and B, so A-vs-B is
+   the probe's noise floor and A-vs-C its sensitivity to the section existing at all.
+
+   Reading: `A≈B>C` split is safe; `A>B≈C` **stop, §3b is wrong**; `A≈B≈C` probe is dead and
+   licenses no conclusion either way. Estimated ~$5-8 for 5 queries x 3 arms x 2 repeats = 30 runs,
+   from §1's measured 43,380-token baseline — an estimate, not a measurement.
 
 **If firing degrades, stop.** §3b is wrong and §3c's ceilings are unreachable by this route. Say
 so here and report before continuing.
+
+**Steps 1-4 result, 2026-08-25.** Inventory: `task-3-split-inventory.md`, built before any edit. The
+section is **17 bullets** (14 top-level, 3 nested), not the flat list it reads as. **Three of the 17
+carry no evidence specifics at all** — no date, no number, no incident — and are kept byte for byte;
+that is the first real bound on the yield, since the section's size is not uniformly evidence.
+The other 14 split to `~/.claude/lessons/<slug>.md`, each holding its original bullet **verbatim**,
+which turns "every evidence item is locatable" from a judgment call into a substring test.
+
+**Measured: 10,858 → 8,048 B, −2,810 B, −25.9%.** Proved by five checks — bullet count preserved,
+the three unchanged bullets byte-identical, all 14 pointers resolving, all 14 originals verbatim in
+their lesson files, and a 1:1 pointer↔file mapping with no orphans.
+
+**The verifier was itself validated before its passes were believed**, by injecting six faults and
+confirming each is caught and names its own finding. That found three real bugs in it: it read the
+real `~/.claude/lessons/` while the control perturbed a copy, so two arms silently tested nothing;
+and two checks crashed instead of reporting, which exits non-zero and reads as a catch. Had it been
+trusted on its first all-pass, this task would have reported a clean proof from an instrument with
+two dead arms.
+
+**Not applied.** `~/.claude/CLAUDE.md` is untouched. The split exists as
+`<scratch>/section-after.md` and applying it is gated on step 5.
 
 ### Task 4: Route the file-triggered content
 
