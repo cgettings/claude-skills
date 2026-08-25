@@ -40,8 +40,11 @@ nor the repo's `.claude/rules/` exists again, so nothing extra loads into any se
 
 ```sh
 awk '/^### Validating the instrument/,/^### Verifying a claim/' ~/.claude/CLAUDE.md | head -n -1 | wc -c
-# expect 10166
+# expect 10858
 ```
+
+If that returns something else, the section has been edited since 2026-08-25 and §1's baseline
+needs the same treatment as the note below it before Task 3's before/after means anything.
 
 The problem this solves: `distill-lessons` routes standing instructions to CLAUDE.md, so every
 lesson that qualifies grows a file loaded into every session, forever. `refile-rules` can shrink
@@ -72,6 +75,18 @@ that is the `feature-site-characterization` **worktree's** copy, not `production
 | **always-loaded total, in this repo** | **52,905** | **13,015** | — | — |
 | EH memory topic files (63, **not** loaded) | 325,679 | — | — | — |
 | `claude-skills` memory topic files (8, **not** loaded) | 22,846 | — | — | — |
+
+**This table is a fixed point, not a current reading, and it has already drifted.** The figures are
+`~/.claude/CLAUDE.md` as it stood at **49,553 B on 2026-08-25, before any instruction file was
+edited** — which is what Task 2 required of it. Later the same day a `distill-lessons` pass added
+two rules and took it to **50,686 B (+1,133, +2.3%)**. The token count was **not** re-measured, and
+is deliberately not scaled: §1 states measured figures only, and a baseline that moves is not a
+baseline. Re-measure against the table, never edit the table to match.
+
+That drift is itself a finding, and the cheapest evidence in this document for §3c: **one ordinary
+lessons pass, on a day spent writing a spec about shrinking this file, grew it 2.3%.** Nothing in
+the loop objected, because nothing in the loop can see a ceiling. That is Task 8's whole argument,
+and a reason to consider moving Task 8 ahead of Task 5.
 
 **The project file has no single size — it is branch-dependent.** The four live EH-dataportal
 worktrees carry a CLAUDE.md of 20,666 / 25,198 / 34,207 / **59,726** B `[measured 2026-08-25]`. The
@@ -261,10 +276,12 @@ exception to a prohibition — and it inherits that section's bar unchanged, whi
 step 3. Task 7 is where it gets written into the skill.
 
 **The test that the split is safe — and it has not been run.** Whether trimmed rules fire as
-reliably as full ones is a hypothesis. The repo is already growing the instrument:
-`scripts/run-trigger-evals.py` (untracked as of 2026-08-25). Task 3 pilots the split on one
-section and measures it. If firing degrades, the split is wrong and this spec's budget claim
-collapses with it — say so rather than shipping the trim anyway.
+reliably as full ones is a hypothesis. The instrument exists: `scripts/run-trigger-evals.py`,
+committed in `0c8fba9`. It had to be written because `skill-creator`'s own `run_eval.py` cannot
+execute a query on Windows and reports a pass count instead of an error — the commit message
+carries the mechanism and the verification. Task 3 pilots the split on one section and measures it.
+If firing degrades, the split is wrong and this spec's budget claim collapses with it — say so
+rather than shipping the trim anyway.
 
 ### 3c. A ceiling, and a shallower slope
 
@@ -512,10 +529,14 @@ is not a baseline.
 **Files:** `~/.claude/CLAUDE.md` §Verification → Validating the instrument;
 `~/.claude/lessons/` (new).
 
-Chosen as the pilot because it is the largest single subsection in the file at **10,166 B**
-`[re-measured 2026-08-25, confirmed]` — bigger than six of the nine top-level sections — and because
-it is the densest in evidence specifics, so it is where the split has the most to prove and the most
-to lose. The other two Verification subsections are 5,418 B and 5,246 B.
+Chosen as the pilot because it is the largest single subsection in the file at **10,858 B**
+`[re-measured 2026-08-25 after the day's lessons pass; it was 10,166 B when this task was written,
+and the pass that grew it is described under §1]` — bigger than six of the nine top-level sections —
+and because it is the densest in evidence specifics, so it is where the split has the most to prove
+and the most to lose. The other two Verification subsections are unchanged at 5,418 B and 5,246 B.
+
+Measure the section again at the moment you start, rather than trusting either number: it grew
+6.8% in a day, and a before/after against a stale "before" reports the wrong reduction.
 
 **Interfaces:** produces a measured before/after byte count and a firing-rate result. Tasks 5 and 6
 are gated on it.
