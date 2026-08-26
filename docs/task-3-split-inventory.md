@@ -14,6 +14,9 @@ bullet's after-text is checked in both directions — an assertion added, or one
 
 Source: `~/.claude/CLAUDE.md` §Verification → Validating the instrument, **10,858 B / 17 bullets** (14 top-level, 3 nested)
 at the moment this ran `[measured 2026-08-25 with the section-extract awk in §0's next command]`.
+**Re-cut the same evening at 11,069 B**: a lessons pass appended one sentence to B10 after this
+inventory was built. B10's entry below carries the two added items; a diff of the re-cut against
+the original confirms no other bullet moved `[verified 2026-08-25: diff reported one changed line]`.
 
 Term meanings:
 
@@ -223,13 +226,15 @@ nearly matched.
 
 **Recognition.** In a two-arm comparison, **perturb the variable under test — never an input both
 arms share**; perturbing the shared input moves both arms together, so the test passes whichever way
-the mechanism works.
+the mechanism works. **Then run the shared-input injection as the OTHER arm.**
 
 **Evidence.** The harness proving its probes by editing a committed baseline, and that injection
 being unable to test the base-branch control job — the baseline being what both the head sweep and
 the base run compare against, so both go red and the verdict reads "the data moved" when the truth
 is that the baseline was edited; the discriminating arm needing the edit in the site source
-instead `[2026-08-24]`.
+instead `[2026-08-24]`. Added by the 2026-08-25 amendment: the both-red branch and everything
+gated on it never having executed `[2026-08-25: the base control's RED verdict and its artifact
+upload]`.
 
 **Slug.** `perturb-the-variable-not-the-shared-input`
 
