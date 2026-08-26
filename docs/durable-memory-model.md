@@ -46,6 +46,22 @@ run. Derive that rather than trusting this line, because the probe below copies 
 file and restores it afterwards: the guard command returns 11,069 while the section is unsplit and
 8,106 once it is not. To undo the lessons directory: `rm -rf ~/.claude/lessons/`.
 
+**Two things owed, neither of them a step in this document.** `feature-ledger-mutating-next-command`
+@ `efd2637` is a finished one-commit `keep-ledger` 1.3.1 release, cut from `main` on 2026-08-25 out
+of this work's lessons pass. It does not depend on this spec and can merge whenever; derive where
+it has reached rather than trusting a phrase here:
+
+```sh
+git log --oneline main..feature-ledger-mutating-next-command  # the release commit
+git branch -vv | grep ledger-mutating                         # an [origin/...] marker means pushed
+gh pr list --head feature-ledger-mutating-next-command        # a PR, and against which base
+```
+
+And a `reconcile-records` sweep of this project's memory store and `README.md` is
+**deferred until step 5 lands**, because that run moves the same numbers again — one of the four
+memory files was spot-checked (`eval-suites-have-no-behavioural-runner`, current) and the other
+three were not.
+
 **Next command.** Task 3 step 5 — the firing measurement, the one gate everything downstream sits
 on. The probe is written and unrun at `scripts/measure-rule-firing.py` (see the step-5 note in §5
 Task 3 for what it does, how to read each outcome, and why the originally-named instrument could
