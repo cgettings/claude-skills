@@ -2,8 +2,9 @@
 
 **Status as of 2026-08-25.** §1 and §2 are measured and current. Task 1 is done and **the premise
 held**: `paths:` is honoured at user scope, so §4's global routing lane is real rather than assumed.
-Task 2 is done. Tasks 3-8 are not started, and everything after Task 3 is gated on it — Task 3 is
-the one thing here that is still a hypothesis.
+Task 2 is done. Task 3's split is built and proved lossless but **not applied**: its step 5, the
+firing measurement, has not run, and everything downstream is gated on that one result. Task 4 is
+unblocked and untouched; Tasks 5-8 are not started.
 
 ## 0. Ledger
 
@@ -11,7 +12,7 @@ the one thing here that is still a hypothesis.
 |---|---|---|---|---|
 | 1 | Falsify the user-scope `paths:` premise | `0f82133` — no code commit; the result **is** §5 Task 1 below | **DONE 2026-08-25** | `InstructionsLoaded` hook log + model self-report, 2 sessions, 4 arms, 5 controls, all passed. Verbatim log line in §5 Task 1 |
 | 2 | Record the real baseline | `0f82133` — no code commit; the result **is** §1 below | **DONE 2026-08-25** | differential token measurement, 11 `claude -p` runs, each arm controlled by the same hook log. Method, and the two arms it voided, in §1 |
-| 3 | Pilot the recognition/evidence split on one section | `c9b7204` | **Steps 1-4 DONE, step 5 BLOCKED 2026-08-25** | split built and proved lossless: 17 bullets, **10,858 -> 8,048 B (-25.9%)**, all 14 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection. **Firing not measured** — see the step-5 note in §5 Task 3 |
+| 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` re-cut | **Steps 1-4 DONE, step 5 BLOCKED 2026-08-25** | split built and proved lossless: 17 bullets, **11,069 -> 8,106 B (-26.8%)**, all 14 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection. **Firing not measured** — see the step-5 note in §5 Task 3 |
 | 4 | Route the file-triggered content | — | **Not started** — unblocked by Task 1 | — |
 | 5 | Roll the split across the rest of global CLAUDE.md | — | **BLOCKED on Task 3** | — |
 | 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
@@ -37,11 +38,13 @@ nor the repo's `.claude/rules/` exists again, so nothing extra loads into any se
 `ls ~/.claude/rules/` (expect "No such file or directory").
 
 **A second piece of live environment state, added 2026-08-25 by Task 3.** `~/.claude/lessons/`
-now exists and holds **14 files / 19,677 B** — the evidence moved out of the pilot section, each
+now exists and holds **14 files / 20,018 B** — the evidence moved out of the pilot section, each
 containing its original bullet verbatim. Nothing loads them; they are read only when a rule's
 `[[pointer]]` is followed. **`~/.claude/CLAUDE.md` itself is UNCHANGED** — the split is built and
 proved but deliberately not applied, because the firing test that would license applying it has not
-run. To undo: `rm -rf ~/.claude/lessons/`.
+run. Derive that rather than trusting this line, because the probe below copies each arm over that
+file and restores it afterwards: the guard command returns 11,069 while the section is unsplit and
+8,106 once it is not. To undo the lessons directory: `rm -rf ~/.claude/lessons/`.
 
 **Next command.** Task 3 step 5 — the firing measurement, the one gate everything downstream sits
 on. The probe is written and unrun at `scripts/measure-rule-firing.py` (see the step-5 note in §5
@@ -51,8 +54,36 @@ below is what it does first anyway:
 
 ```sh
 awk '/^### Validating the instrument/,/^### Verifying a claim/' ~/.claude/CLAUDE.md | head -n -1 | wc -c
-# expect 10858 — if not, the section moved and section-before.md must be re-cut before anything else
+# expect 11069 — if not, the section moved and section-before.md must be re-cut before anything else
 ```
+
+**This guard has already fired once**, on 2026-08-25: a lessons pass appended a sentence to one
+bullet between the fixtures being cut and step 5 being reached, and the section read 11,069 B
+against an expected 10,858 B. The re-cut is `e7ddc91`, and it is four edits — re-cut `before.md`
+from the live file, re-split the changed bullet in `after.md`, refresh that bullet's file in
+`~/.claude/lessons/` so `verify-split.py`'s check 4 substring test still holds, then propagate the
+new byte counts here and into `measure-rule-firing.py`'s docstring. Expect to do it again.
+
+Then the run itself. **It mutates `~/.claude/CLAUDE.md` in place** — the three arms are copied over
+it in turn — and restores from a backup in a `finally`, printing `RESTORED OK` or
+`!! RESTORE MISMATCH` before it starts judging. Read that line. If a run dies hard enough to skip
+the `finally`, the backup is `.task3-probe/CLAUDE.md.live-backup` and restoring it by hand is the
+whole recovery.
+
+```sh
+python scripts/measure-rule-firing.py    # 3 arms x 5 queries x 2 repeats = 30 responses,
+                                         # judged one call each on claude-haiku-4-5
+# results  -> docs/task-3-firing-results.json
+# scratch  -> .task3-probe/ (gitignored)
+# expect   -> "RESTORED OK", then an Opus-vs-Haiku agreement rate over a random 10 of the 30
+```
+
+Agreement below 90% means stop and re-judge everything on Opus before reading any arm difference:
+that number is a fact about the judge, not about the split. Read the arms by the three-way rule in
+§5 Task 3 — `A≈B>C` licenses applying the split, `A>B≈C` says §3b is wrong and everything
+downstream stops, `A≈B≈C` means the probe is dead and licenses nothing either way. Whichever it
+is, three things here go stale the moment it runs and are updated in the same step: this block,
+the Task 3 row's status cell, and §5 Task 3's "written and unrun".
 
 The problem this solves: `distill-lessons` routes standing instructions to CLAUDE.md, so every
 lesson that qualifies grows a file loaded into every session, forever. `refile-rules` can shrink
@@ -87,7 +118,10 @@ that is the `feature-site-characterization` **worktree's** copy, not `production
 **This table is a fixed point, not a current reading, and it has already drifted.** The figures are
 `~/.claude/CLAUDE.md` as it stood at **49,553 B on 2026-08-25, before any instruction file was
 edited** — which is what Task 2 required of it. Later the same day a `distill-lessons` pass added
-two rules and took it to **50,686 B (+1,133, +2.3%)**. The token count was **not** re-measured, and
+two rules and took it to **50,686 B (+1,133, +2.3%)**, and an evening amendment to a single
+bullet took it to **50,897 B (+211, +2.7% on the baseline)** — a figure that closes exactly
+against the pilot section's own +211 B, so that one bullet is the whole of the second move
+`[measured 2026-08-25: wc -c on the file and on the awk-extracted section]`. The token count was **not** re-measured, and
 is deliberately not scaled: §1 states measured figures only, and a baseline that moves is not a
 baseline. Re-measure against the table, never edit the table to match.
 
@@ -537,14 +571,16 @@ is not a baseline.
 **Files:** `~/.claude/CLAUDE.md` §Verification → Validating the instrument;
 `~/.claude/lessons/` (new).
 
-Chosen as the pilot because it is the largest single subsection in the file at **10,858 B**
-`[re-measured 2026-08-25 after the day's lessons pass; it was 10,166 B when this task was written,
-and the pass that grew it is described under §1]` — bigger than six of the nine top-level sections —
+Chosen as the pilot because it is the largest single subsection in the file at **11,069 B**
+`[re-measured twice on 2026-08-25: 10,166 B when this task was written, 10,858 B after the day's
+lessons pass — which §1 describes — and 11,069 B after an amendment that evening]` — bigger than six of the nine top-level sections —
 and because it is the densest in evidence specifics, so it is where the split has the most to prove
 and the most to lose. The other two Verification subsections are unchanged at 5,418 B and 5,246 B.
 
-Measure the section again at the moment you start, rather than trusting either number: it grew
-6.8% in a day, and a before/after against a stale "before" reports the wrong reduction.
+Measure the section again at the moment you start, rather than trusting any number here: it grew
+6.8% in a day and a further 1.9% within four hours, and a before/after against a stale "before"
+reports the wrong reduction. The second of those two moves landed after the fixtures were cut and
+was caught only by §0's guard — which is the argument for the guard, not an aside.
 
 **Interfaces:** produces a measured before/after byte count and a firing-rate result. Tasks 5 and 6
 are gated on it.
@@ -574,9 +610,10 @@ something already points at it. These are evidence, so they are files.
 
    What step 5 needs instead is a **behavioural probe**, written and unrun at
    `scripts/measure-rule-firing.py`. Three arms differing only in this section of
-   `~/.claude/CLAUDE.md`: **A** full (10,858 B), **B** split (8,048 B), **C** deleted — built from
-   `docs/task-3-section-{before,after}.md` and verified to differ by exactly 2,810 B and 10,858 B
-   `[checked 2026-08-25]`. Arm C is load-bearing: without a floor, A≈B cannot be told apart from a
+   `~/.claude/CLAUDE.md`: **A** full (11,069 B), **B** split (8,106 B), **C** deleted — built from
+   `docs/task-3-section-{before,after}.md` and verified to differ by exactly 2,963 B and 11,069 B
+   `[checked 2026-08-25, re-checked after the e7ddc91 re-cut]`. Arm C is load-bearing: without
+   a floor, A≈B cannot be told apart from a
    probe that never saw the section. Five queries, each presenting a situation **without** the
    rule's own vocabulary — which is this section's own rule about eval prompts that hand over the
    fact under test. Q5 is a control: its bullet is byte-identical in A and B, so A-vs-B is the
@@ -613,7 +650,8 @@ that is the first real bound on the yield, since the section's size is not unifo
 The other 14 split to `~/.claude/lessons/<slug>.md`, each holding its original bullet **verbatim**,
 which turns "every evidence item is locatable" from a judgment call into a substring test.
 
-**Measured: 10,858 → 8,048 B, −2,810 B, −25.9%.** Proved by five checks — bullet count preserved,
+**Measured: 11,069 → 8,106 B, −2,963 B, −26.8%.** `[re-measured 2026-08-25 after the e7ddc91
+re-cut; the pre-drift figures were 10,858 → 8,048 B, −2,810 B, −25.9%]` Proved by five checks — bullet count preserved,
 the three unchanged bullets byte-identical, all 14 pointers resolving, all 14 originals verbatim in
 their lesson files, and a 1:1 pointer↔file mapping with no orphans.
 
