@@ -131,9 +131,26 @@ become usable and the two negatives resolve.** If they do not, the offset is not
 the right thing and Steps 1 and 3 are reading noise.
 
 **Step 3 — re-test the six ruled-out explanations at n=31.** Each was checked against two events.
-For each of the six, write the check as a predicate over an event and report how many of the 31 it
-explains. **Expected: zero, since these were eliminated.** A non-zero count is a better result than
-a new experiment, and it is free.
+Write each as a predicate over an event and report how many of the 31 it explains. **Expected:
+zero, since these were eliminated.** A non-zero count is a better result than a new experiment, and
+it is free. All six are detectable from the corpus, with one narrow blind spot `[verified
+2026-08-29: field and tool-call counts over all 367 transcripts]`:
+
+| Explanation | How to detect it |
+|---|---|
+| TTL | turn gap; already in the classifier |
+| Effort switch | `effort` field; already in the classifier |
+| Permission mode | `permissionMode` field — present on 1,357 records, values `auto` (973), `acceptEdits` (343), `plan` (28), `default` (13) |
+| Skill exit | `Skill` tool_use blocks — 218 in the corpus, from 2026-07-28 |
+| Global `CLAUDE.md` edit | `Edit`/`Write` tool_use with a `file_path` ending `CLAUDE.md` — 237 in the corpus |
+| Memory-store write | `Edit`/`Write` tool_use with `/memory/` in `file_path` — 222 in the corpus |
+
+**The last two need cross-session correlation, which is what makes them worth re-testing.** The
+sweep reads every transcript, so an edit made by a *different* Claude session is visible and can be
+matched by timestamp against the rewriting session. That is a check the original two-event pass
+could not perform. **The blind spot: a hand edit made outside Claude Code leaves no trace in any
+transcript** — the 2026-08-26 em-dash normalization was exactly that, so this predicate has a
+floor and cannot return a clean zero.
 
 **Step 4 — check the explained events for contamination.** The classifier assigns a cause when one
 is *present*, not when it is *sufficient*. Report how many of the 68 explained events carry an
@@ -164,7 +181,11 @@ records before that window, because the trigger may precede the last clean turn.
 
 **Step 2 — look for the four signatures**, in this order: a `ToolSearch` call or first use of a
 previously-unused tool (candidate A); an MCP tool call, especially a first one (D); a skill
-entry or exit (C); anything else common to a majority.
+entry or exit (C); anything else common to a majority. **All three named signatures exist in the
+corpus and span the event window, so a null here is a real null rather than a dead probe**
+`[verified 2026-08-29: ToolSearch 117 calls, first 2026-07-28T02:26:56Z; mcp__* 777 calls across 15
+distinct tools, first 2026-07-28; Skill 218 calls, first 2026-07-28 — against a first
+unexplained event of 2026-07-28T03:26:28Z]`.
 
 **Step 3 — control for base rate, which is the step that makes this sound.** A trigger appearing
 before 20 of 31 events proves nothing if it also appears before 20 of any 31 randomly chosen turns.
