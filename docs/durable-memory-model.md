@@ -7,8 +7,13 @@ grown from 49,553 B to **56,836 B**, and nothing has re-measured its token share
 rebuilt against the drifted file and still proved lossless, but **not applied**: its step 5 has now
 **run and returned a null** — all three arms fired 30/30, including the arm with the section
 deleted, so the probe cannot discriminate and licenses neither applying the split nor abandoning
-it. **Tasks 5 and 6 remain gated**, now on a redesigned probe rather than on an unrun one. Task 4 is
-unblocked and untouched; Tasks 5-8 are not started. **Task 9 was added, designed, revised and
+it. **Tasks 5 and 6 remain gated**, now on a redesigned probe rather than on an unrun one. **Task 8 was
+built and validated on 2026-08-29** and its first sweep changes the plan's shape: all nine live
+directories are over budget, the largest at 147,391 B always loaded, and the arithmetic shows
+**§3c's 25,000 B ceiling is not reachable by §3b's trimming at all** — it would take 10.5
+pilot-sized splits. Routing whole rules out is the only route that reaches it, which promotes
+**Task 4** from "the one reduction that does not depend on Task 3" to the main event. Task 4 is
+unblocked and untouched; Tasks 5-7 are not started. **Task 9 was added, designed, revised and
 completed on 2026-08-28.** It asked whether an instruction-file edit reaches a session that is
 already running, and the answer is **replay on ordinary turns, rebuild at compaction** — the
 replay/re-read binary it was framed around is false. Steps 2 and 3 are **retired rather than
@@ -28,7 +33,7 @@ a lock**, and unblocks that task.
 | 5 | Roll the split across the rest of global CLAUDE.md | — | **BLOCKED on Task 3** | — |
 | 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
 | 7 | Make the routing rule enforceable at write time | — | **Not started, but unblocked** — Task 9 settled its write protocol: **read-before-write or a lock**, for correctness. No batching or write boundary is needed; the write is free to concurrent sessions | — |
-| 8 | Make the ceiling check mechanical | — | **Not started** | — |
+| 8 | Make the ceiling check mechanical | see the commit that adds `scripts/check-memory-budget.sh` | **DONE 2026-08-29** | `scripts/check-memory-budget.sh` + `test-check-memory-budget.sh`, **11-arm fault injection, all pass**, including a negative control that redirects `HOME` so exit 0 is reachable. Injection caught a real bug: the store-name fold missed `.`, so **every worktree read "no project store"** while ten arms passed. First sweep: **all 9 live directories over budget**, worst 147,391 B always loaded. Ceiling shown unreachable by §3b alone — see §5 Task 8 |
 | 9 | Does an instruction-file edit reach a running session? | — | **DONE 2026-08-28.** Answer: **replay on ordinary turns, rebuild at compaction** — the pre-registered binary was false. Steps 2-3 retired, not skipped: nothing is left for the proxy to measure | Step 0: `scripts/probe-memory-delivery.py`, 281 transcripts / 182,561 lines, 0 unreadable, **63 `Read` calls on topic files** ⇒ moved X to the project `CLAUDE.md`. Step 1: 2 sessions, 4 asks + `/compact` + arm 3, **0 tool calls** in B (transcript-checked), stale window **~2m55s across 2 turns**. Full timeline in §5 Task 9 |
 
 **Live environment state — not in this repo, and it goes with the machine rather than the branch.**
@@ -942,13 +947,88 @@ anything about tiers, which is what makes it a good gate.
 shape** beside its existing three, with §3b's test as its bar and its existing rule intact that the
 edit is a separate manifest line from the move.
 
-### Task 8: Make the ceiling check mechanical
+### Task 8: Make the ceiling check mechanical — **DONE 2026-08-29**
 
-**Files:** `scripts/check-memory-budget.sh`, beside the existing `scripts/check-versions.sh`.
+**Files:** `scripts/check-memory-budget.sh` and `scripts/test-check-memory-budget.sh`, beside the
+existing `scripts/check-versions.sh`.
 
 Report bytes for each always-loaded file against §3c's ceiling, and `MEMORY.md` against both the
 200-line and 25KB platform caps. Non-zero exit when a ceiling is passed. The point is not to block
 a commit — it is that passing the ceiling surfaces as a routing decision instead of silently.
+
+**Two limits, deliberately not merged.** A **ceiling** is a number §3c chose: passing it costs
+tokens in every session and means the next addition should route something out. A **truncation
+cap** is the platform's (§2): `MEMORY.md` loads its first 200 lines *or* 25,000 B, whichever
+arrives first, and passing it means the tail stops loading while the file on disk still looks
+whole. The report prints the line the byte cap actually lands on rather than a line count, because
+which cap binds depends on bytes-per-line and for prose indexes it is never the line count — at
+EH-dataportal's 178 B/line, 25,000 B arrives at about line 140. "Under 200 lines" is not evidence.
+
+It measures the **current directory's** project, not the repo it lives in, so it can be run from
+any worktree, and the project row names the branch it measured — the ceiling is per-branch and the
+branch is something you run, not something you read from a stale status block.
+
+**Validated by 11-arm fault injection before any of its passes were believed**, since in this
+environment the script prints one `OVER` row and four `ok`s, and an `ok` that has never been
+anything else is a dead field rather than a passing one. Every branch is driven to both states with
+the exit code checked alongside the text. The arm that makes the rest mean anything is the
+all-under one: `HOME` is redirected to a fixture so exit 0 is reachable at all, because against the
+real `HOME` the global file is 227% over and no run could ever pass — the success path would have
+been permanently unexercised.
+
+**The injection found a real bug, and found it late.** The store directory name folds `:`, `/`
+**and `.`** to `-`, and the first ten arms passed against a fold that handled only the first two —
+`mktemp` never produces a dotted path, so the sample could not exercise it. The convention that
+breaks it is in daily use here: `EH-dataportal.worktrees/` resolves to a store named
+`...-EH-dataportal-worktrees-...`, so **every worktree silently reported "no project store"** while
+the harness read green. The arms were real; the sample was not. An arm with a dotted path is now
+arm 9.
+
+**First sweep, 2026-08-29 — all nine live directories are over budget.**
+
+| directory | branch | project `CLAUDE.md` | always loaded |
+|---|---|---:|---:|
+| `EH-dataportal` | `feature-pin-action-hashes` | 41,074 (205%) | 111,051 |
+| `.worktrees/feature-MOD-Lab-NR-recode-refactor` | `...-merge` | **90,555 (452%)** | **147,391** |
+| `.worktrees/feature-smoke-GHA` | — | 41,074 (205%) | 97,910 |
+| `.worktrees/content-heat-2024-dw-iframe` | — | 41,074 (205%) | 97,910 |
+| `.worktrees/feature-base-control-provenance` | — | 41,074 (205%) | 97,910 |
+| `.worktrees/feature-smoke-env` | — | 40,505 (202%) | 97,341 |
+| `.worktrees/feature-site-characterization` | — | 35,534 (177%) | 92,370 |
+| `.worktrees/feature-new-data-explorer` | — | 20,666 (103%) | 77,502 |
+| `claude-skills` | `feature-durable-memory-model` | 1,861 (9%) | 60,603 |
+
+The global file is 56,836 B against a 25,000 B ceiling in all nine, which is the floor every
+directory starts from: even `claude-skills`, whose own two files use 9% of their ceilings, begins
+at 60,603 B.
+
+**§1's worktree figures are stale, and stale in the direction it predicted.** §1 recorded four
+worktrees at 20,666 / 25,198 / 34,207 / 59,726 B. There are now eight plus the main checkout, and
+the largest is **90,555 B — up 52% from 59,726 in four days**, on a branch nobody was looking at.
+That is exactly the blind spot §1 argued a ceiling had to name a branch to catch, now measured
+rather than predicted. Per §1's own instruction the table is a fixed point and is not edited to
+match; this script is the re-measurement.
+
+**The ceiling is not reachable by §3b, and this is the sweep's most consequential number.** The
+global file must shed **31,836 B** to reach 25,000. The pilot returned 3,040 B, so the target is
+**10.5 pilot-sized splits** from a file holding roughly five evidence-dense sections. Applying the
+pilot's 26.8% yield to the *entire* file — optimistic, since 3 of its 17 bullets had no evidence to
+move and the non-Verification sections are thinner — returns 15,232 B and lands at 41,604 B, still
+66% over. **Trimming evidence cannot get there; only routing whole rules out can**, which makes
+Task 4's lane and §4's skills route load-bearing rather than complementary. §4 already suspected
+this ("if the hypothesis fails, the reachable reduction is roughly the routing lane alone"); the
+arithmetic now says it holds whether or not the hypothesis fails.
+
+```sh
+sh scripts/check-memory-budget.sh        ; echo $?   # 0 = all under, 1 = over, 2 = nothing measured
+sh scripts/test-check-memory-budget.sh   ; echo $?   # 11 arms; 0 = every arm behaved
+```
+
+Chain both with `;`: a non-zero exit is the informative answer.
+
+**Not wired to anything.** Nothing runs this on a schedule or at commit time, so it reports only
+when invoked — deliberate, per this task's own "not to block a commit", but it means the ceiling
+still surfaces only if someone asks. Giving it a trigger is Task 7's problem, not this one's.
 
 ### Task 9: Does an instruction-file edit reach a session that is already running?
 
