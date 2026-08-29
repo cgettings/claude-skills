@@ -1,8 +1,10 @@
 # A durable memory model that stops the always-loaded tier growing
 
-**Status as of 2026-08-25.** §1 and §2 are measured and current. Task 1 is done and **the premise
-held**: `paths:` is honoured at user scope, so §4's global routing lane is real rather than assumed.
-Task 2 is done. Task 3's split is built and proved lossless but **not applied**: its step 5, the
+**Status as of 2026-08-28.** Tasks 1 and 2 are done and Task 1's **premise held**: `paths:` is
+honoured at user scope, so §4's global routing lane is real rather than assumed. §1's *method* stands,
+but its **numbers are a 2026-08-25 baseline, not current** — the live global `CLAUDE.md` has since
+grown from 49,553 B to **55,978 B**, and nothing has re-measured its token share. Task 3's split is
+rebuilt against the drifted file and still proved lossless, but **not applied**: its step 5, the
 firing measurement, has not run, and everything downstream is gated on that one result. Task 4 is
 unblocked and untouched; Tasks 5-8 are not started.
 
@@ -12,7 +14,7 @@ unblocked and untouched; Tasks 5-8 are not started.
 |---|---|---|---|---|
 | 1 | Falsify the user-scope `paths:` premise | `0f82133` — no code commit; the result **is** §5 Task 1 below | **DONE 2026-08-25** | `InstructionsLoaded` hook log + model self-report, 2 sessions, 4 arms, 5 controls, all passed. Verbatim log line in §5 Task 1 |
 | 2 | Record the real baseline | `0f82133` — no code commit; the result **is** §1 below | **DONE 2026-08-25** | differential token measurement, 11 `claude -p` runs, each arm controlled by the same hook log. Method, and the two arms it voided, in §1 |
-| 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` re-cut | **Steps 1-4 DONE, step 5 BLOCKED 2026-08-25** | split built and proved lossless: 17 bullets, **11,069 -> 8,106 B (-26.8%)**, all 14 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection. **Firing not measured** — see the step-5 note in §5 Task 3 |
+| 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` re-cut | **Steps 1-4 DONE, step 5 BLOCKED 2026-08-25** | split built and proved lossless: 17 bullets, **11,350 -> 8,310 B (-26.8%)**, all 14 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection. **Firing not measured** — see the step-5 note in §5 Task 3 |
 | 4 | Route the file-triggered content | — | **Not started** — unblocked by Task 1 | — |
 | 5 | Roll the split across the rest of global CLAUDE.md | — | **BLOCKED on Task 3** | — |
 | 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
@@ -38,29 +40,24 @@ nor the repo's `.claude/rules/` exists again, so nothing extra loads into any se
 `ls ~/.claude/rules/` (expect "No such file or directory").
 
 **A second piece of live environment state, added 2026-08-25 by Task 3.** `~/.claude/lessons/`
-now exists and holds **14 files / 20,018 B** — the evidence moved out of the pilot section, each
+now exists and holds **14 files / 20,461 B** — the evidence moved out of the pilot section, each
 containing its original bullet verbatim. Nothing loads them; they are read only when a rule's
 `[[pointer]]` is followed. **`~/.claude/CLAUDE.md` itself is UNCHANGED** — the split is built and
 proved but deliberately not applied, because the firing test that would license applying it has not
 run. Derive that rather than trusting this line, because the probe below copies each arm over that
-file and restores it afterwards: the guard command returns 11,069 while the section is unsplit and
-8,106 once it is not. To undo the lessons directory: `rm -rf ~/.claude/lessons/`.
+file and restores it afterwards: the guard command returns 11,350 while the section is unsplit and
+8,310 once it is not. To undo the lessons directory: `rm -rf ~/.claude/lessons/`.
 
-**Two things owed, neither of them a step in this document.** `feature-ledger-mutating-next-command`
-@ `efd2637` is a finished one-commit `keep-ledger` 1.3.1 release, cut from `main` on 2026-08-25 out
-of this work's lessons pass. It does not depend on this spec and can merge whenever; derive where
-it has reached rather than trusting a phrase here:
+**One thing owed, and it is not a step in this document.** The `keep-ledger` 1.3.1 release that
+this work's lessons pass produced is **settled**: `efd2637` merged to `main` as PR #8 on
+2026-08-26 `[verified 2026-08-28: git merge-base --is-ancestor efd2637 origin/main, exit 0]`.
+Nothing here depends on it and it needs no further action.
 
-```sh
-git log --oneline main..feature-ledger-mutating-next-command  # the release commit
-git branch -vv | grep ledger-mutating                         # an [origin/...] marker means pushed
-gh pr list --head feature-ledger-mutating-next-command        # a PR, and against which base
-```
-
-And a `reconcile-records` sweep of this project's memory store and `README.md` is
+Still owed: a `reconcile-records` sweep of this project's memory store and `README.md`,
 **deferred until step 5 lands**, because that run moves the same numbers again — one of the four
 memory files was spot-checked (`eval-suites-have-no-behavioural-runner`, current) and the other
-three were not.
+three were not. The 2026-08-28 re-cut adds to what that sweep must reconcile: §1's byte figures for
+the global `CLAUDE.md` (49,553 B, measured) against the file as it now stands (55,978 B).
 
 **Next command.** Task 3 step 5 — the firing measurement, the one gate everything downstream sits
 on. The probe is written and unrun at `scripts/measure-rule-firing.py` (see the step-5 note in §5
@@ -70,15 +67,26 @@ below is what it does first anyway:
 
 ```sh
 awk '/^### Validating the instrument/,/^### Verifying a claim/' ~/.claude/CLAUDE.md | head -n -1 | wc -c
-# expect 11069 — if not, the section moved and section-before.md must be re-cut before anything else
+# expect 11350 — if not, the section moved and section-before.md must be re-cut before anything else
 ```
 
-**This guard has already fired once**, on 2026-08-25: a lessons pass appended a sentence to one
-bullet between the fixtures being cut and step 5 being reached, and the section read 11,069 B
-against an expected 10,858 B. The re-cut is `e7ddc91`, and it is four edits — re-cut `before.md`
-from the live file, re-split the changed bullet in `after.md`, refresh that bullet's file in
-`~/.claude/lessons/` so `verify-split.py`'s check 4 substring test still holds, then propagate the
-new byte counts here and into `measure-rule-firing.py`'s docstring. Expect to do it again.
+**This guard has now fired twice**, and the second time cost more than the first. On 2026-08-25 a
+lessons pass appended a sentence to one bullet between the fixtures being cut and step 5 being
+reached, and the section read 11,069 B against an expected 10,858 B; the re-cut is `e7ddc91`. On
+2026-08-28 it read 11,350 B against 11,069 B, and the +281 B was **two independent drifts, not one**
+— which is the part worth carrying forward, because the mechanical one was invisible in the byte
+delta. A whole-file normalization had replaced **every em dash with an ASCII hyphen** (48 across the
+fixtures; the live file now holds zero U+2014 and kept U+2192, U+2026 and U+00A7, so it was
+dash-specific), *shrinking* the section by 54 B, while one bullet gained 335 B of new evidence. Net
++281 B, and a re-cut that touched all 17 bullets and all 14 lesson files rather than one of each,
+because check 4 tests the original verbatim and "the original" had changed everywhere.
+
+The recipe holds either way, and step 1 absorbs a mechanical drift for free: re-cut `before.md`
+from the live file, apply the same mechanical transform to `after.md` and `~/.claude/lessons/`,
+re-split any genuinely amended bullet, then propagate the new byte counts here and into
+`measure-rule-firing.py`'s docstring. Prove the mechanical half did only what it claims — assert the
+byte delta equals the substitution count times the per-substitution width — and prove the whole with
+`python scripts/verify-split.py`. Expect to do it again.
 
 Then the run itself. **It mutates `~/.claude/CLAUDE.md` in place** — the three arms are copied over
 it in turn — and restores from a backup in a `finally`, printing `RESTORED OK` or
@@ -587,9 +595,10 @@ is not a baseline.
 **Files:** `~/.claude/CLAUDE.md` §Verification → Validating the instrument;
 `~/.claude/lessons/` (new).
 
-Chosen as the pilot because it is the largest single subsection in the file at **11,069 B**
-`[re-measured twice on 2026-08-25: 10,166 B when this task was written, 10,858 B after the day's
-lessons pass — which §1 describes — and 11,069 B after an amendment that evening]` — bigger than six of the nine top-level sections —
+Chosen as the pilot because it is the largest single subsection in the file at **11,350 B**
+`[re-measured three times: 10,166 B when this task was written, 10,858 B after the 2026-08-25
+lessons pass — which §1 describes — 11,069 B after an amendment that evening, and 11,350 B on
+2026-08-28 after a dash normalization and a second amendment]` — bigger than six of the nine top-level sections —
 and because it is the densest in evidence specifics, so it is where the split has the most to prove
 and the most to lose. The other two Verification subsections are unchanged at 5,418 B and 5,246 B.
 
@@ -626,8 +635,8 @@ something already points at it. These are evidence, so they are files.
 
    What step 5 needs instead is a **behavioural probe**, written and unrun at
    `scripts/measure-rule-firing.py`. Three arms differing only in this section of
-   `~/.claude/CLAUDE.md`: **A** full (11,069 B), **B** split (8,106 B), **C** deleted — built from
-   `docs/task-3-section-{before,after}.md` and verified to differ by exactly 2,963 B and 11,069 B
+   `~/.claude/CLAUDE.md`: **A** full (11,350 B), **B** split (8,310 B), **C** deleted — built from
+   `docs/task-3-section-{before,after}.md` and verified to differ by exactly 3,040 B and 11,350 B
    `[checked 2026-08-25, re-checked after the e7ddc91 re-cut]`. Arm C is load-bearing: without
    a floor, A≈B cannot be told apart from a
    probe that never saw the section. Five queries, each presenting a situation **without** the
@@ -666,8 +675,10 @@ that is the first real bound on the yield, since the section's size is not unifo
 The other 14 split to `~/.claude/lessons/<slug>.md`, each holding its original bullet **verbatim**,
 which turns "every evidence item is locatable" from a judgment call into a substring test.
 
-**Measured: 11,069 → 8,106 B, −2,963 B, −26.8%.** `[re-measured 2026-08-25 after the e7ddc91
-re-cut; the pre-drift figures were 10,858 → 8,048 B, −2,810 B, −25.9%]` Proved by five checks — bullet count preserved,
+**Measured: 11,350 → 8,310 B, −3,040 B, −26.8%.** `[re-measured 2026-08-28 after the second
+re-cut; earlier figures were 10,858 → 8,048 B (−25.9%) and 11,069 → 8,106 B (−26.8%)]` The yield
+ratio has now held at 26.8% across two independent drifts of the source section, which is weak
+evidence that it is a property of the section's evidence density rather than of one cut. Proved by five checks — bullet count preserved,
 the three unchanged bullets byte-identical, all 14 pointers resolving, all 14 originals verbatim in
 their lesson files, and a 1:1 pointer↔file mapping with no orphans.
 

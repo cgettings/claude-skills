@@ -3,8 +3,8 @@
 
 Three arms, differing ONLY in one section of ~/.claude/CLAUDE.md:
 
-  A  full section    (11,069 B)  -- today's text
-  B  split section   ( 8,106 B)  -- recognition + action + [[pointer]]
+  A  full section    (11,350 B)  -- today's text
+  B  split section   ( 8,310 B)  -- recognition + action + [[pointer]]
   C  section deleted (      0 B) -- floor / positive control
 
 Arm C is what makes A~=B mean anything. Without it, "both arms fired" cannot be
