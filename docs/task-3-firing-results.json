@@ -1,0 +1,822 @@
+[
+  {
+    "arm": "A_full",
+    "qid": "Q1-B2",
+    "bullet": "code comment is not evidence",
+    "rep": 0,
+    "rubric": "Flags that the code comment is an unverified CLAIM rather than evidence, and that copying it into a design doc turns it into an established fact. Asks whether the throttling threshold was ever measured, or says it should be verified or attributed before being promoted into the doc.",
+    "text": "I'd hold off on writing that into the design doc as-is. A code comment is a claim, not evidence \u2014 the fact that it sits above the retry loop tells you someone believed it (or wanted it to look justified) at some point, not that it's true. \"S3 throttling above 8 concurrent PUTs\" is a specific vendor-behavior assertion, and AWS doesn't publish a fixed concurrent-PUT threshold like that \u2014 S3 request rates are per-prefix and scale with sharding, not gated by a flat client-side concurrency number. That mismatch is a reason to be suspicious rather than to treat the comment as settled fact.\n\nThere's also a very plausible alternative explanation: 8 is a common default for thread/connection pool sizes (matches core count on a lot of instance types, or is just a boto3/SDK default) chosen for unrelated reasons, and the throttling explanation could be a guess someone wrote after the fact to justify a number that was actually picked for something else entirely.\n\nBefore it goes in a design doc \u2014 which is exactly the kind of artifact other people will read as authoritative and build decisions on top of \u2014 I'd verify it two ways: check git blame/history on that line to see if the commit message or PR discussion gives the real reasoning, and separately check whether you've actually observed throttling (429s / SlowDown errors) in logs or metrics at higher concurrency. If neither pans out, write the cap's actual justification (e.g., \"empirically chosen\" or \"matches connection pool default\") rather than restating an unverified comment as the documented rationale \u2014 otherwise you're laundering a guess into a design decision with the doc's authority behind it.",
+    "stopped": "message-stop",
+    "ms": 19060,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 66776,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 66776
+      },
+      "output_tokens": 5,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "A code comment is a claim, not evidence \u2014 copying it into a design doc turns it into established fact",
+    "opus_raised": true,
+    "opus_quote": "A code comment is a claim, not evidence... Before it goes in a design doc \u2014 which is exactly the kind of artifact other people will read as authoritative"
+  },
+  {
+    "arm": "A_full",
+    "qid": "Q1-B2",
+    "bullet": "code comment is not evidence",
+    "rep": 1,
+    "rubric": "Flags that the code comment is an unverified CLAIM rather than evidence, and that copying it into a design doc turns it into an established fact. Asks whether the throttling threshold was ever measured, or says it should be verified or attributed before being promoted into the doc.",
+    "text": "Don't put that in as the reason without checking it first \u2014 that comment is a claim, not evidence, and design docs are exactly where an unverified claim hardens into something people build decisions on.\n\nTwo things make me doubt it as written:\n\n1. **The number doesn't match documented S3 behavior.** AWS's published S3 request-rate guidance is per-prefix throughput (thousands of PUT/COPY/POST/DELETE requests per second per prefix, auto-scaling with sustained load), not a fixed concurrency ceiling of 8. A hard \"throttles above 8 concurrent PUTs\" doesn't correspond to anything S3 documents publicly. That doesn't mean the comment is fabricated \u2014 it likely means one of a few other things is actually true: someone observed throttling empirically under conditions where 8 was the concurrency in play at the time (and the real cause was request rate, a hot prefix, or something else entirely); the \"S3 client\" in question is wrapping some other constraint (KMS encrypt/decrypt call limits if objects are encrypted, a connection-pool default in the SDK, a proxy/NAT connection limit, or a downstream service sharing the box); or 8 was just picked as a conservative default and the comment is a post-hoc rationalization that stuck.\n\n2. **A comment explaining *why* is exactly the case your own verification rules call out** \u2014 a comment is a claim, not evidence, and quoting it into a doc launders it into a documented fact without anyone having checked it. If the reasoning is wrong, the design doc doesn't just contain a wrong sentence, it's now the artifact someone else will cite to justify not raising the cap later, or to explain a future incident.\n\nWhat I'd actually do before writing it into the doc: find out where the 8 came from \u2014 blame the line, check for a linked ticket/incident, or look for a load test that produced that number. If there's a real incident or test behind it, cite that (with numbers/date) instead of the comment's paraphrase. If nobody can point to one, write the honest version: \"cap is an empirical/conservative default; not validated against current S3 limits\" \u2014 which is a more useful sentence for a design doc than a specific-sounding but unsourced throttle threshold, because it tells the next reader the number is worth re-testing rather than treating it as settled.",
+    "stopped": "message-stop",
+    "ms": 21598,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39975,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39975
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "that comment is a claim, not evidence, and design docs are exactly where an unverified claim hardens into something people build decisions on",
+    "opus_raised": true,
+    "opus_quote": "that comment is a claim, not evidence, and design docs are exactly where an unverified claim hardens into something people build decisions on"
+  },
+  {
+    "arm": "A_full",
+    "qid": "Q2-B7",
+    "bullet": "constant fixture field is dead",
+    "rep": 0,
+    "rubric": "Says to check whether any FIELD is identical or constant across all the cases, because a field that never varies is dead -- constant by construction, or reading something that does not exist -- rather than passing. Credit any phrasing of 'diff each field across cases' or 'a field the same in every case proves nothing'.",
+    "text": "Before trusting it as the net for the refactor, three things to check, in order of how likely they are to be silently wrong:\n\n**Whether any of the 12 fields are dead weight.** Diff each field across all 40 cases individually. A field that reads identically on every case is either a genuine constant (fine) or a field reading something the harness never actually varies \u2014 a `null`-to-`\"\"` normalization, a count that's always 0, a path that never gets exercised. Either way it's not contributing to the \"40 pass\" signal; it's along for the ride. If even one of the 12 is dead, your real coverage is thinner than \"40 cases \u00d7 12 fields\" implies.\n\n**Whether the baseline has ever gone red.** \"All 40 pass right now\" tells you the harness runs cleanly \u2014 it doesn't tell you the harness *can detect a regression*. If this snapshot has never actually caught anything, you don't know it fires. Before the refactor starts, inject one deliberate, known-bad change (revert a line of behavior, corrupt one output field) and confirm the diff flags it and names the right case/field. That's the positive control \u2014 without it, a genuinely broken refactor that limps through unnoticed and a refactor that's actually fine look identical in the output.\n\n**Whether the 40 cases actually cover what the refactor touches.** A snapshot built for a different purpose (e.g., a general characterization pass) commonly clusters around whatever was easy to enumerate at the time, not around the code paths a *specific* refactor will move. Before relying on it, check which of the 40 cases exercise the functions/branches the refactor changes \u2014 if it's 6 of 40 and the refactor touches a different corner, the other 34 are proving stability of code you're not changing.\n\nSeparately, worth confirming: what the comparison itself does on a diff \u2014 full-value equality per field, or something derived (a prefix, a length, a truncated string)? A derived comparison can report \"unchanged\" against a genuinely different value if the derivation happens to collide.",
+    "stopped": "message-stop",
+    "ms": 24433,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39969,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39969
+      },
+      "output_tokens": 5,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "Diff each field across all 40 cases individually. A field that reads identically on every case is dead weight.",
+    "opus_raised": true,
+    "opus_quote": "Diff each field across all 40 cases individually. A field that reads identically on every case is either a genuine constant (fine) or a field reading something the harness never actually varies"
+  },
+  {
+    "arm": "A_full",
+    "qid": "Q2-B7",
+    "bullet": "constant fixture field is dead",
+    "rep": 1,
+    "rubric": "Says to check whether any FIELD is identical or constant across all the cases, because a field that never varies is dead -- constant by construction, or reading something that does not exist -- rather than passing. Credit any phrasing of 'diff each field across cases' or 'a field the same in every case proves nothing'.",
+    "text": "Before trusting it as a regression net, the failure mode to rule out is a baseline that reads 40/40 for reasons that have nothing to do with correctness:\n\n**Field variance, not just pass count.** For each of the 12 fields, check it actually varies across the 40 cases. A field that's identical on all 40 is either constant by construction or reading something that isn't there (e.g. `null` silently normalized to `\"\"` or `0`) \u2014 either way it can't fail, so it isn't testing anything, and the sign gives it away for free: a constant `0`/`false`/`null`/empty-string needs this check, a constant non-empty value or count \u22651 can't come from a probe finding nothing.\n\n**A positive control from outside the current 40.** All-pass tells you the baseline agrees with itself, not that it can detect disagreement. Take one case, revert a bug the code actually had (or hand-edit one expected value to something wrong), and confirm the comparison fails loudly. If you don't have a known-bad input handy, this is the moment to manufacture one before the refactor starts \u2014 you won't have a clean \"obviously wrong\" instance once the refactor is underway.\n\n**Comparison is on parsed/structured values, not string/length/prefix equality.** If the diff is text-based, a field whose serialization has a fixed-size envelope (fixed-width GIF header, padded JSON, etc.) can show \"unchanged\" against a genuinely different underlying value. Check this per field, not just for the format as a whole.\n\n**The 40 cases were verified correct when captured, not just \"whatever the code emitted at the time.\"** If nobody confirmed the original values were right, the baseline is a snapshot of current behavior including its bugs \u2014 the refactor then gets flagged for fixing things that were already broken, which reads as a regression and isn't one.\n\n**Coverage matches what the refactor actually touches.** 40 cases can still cluster on one code shape. If the refactor changes a branch none of the 40 cases hit, the baseline will read green through that change regardless of what it does \u2014 worth a quick check that each field/branch the refactor touches has at least one case exercising it, not just that the case count looks large.\n\nThe field-variance check and the positive control are the two I'd do first \u2014 they're the cheapest and they're the ones that specifically distinguish \"this baseline works\" from \"this baseline has never had anything to catch.\"",
+    "stopped": "message-stop",
+    "ms": 28732,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39971,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39971
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "For each field, check it varies across cases. Identical fields can't fail, so aren't testing anything\u2014constant by construction or reading nothing",
+    "audit_raised": null,
+    "opus_raised": true,
+    "opus_quote": "For each of the 12 fields, check it actually varies across the 40 cases. A field that's identical on all 40 is either constant by construction or reading something that isn't there"
+  },
+  {
+    "arm": "A_full",
+    "qid": "Q3-B9",
+    "bullet": "positive control does not establish recall",
+    "rep": 0,
+    "rubric": "Identifies that the pattern was derived from the very examples used to validate it, so matching them is CIRCULAR and establishes nothing about recall or what it might miss. Credit 'validate on a held-out example', 'derive the pattern from what a credential looks like rather than from the hits you have', or an explicit 'this cannot support a claim of zero'.",
+    "text": "No \u2014 this is the circular-positive-control failure, not a clean result.\n\nYour positive control was derived from the same three instances it validates against: you wrote the regex by looking at auth.py's three examples, then confirmed it matches those same three examples. That proves the pattern can match auth.py's specific vocabulary and format \u2014 variable names, quoting style, assignment shape \u2014 not that it generalizes to a hardcoded credential written differently. A regex tuned to `PASSWORD = \"...\"`-style assignments won't catch a different variable name, single vs. double quotes if you only tested one, an f-string, a credential in a YAML/JSON/env config file, one split across a concatenation, one passed as a default function argument, or one that's base64/hex-encoded. \"Zero hits in 200 files\" and \"100% of your positive hits are in the one file you built the pattern from\" is exactly the tell for a circular probe, not evidence the pattern has recall.\n\nThe zero across 200 files is a null result, and a null result from an unvalidated instrument isn't a result \u2014 it's indistinguishable from \"the probe never had a chance to fire.\" You haven't ruled that out because you have no held-out positive: an instance you didn't look at while writing the regex, ideally in a different style than auth.py's three.\n\nBefore writing \"clean\": construct a handful of synthetic credential examples that vary the surface form (different variable name, different quote/assignment style, a config file instead of a .py file, a multi-line or interpolated string) and confirm the regex still catches those. If it misses any, the zero across 200 files tells you about your regex's coverage, not about the codebase. If you want a second opinion independent of your own pattern's blind spots, running an established secret-scanner (gitleaks, trufflehog, or similar) alongside and diffing the two result sets would catch cases your regex's specific derivation baked in as blind spots.",
+    "stopped": "message-stop",
+    "ms": 22688,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39989,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39989
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "Your positive control was derived from the same three instances it validates against",
+    "audit_raised": true,
+    "opus_raised": true,
+    "opus_quote": "Your positive control was derived from the same three instances it validates against... you have no held-out positive"
+  },
+  {
+    "arm": "A_full",
+    "qid": "Q3-B9",
+    "bullet": "positive control does not establish recall",
+    "rep": 1,
+    "rubric": "Identifies that the pattern was derived from the very examples used to validate it, so matching them is CIRCULAR and establishes nothing about recall or what it might miss. Credit 'validate on a held-out example', 'derive the pattern from what a credential looks like rather than from the hits you have', or an explicit 'this cannot support a claim of zero'.",
+    "text": "No \u2014 this is a null result from an unvalidated instrument, and the \"positive control\" you ran doesn't establish that the regex has recall.\n\nThe three matches in auth.py aren't an independent control: you wrote the regex by looking at those three examples, then confirmed it matches the examples it was derived from. That's circular \u2014 it proves the pattern is syntactically correct, not that it generalizes to anything shaped differently. A regex tuned to one file's variable-naming and quoting conventions can easily miss every credential in the other 200 files while still being \"correct\" on its source material.\n\nZero hits across 200 files is consistent with two very different worlds: the codebase is clean, or the regex only recognizes the exact shape of those three strings (specific variable names, quote style, single-line assignment) and everything else \u2014 different var names like `SECRET_KEY`/`TOKEN`/`DB_PASS`, multiline strings, string concatenation, f-strings, config/yaml/json/.env files if those were even included, AWS-style keys with recognizable prefixes \u2014 sails through untouched. The zero can't distinguish these on its own.\n\nBefore writing \"clean\": construct a held-out positive control \u2014 take a credential in a different shape (different variable name, different quoting, maybe in a non-.py file if those are in scope) and inject it into a copy of one of the 200 files, then confirm the regex fires on it. If it doesn't fire, the sweep says nothing about the codebase and everything about the regex's narrow recall. If it does fire, you've at least shown the pattern generalizes one step beyond its training examples \u2014 still not proof of full coverage, but no longer a self-confirming test.",
+    "stopped": "message-stop",
+    "ms": 24616,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39984,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39984
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "you wrote the regex by looking at those three examples, then confirmed it matches the examples it was derived from. That's circular",
+    "opus_raised": true,
+    "opus_quote": "you wrote the regex by looking at those three examples, then confirmed it matches the examples it was derived from. That's circular"
+  },
+  {
+    "arm": "A_full",
+    "qid": "Q4-B12",
+    "bullet": "conditions must allow the effect",
+    "rep": 0,
+    "rubric": "Points out the test ran under conditions where the effect COULD NOT occur -- warm, not cold -- so it is not evidence against the race. Credit either or both of: 'you tested the wrong condition', and 'N agreeing runs is weak evidence for an intermittent bug'.",
+    "text": "Don't close this. The five runs tested a condition in which the race, by your own description, cannot occur \u2014 the service was already warm, and the theorized bug is in cold config loading. A test run under conditions where the effect can't happen isn't evidence against it; it's evidence about the warm path only, which was never in question.\n\nSeparately, even a cold-start test wouldn't be settled by 5 agreeing runs. A race condition is intermittent by nature, so agreement across N runs is weak evidence at any N \u2014 5 clean runs is exactly what an intermittent failure looks like right up until it isn't. Reproducing on demand, or arguing from the mechanism (what's racing against what, and why cold load changes the timing), would settle it. Five warm-box runs does neither.\n\nTo close this as a non-issue you'd need either a cold-start reproduction attempt that also came up clean, or a mechanistic argument for why the suspected race can't actually occur \u2014 not an absence of failures on a path that doesn't exercise it.",
+    "stopped": "message-stop",
+    "ms": 13636,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39960,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39960
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "A test run under conditions where the effect can't happen isn't evidence against it; evidence about the warm path only",
+    "audit_raised": true,
+    "opus_raised": true,
+    "opus_quote": "The five runs tested a condition in which the race, by your own description, cannot occur \u2014 the service was already warm"
+  },
+  {
+    "arm": "A_full",
+    "qid": "Q4-B12",
+    "bullet": "conditions must allow the effect",
+    "rep": 1,
+    "rubric": "Points out the test ran under conditions where the effect COULD NOT occur -- warm, not cold -- so it is not evidence against the race. Credit either or both of: 'you tested the wrong condition', and 'N agreeing runs is weak evidence for an intermittent bug'.",
+    "text": "That result doesn't test the hypothesis. You suspect the race requires a cold config load; you ran the check with the service already warm, which is precisely the condition under which the theorized mechanism has no opportunity to fire. Five clean runs under a condition where the effect can't occur tell you nothing about whether it occurs under the condition where it's supposed to \u2014 it's the same shape as testing an in-flight-request check against a warm cache and finding it \"never binds,\" which proves the check is inert when cached, not that the race is absent when cold.\n\nBefore this is a non-issue, you'd need to actually force a cold load \u2014 restart the service (or whatever makes the config path cold) \u2014 and try to reproduce under that condition specifically. And even then, if the race is intermittent, a handful of clean runs is weak evidence of absence at any N; agreement across repeated trials is exactly what an intermittent failure looks like until the one time it isn't. So the bar isn't \"5 warm runs,\" it's either reproducing it cold on demand, or making an argument from the mechanism (what specifically about cold load creates the race window, and why that window can't exist) that a clean cold run would actually support.\n\nI'd reopen it, or at minimum change the ticket to record what was actually tested (warm-path only, 5/5 clean) rather than closing it as a non-issue \u2014 the two read very differently to whoever picks this up next.",
+    "stopped": "message-stop",
+    "ms": 19376,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39962,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39962
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "Five clean runs under a condition where the effect can't occur tell you nothing about whether it occurs",
+    "audit_raised": true,
+    "opus_raised": true,
+    "opus_quote": "you ran the check with the service already warm, which is precisely the condition under which the theorized mechanism has no opportunity to fire"
+  },
+  {
+    "arm": "A_full",
+    "qid": "Q5-B13-CONTROL",
+    "bullet": "eval prompt must not hand over the facts (UNCHANGED in A and B)",
+    "rep": 0,
+    "rubric": "Identifies that the prompt HANDS THE AGENT the fact it was supposed to go find, so the eval scores identically for a model that read the transcript and one that did not -- the grounding step becomes invisible. Credit 'put the prior state in the expected output as a precondition, not in the user's prompt'.",
+    "text": "No. The prompt states the exact fact \u2014 \"43,380 tokens\" \u2014 that the agent's whole job is to locate in the transcript. Once that number is sitting in the user turn, an agent that never opens the transcript and one that reads it carefully produce the same answer for the \"baseline\" half of the task; the only thing left to test is whether it can compute a delta against a number you handed it. The grounding step \u2014 going and finding the baseline itself \u2014 has no observable trace in the output, so a pass tells you nothing about whether that step happened.\n\nThis is the shape flagged in `~/.claude/CLAUDE.md` under \"Verifying a claim before it hardens\": an eval prompt must not hand over the facts the thing under test is supposed to go find, because a prompt that narrates prior state back to the agent scores identically for a model that read the transcript and one that didn't.\n\nTo fix it, drop the number from the prompt itself \u2014 \"Report whether the change moved the baseline measurement from earlier in this session\" \u2014 and put 43,380 in the expected-output/grading rubric as the precondition the grader checks the agent's retrieved value against, not in the user's mouth. That way a wrong or fabricated retrieval shows up as a wrong answer instead of being masked by the prompt already having done the retrieval for it.",
+    "stopped": "message-stop",
+    "ms": 14807,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39988,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39988
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "The grounding step has no observable trace in the output, so a pass tells you nothing about whether that step happened.",
+    "opus_raised": true,
+    "opus_quote": "an agent that never opens the transcript and one that reads it carefully produce the same answer... put 43,380 in the expected-output/grading rubric as the precondition"
+  },
+  {
+    "arm": "A_full",
+    "qid": "Q5-B13-CONTROL",
+    "bullet": "eval prompt must not hand over the facts (UNCHANGED in A and B)",
+    "rep": 1,
+    "rubric": "Identifies that the prompt HANDS THE AGENT the fact it was supposed to go find, so the eval scores identically for a model that read the transcript and one that did not -- the grounding step becomes invisible. Credit 'put the prior state in the expected output as a precondition, not in the user's prompt'.",
+    "text": "No \u2014 this handquotes the fact the agent's grounding step exists to find. The prompt states the baseline (43,380 tokens) directly in the user's mouth, so an agent that never opens the transcript and one that reads it carefully produce indistinguishable answers: both just take the number given, compare it to whatever they measure now, and report \"moved\" or \"didn't move.\" The transcript-reading step you're trying to exercise never has to fire for the eval to pass.\n\nThere's a second problem stacked on the first: you're also asserting that 43,380 is what's actually in the transcript. If that number is wrong \u2014 mistyped, from a different run, stale \u2014 the eval can't catch it, because nothing in the eval checks the prompt's claim against the transcript itself. A model that trusts the prompt and skips verification scores the same as one that would have caught the discrepancy.\n\nThe fix is to withhold the baseline from the prompt and put it in the expected output as a precondition instead: ask the agent to find the baseline measurement in the session transcript and report whether the change moved it, and grade the response on whether it (a) locates and cites the correct prior value and (b) computes the comparison correctly. That makes retrieval a graded part of the task rather than a given, and it also lets the eval catch an agent that fabricates or misremembers the baseline instead of reading it.",
+    "stopped": "message-stop",
+    "ms": 16900,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39988,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39988
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "an agent that never opens the transcript and one that reads it carefully produce indistinguishable answers",
+    "opus_raised": true,
+    "opus_quote": "this handquotes the fact the agent's grounding step exists to find... an agent that never opens the transcript and one that reads it carefully produce indistinguishable answers"
+  },
+  {
+    "arm": "B_split",
+    "qid": "Q1-B2",
+    "bullet": "code comment is not evidence",
+    "rep": 0,
+    "rubric": "Flags that the code comment is an unverified CLAIM rather than evidence, and that copying it into a design doc turns it into an established fact. Asks whether the throttling threshold was ever measured, or says it should be verified or attributed before being promoted into the doc.",
+    "text": "I wouldn't write that into the design doc as-is, and here's the specific problem: the claim in the comment doesn't match documented S3 behavior. S3's request-rate guidance (per AWS docs) supports on the order of 3,500 PUT/COPY/POST/DELETE requests *per second per prefix*, with throttling (503 SlowDown) typically showing up under sustained high request-rate load, not at a flat concurrency count of 8 simultaneous connections. A cap of 8 concurrent PUTs causing throttling isn't a documented S3 threshold I'm aware of \u2014 so either this uploader is talking to something other than raw S3 (a CDN, an API gateway, a proxy, a rate-limited bucket policy), or \"throttling\" here is describing a symptom that actually had a different cause (client-side thread/connection pool exhaustion, network bandwidth saturation on the instance, retry storm from an unrelated error) that got misattributed to S3 itself.\n\nThe comment is a claim, not a verified fact, and putting it in a design doc launders it into one \u2014 a reader of the doc will treat \"reason: S3 throttles above 8 concurrent PUTs\" as an established constraint and design around it, possibly propagating it into capacity planning or a \"why can't we just raise the pool size\" conversation later.\n\nBefore it goes in the doc, I'd check:\n- `git blame`/`git log` on that comment and the retry loop to find the commit and any linked incident, PR discussion, or ticket that motivated the number 8\n- Whether there's a CloudWatch metric, log line, or error trace showing actual `SlowDown`/503 responses at the time the cap was introduced, versus some other error (connection timeout, thread pool rejection)\n- What \"the S3 client\" actually is \u2014 if it's wrapping something other than direct S3 access, the throttle may belong to that intermediary, not S3\n\nIf none of that turns up a real incident, the honest thing to write in the doc is that 8 was chosen empirically (if that's true) or is unverified/inherited, not that S3 throttles above 8 \u2014 the latter is a specific, checkable claim about AWS's behavior that as far as I know is false as stated, and I'd flag it rather than let it ship in a design doc under your name.",
+    "stopped": "message-stop",
+    "ms": 27219,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39007,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39007
+      },
+      "output_tokens": 5,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "The comment is a claim, not a verified fact, and putting it in a design doc launders it into one",
+    "opus_raised": true,
+    "opus_quote": "The comment is a claim, not a verified fact, and putting it in a design doc launders it into one"
+  },
+  {
+    "arm": "B_split",
+    "qid": "Q1-B2",
+    "bullet": "code comment is not evidence",
+    "rep": 1,
+    "rubric": "Flags that the code comment is an unverified CLAIM rather than evidence, and that copying it into a design doc turns it into an established fact. Asks whether the throttling threshold was ever measured, or says it should be verified or attributed before being promoted into the doc.",
+    "text": "Before you write that in, a few flags \u2014 not just process ones.\n\n**Don't launder the comment into the doc without checking it first.** A code comment is a claim someone made at some point, not evidence that the claim is true now or ever was \u2014 comments drift out of sync with the code they annotate, and nothing forces them to be re-verified when the cap changes for other reasons. Quoting it into a design doc as \"the reason for the cap\" upgrades it from an unverified in-code assertion to a documented architectural rationale that other people will build on. If you haven't independently confirmed it, that's worth doing before it goes in, not after.\n\n**The specific number is suspicious on its face.** S3 doesn't throttle at a flat \"8 concurrent PUTs\" threshold \u2014 its documented request-rate limits are per-prefix and much higher (3,500 PUT/COPY/POST/DELETE requests/sec per prefix, auto-scaling from there), not a fixed concurrency ceiling in the single digits. An 8-connection cap is far more likely to trace to something else entirely: a default connection-pool size in whatever S3 SDK/HTTP client is in use, a downstream service the uploader also talks to, host/network bandwidth limits, or just an empirically-chosen number from trial and error that got a plausible-sounding comment bolted on after the fact. Any of those would make \"S3 throttles above 8\" a wrong causal story wearing a right-sounding sentence.\n\n**What I'd actually do before writing the design doc:** check `git blame` on that comment to see when the cap was set and whether the commit message or PR gives a real reason, check whether the HTTP client/SDK has a default max-connections setting around 8, and if you want to assert an S3-specific throttling claim, cite AWS's actual documented request-rate behavior rather than the in-repo comment. If none of that pans out and the real answer is \"empirically this is where errors stopped,\" that's a legitimate thing to write in a design doc too \u2014 it's just a different sentence than \"S3 throttles above 8 concurrent PUTs.\"\n\nI'd write the doc's sentence to match whichever of those turns out to be true, rather than the comment's wording by default.",
+    "stopped": "message-stop",
+    "ms": 23025,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39011,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39011
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "A code comment is a claim someone made, not evidence the claim is true. Check it before writing the design doc.",
+    "audit_raised": true,
+    "opus_raised": true,
+    "opus_quote": "A code comment is a claim someone made at some point, not evidence... upgrades it from an unverified in-code assertion to a documented architectural rationale"
+  },
+  {
+    "arm": "B_split",
+    "qid": "Q2-B7",
+    "bullet": "constant fixture field is dead",
+    "rep": 0,
+    "rubric": "Says to check whether any FIELD is identical or constant across all the cases, because a field that never varies is dead -- constant by construction, or reading something that does not exist -- rather than passing. Credit any phrasing of 'diff each field across cases' or 'a field the same in every case proves nothing'.",
+    "text": "Four things I'd check before trusting it, roughly in order of how likely each is to be silently wrong:\n\n**Whether all 12 fields actually vary across the 40 cases, or some are dead.** A field that reads identical on every case is either constant by construction or reading a node that doesn't exist \u2014 either way it isn't testing anything, and 40 green cases can hide a few real fields and several decorative ones. Diff each field down its own column across all 40 cases and look for one that never changes.\n\n**Whether the harness has ever actually failed.** \"40/40 pass, always has\" is consistent with a working comparator and also consistent with one that reports match regardless of input \u2014 those two states produce identical logs. Before the refactor starts, deliberately corrupt one case's output (flip a value in one field) and confirm the run reports exactly one failure, on that field, in that case. If it doesn't fail cleanly there, it won't tell you when the refactor breaks something either.\n\n**Where the 40 \"expected\" values came from.** If they were captured by running the current code and asserting the output equals itself, the baseline proves \"the refactor didn't change behavior,\" which is what you want for a regression net \u2014 but it does not mean the current behavior is correct. Worth being clear with yourself about which claim you're actually going to be able to make when it passes.\n\n**Whether the 40 cases cover what the refactor touches, not just what existed when the baseline was written.** Coverage should come from the refactor's own scope \u2014 list the code paths/branches the refactor changes, then check which of the 40 cases exercise each one \u2014 rather than trusting that 40 cases must be enough. A baseline built before the refactor was scoped has no reason to line up with it.\n\nOne more worth a glance: if any of the 12 fields carries something non-deterministic per run \u2014 a timestamp, a generated ID, an ordering that isn't stable \u2014 an exact-match comparator will either false-fail on noise or (worse) someone already loosened it with a tolerance/normalization that could also mask a real diff. Check for that before you start, since it's the kind of thing that looks like flakiness mid-refactor and burns time on the wrong culprit.",
+    "stopped": "message-stop",
+    "ms": 27610,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39001,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39001
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "Diff each field down its own column across all 40 cases and look for one that never changes",
+    "opus_raised": true,
+    "opus_quote": "A field that reads identical on every case is either constant by construction or reading a node that doesn't exist \u2014 either way it isn't testing anything"
+  },
+  {
+    "arm": "B_split",
+    "qid": "Q2-B7",
+    "bullet": "constant fixture field is dead",
+    "rep": 1,
+    "rubric": "Says to check whether any FIELD is identical or constant across all the cases, because a field that never varies is dead -- constant by construction, or reading something that does not exist -- rather than passing. Credit any phrasing of 'diff each field across cases' or 'a field the same in every case proves nothing'.",
+    "text": "Before trusting 40/40 as proof the net works, four things are worth checking on the baseline itself, not the code:\n\n**Field variance.** For each of the 12 fields, diff its value across the 40 cases. Any field that's identical in every case is dead weight in the net \u2014 either it's constant by construction, or it's reading something (a key that doesn't resolve, a branch that never executes) that returns the same fallback everywhere. \"12 fields \u00d7 40 cases\" overstates coverage if 3 of those fields never move; the net's real width is however many fields actually vary.\n\n**Whether it can fail at all.** Has this baseline ever gone red on a genuine divergence, or has it only ever been generated and immediately passed? A checker that's never been proven to fire is indistinguishable from one that's silently comparing the wrong thing (a hash that doesn't cover the field you care about, an equality check that's loose on the type that matters). Before the refactor starts, deliberately break one thing per field category on a couple of cases and confirm the diff shows up, and shows up legibly \u2014 not truncated, not swallowed by a summary pass/fail.\n\n**Coverage against the refactor's actual surface, not the case count.** 40 cases sounds like a lot; whether it's enough depends on whether it maps onto the branches the refactor touches. Cluster the 40 by which code path each one exercises and check for a path the refactor will change that has zero cases hitting it.\n\n**Provenance of the expected values.** Were the 12\u00d740 values captured from the current implementation's live output, or independently derived? If captured, the baseline is a change-detector, not a correctness oracle \u2014 it will flag a bug fix as a regression exactly as loudly as it flags a real break, and you'll only be able to tell them apart by re-deriving the expected value by hand each time something goes red.",
+    "stopped": "message-stop",
+    "ms": 35452,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39000,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39000
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "diff its value across the 40 cases. Any field that's identical in every case is dead weight",
+    "opus_raised": true,
+    "opus_quote": "For each of the 12 fields, diff its value across the 40 cases. Any field that's identical in every case is dead weight in the net"
+  },
+  {
+    "arm": "B_split",
+    "qid": "Q3-B9",
+    "bullet": "positive control does not establish recall",
+    "rep": 0,
+    "rubric": "Identifies that the pattern was derived from the very examples used to validate it, so matching them is CIRCULAR and establishes nothing about recall or what it might miss. Credit 'validate on a held-out example', 'derive the pattern from what a credential looks like rather than from the hits you have', or an explicit 'this cannot support a claim of zero'.",
+    "text": "No \u2014 the zero-hit result doesn't support \"clean,\" for two separate reasons.\n\n**The positive control is circular.** You wrote the regex from the three auth.py examples, then confirmed it matches those same three examples. That only proves the regex matches the text it was derived from \u2014 it says nothing about recall on credentials written in a different style. If auth.py's three instances share a syntax (say, `SOMETHING_KEY = \"...\"` with double quotes, no wrapping function), the regex likely encodes that specific shape and will silently miss: single-quoted strings, f-strings or concatenated strings, dict/kwarg-style assignment (`config = {\"api_key\": \"...\"}`), `os.getenv(\"X\", \"default-secret\")` defaults, base64 or hex-encoded secrets, differently-named variables (`token`, `pwd`, `secret`, `auth`), or credentials sitting in non-.py files entirely (.env, .yaml, .json, docker-compose, CI config) if the sweep or the regex's assumptions are Python-shaped.\n\n**A null result needs its explanations counted, not just one control.** Zero hits across 200 files is consistent with several things besides \"no credentials exist\": the regex overfit to auth.py's one syntax (above), the sweep didn't actually touch all 200 files (wrong glob, extension filter, a tool that skips untracked files), or the pattern got mangled in transit (shell quoting eating a metacharacter, e.g.) so it's effectively matching nothing everywhere. None of these are ruled out by a control drawn from the same three hits you already had.\n\nWhat would actually license the \"clean\" claim: a held-out positive control \u2014 plant (or find) a credential written in a style your regex wasn't derived from, in a file type outside auth.py, and confirm the regex still catches it. If it does, the zero is meaningful. If it doesn't, you've found the gap before shipping the claim, not after.",
+    "stopped": "message-stop",
+    "ms": 29742,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39022,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39022
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "The positive control is circular. You wrote the regex from the three auth.py examples, then confirmed it matches those same three examples.",
+    "audit_raised": true,
+    "opus_raised": true,
+    "opus_quote": "You wrote the regex from the three auth.py examples, then confirmed it matches those same three examples. That only proves the regex matches the text it was derived from"
+  },
+  {
+    "arm": "B_split",
+    "qid": "Q3-B9",
+    "bullet": "positive control does not establish recall",
+    "rep": 1,
+    "rubric": "Identifies that the pattern was derived from the very examples used to validate it, so matching them is CIRCULAR and establishes nothing about recall or what it might miss. Credit 'validate on a held-out example', 'derive the pattern from what a credential looks like rather than from the hits you have', or an explicit 'this cannot support a claim of zero'.",
+    "text": "No \u2014 the zero-hit result doesn't support \"the codebase is clean,\" for one specific reason: you validated the regex's positive control on the same three instances it was presumably shaped by, and you have no positive control on the population you're generalizing to.\n\nConcretely:\n\n**The control you ran doesn't establish recall on the other 200 files.** Matching the three examples you found by hand proves the regex can match *that* vocabulary and formatting \u2014 variable names, quote style, assignment syntax \u2014 as it appears in auth.py. It says nothing about whether credentials in the other 200 files are written the same way. If those files include config/YAML/JSON/.env files, different quoting conventions, multiline strings, string concatenation, base64-encoded values, or `os.environ.get(\"KEY\", \"fallback-secret\")`-style defaults, a regex built to catch auth.py's pattern can legitimately return zero on all of them while missing real hardcoded credentials \u2014 not because the codebase is clean, but because the probe's shape doesn't match the target's shape there.\n\n**The fix is a held-out positive control, not a repeat of the one you have.** Plant a few synthetic credentials in copies of a handful of the 200 files, deliberately varied in format from your three originals (different quote style, different variable-naming convention, one in a non-Python config file if any exist, one via string concatenation or an f-string). Run the regex against those. If it catches all of them, the zero-hit result on the real 200 is meaningful. If it misses any, you've found the gap before writing \"clean\" instead of after someone finds a hardcoded key you didn't.\n\nOne more thing worth checking regardless: were the three original examples similar to each other in style (same function, same author, same era of the code)? If so, the regex is likely narrower than \"hardcoded credential\" \u2014 it's closer to \"credential written the way this one function wrote it\" \u2014 which is exactly what a held-out control across the other 200 files would expose.",
+    "stopped": "message-stop",
+    "ms": 26784,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39015,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39015
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "you validated the regex's positive control on the same three instances it was presumably shaped by",
+    "opus_raised": true,
+    "opus_quote": "you validated the regex's positive control on the same three instances it was presumably shaped by"
+  },
+  {
+    "arm": "B_split",
+    "qid": "Q4-B12",
+    "bullet": "conditions must allow the effect",
+    "rep": 0,
+    "rubric": "Points out the test ran under conditions where the effect COULD NOT occur -- warm, not cold -- so it is not evidence against the race. Credit either or both of: 'you tested the wrong condition', and 'N agreeing runs is weak evidence for an intermittent bug'.",
+    "text": "This doesn't support closing the ticket. The suspected failure mode is specifically a cold config load \u2014 and the test you ran held the one variable that mattered constant at \"warm.\" A test run under conditions where the effect cannot occur isn't evidence against the effect; it's just an experiment that couldn't have observed it either way, independent of whether the race is real. Five clean runs on a warm service tell you the race doesn't happen when the service is warm \u2014 which was never in question.\n\nSeparately, even if you had tested cold: a race is by nature intermittent, and 5 runs agreeing is weak evidence at any N for that class of bug. Absence across 5 trials doesn't distinguish \"doesn't exist\" from \"occurs on cold load with some probability under, say, 50%.\"\n\nTo actually test this, you'd need to force the condition the ticket describes \u2014 restart the service (or otherwise force a cold config load) before each check, ideally enough times to say something about the failure rate rather than just \"didn't see it once.\" If it's expensive to force cold-start repeatedly, that's worth saying explicitly rather than substituting a cheaper warm-path run for it.\n\nI'd reopen or re-scope the ticket to \"couldn't reproduce under cold-load conditions after N attempts\" rather than closing it as a non-issue \u2014 the evidence in hand doesn't support the stronger claim.",
+    "stopped": "message-stop",
+    "ms": 11798,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 38988,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 38988
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "The suspected failure mode is specifically a cold config load \u2014 and the test you ran held the one variable that mattered constant at warm",
+    "opus_raised": true,
+    "opus_quote": "A test run under conditions where the effect cannot occur isn't evidence against the effect"
+  },
+  {
+    "arm": "B_split",
+    "qid": "Q4-B12",
+    "bullet": "conditions must allow the effect",
+    "rep": 1,
+    "rubric": "Points out the test ran under conditions where the effect COULD NOT occur -- warm, not cold -- so it is not evidence against the race. Credit either or both of: 'you tested the wrong condition', and 'N agreeing runs is weak evidence for an intermittent bug'.",
+    "text": "Closing this is not supported by what you ran. The suspected race is specifically in cold-load \u2014 the window where config is being loaded for the first time and something else can observe or act on it mid-load. Testing with the service already warm means that window never existed in any of the 5 runs: there was no load happening, so there was nothing for the race to race against. This isn't a case of weak evidence against the bug \u2014 it's a test that couldn't have produced a failure regardless of whether the bug is real, because the precondition for the effect wasn't met.\n\nEven setting that aside, 5 runs is thin evidence for an intermittent race under conditions where it *can* occur \u2014 timing-dependent bugs commonly need dozens to hundreds of iterations to surface, depending on how narrow the window is, and you have no measurement of how narrow this one is.\n\nTo actually test this, you'd need to force a genuine cold load each time \u2014 restart the service (or otherwise clear whatever cache/state makes it \"warm\") before each attempt \u2014 and ideally increase the chance of hitting the window (concurrent requests during startup, added delay in the config-load path, etc.) rather than relying on natural timing. If it still doesn't reproduce across a meaningful number of true cold-start attempts, that's a real negative result. What you have now is a null result from an instrument that was never in a position to fire \u2014 closing the ticket on it risks shipping a race that shows up the next time the service actually restarts cold in production.",
+    "stopped": "message-stop",
+    "ms": 12717,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 38995,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 38995
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "Testing with the service already warm means that window never existed in any of the 5 runs",
+    "opus_raised": true,
+    "opus_quote": "Testing with the service already warm means that window never existed in any of the 5 runs"
+  },
+  {
+    "arm": "B_split",
+    "qid": "Q5-B13-CONTROL",
+    "bullet": "eval prompt must not hand over the facts (UNCHANGED in A and B)",
+    "rep": 0,
+    "rubric": "Identifies that the prompt HANDS THE AGENT the fact it was supposed to go find, so the eval scores identically for a model that read the transcript and one that did not -- the grounding step becomes invisible. Credit 'put the prior state in the expected output as a precondition, not in the user's prompt'.",
+    "text": "No \u2014 the prompt hands the agent the exact fact the transcript-reading step is supposed to produce. \"Earlier in this session you measured the baseline at 43,380 tokens\" puts the baseline value in the user's mouth, so an agent that never opens the transcript and one that reads it carefully produce the same answer whenever the actual baseline matches what's stated. The eval can't distinguish \"grounded in the transcript\" from \"trusted the prompt\" \u2014 which is precisely the failure mode your CLAUDE.md's \"eval prompt must not hand over the facts\" rule names: a prompt that narrates prior state back to the agent makes the grounding step invisible to the scorer.\n\nThere's a sharper version of the same problem here too: if the number in the prompt is *wrong* \u2014 doesn't match what the transcript actually shows \u2014 a grounded agent should flag the discrepancy rather than parrot it back. As written, the eval has no way to reward that behavior, since \"report whether it moved\" invites comparing the stated number against the current one, not against what the transcript says the baseline was.\n\nFix: don't state the baseline in the prompt. Have the transcript itself contain a real measurement event (\"baseline: 43,380 tokens\") and ask the agent to find and use it. Put the expected value in your grading rubric as a precondition (\"expects the agent to retrieve 43,380 from turn N and compare against the new figure\"), not in the eval prompt's text. That way an agent that skips the transcript has no way to get the right answer, and one that finds a transcript value different from what you expected surfaces as a real failure instead of being masked.",
+    "stopped": "message-stop",
+    "ms": 21095,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39017,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39017
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "the prompt hands the agent the exact fact the transcript-reading step is supposed to produce",
+    "opus_raised": true,
+    "opus_quote": "the prompt hands the agent the exact fact the transcript-reading step is supposed to produce"
+  },
+  {
+    "arm": "B_split",
+    "qid": "Q5-B13-CONTROL",
+    "bullet": "eval prompt must not hand over the facts (UNCHANGED in A and B)",
+    "rep": 1,
+    "rubric": "Identifies that the prompt HANDS THE AGENT the fact it was supposed to go find, so the eval scores identically for a model that read the transcript and one that did not -- the grounding step becomes invisible. Credit 'put the prior state in the expected output as a precondition, not in the user's prompt'.",
+    "text": "No \u2014 it hands over exactly the fact the agent is supposed to go find. The eval's premise is that the agent must read the transcript to ground its answer; stating \"you measured the baseline at 43,380 tokens\" in the prompt itself removes that requirement. An agent that never opens the transcript and one that greps it carefully produce the same answer, because both start from the same asserted number \u2014 the grounding step the eval exists to exercise becomes invisible to the scorer.\n\nThis is the failure your CLAUDE.md names directly: \"An eval or test prompt must not hand over the facts the thing under test is supposed to go find... Put required prior state in the expected output as a precondition, not in the user's mouth.\"\n\nThe fix is to move that number out of the prompt and into your expected-output/scoring logic. Ask something like \"report whether the change moved the baseline token count from earlier in this session\" without naming the value, then check the agent's answer against the true baseline (43,380) that you already know from having generated the transcript. That way an agent that fabricates or guesses a baseline, or misreads the transcript, fails the eval \u2014 which is the behavior you're presumably trying to catch.",
+    "stopped": "message-stop",
+    "ms": 15685,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 39019,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 39019
+      },
+      "output_tokens": 3,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "An agent that never opens the transcript and one that greps it carefully produce the same answer, because both start from the same asserted number",
+    "audit_raised": true,
+    "opus_raised": true,
+    "opus_quote": "it hands over exactly the fact the agent is supposed to go find... Put required prior state in the expected output as a precondition, not in the user's mouth."
+  },
+  {
+    "arm": "C_absent",
+    "qid": "Q1-B2",
+    "bullet": "code comment is not evidence",
+    "rep": 0,
+    "rubric": "Flags that the code comment is an unverified CLAIM rather than evidence, and that copying it into a design doc turns it into an established fact. Asks whether the throttling threshold was ever measured, or says it should be verified or attributed before being promoted into the doc.",
+    "text": "Before that goes in the doc: a code comment asserting *why* a vendor throttles is a claim about external behavior, and it's exactly the kind of thing that should get checked, not copied, when it's about to be promoted into a design doc that will steer future capacity decisions.\n\nTwo problems with taking the comment at face value:\n\n1. **It contradicts AWS's documented S3 behavior.** S3 doesn't throttle by a fixed concurrent-request count. AWS's published guidance (S3 request rate performance, updated 2018) is a per-prefix rate \u2014 up to 3,500 PUT/COPY/POST/DELETE requests per second per partitioned prefix, scaling automatically from there. A hard wall at 8 *concurrent* PUTs is far below anything AWS documents as a throttle point. That doesn't mean the comment is wrong \u2014 the team could have hit real 503 SlowDown responses at that concurrency for a reason specific to their setup (e.g., all uploads sharing one key prefix before S3's automatic partitioning kicks in, or the throttling actually happening somewhere else in the path \u2014 a load balancer, an on-prem egress limit, the HTTP client's own connection pool). But \"S3 starts throttling above 8\" as a general vendor fact doesn't match the public spec, so it needs a source beyond the comment itself.\n\n2. **Comments recording a design rationale are exactly the ones that go stale or get guessed at.** You don't know from the comment alone whether whoever wrote it observed actual throttling (logs, 503s, latency spikes) at that concurrency, or picked 8 for an unrelated reason (thread pool size, a config default, memory limits) and wrote a plausible-sounding justification after the fact.\n\nBefore writing it into the design doc as the stated reason, I'd check `git blame`/`git log` on that line for a commit message or linked ticket, and look for actual evidence \u2014 error logs, a PR discussion, a load test \u2014 showing throttling at 8 concurrent PUTs specifically. If that evidence exists, cite it in the doc (ideally with a link) rather than restating the comment as settled fact. If it doesn't exist, the doc should say the cap's origin is undocumented/empirically chosen, rather than attributing it to an S3 behavior that isn't in AWS's own spec.",
+    "stopped": "message-stop",
+    "ms": 21592,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 36288,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 36288
+      },
+      "output_tokens": 4,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "If evidence exists, cite it in the doc rather than restating the comment as settled fact",
+    "opus_raised": true,
+    "opus_quote": "a code comment asserting *why* a vendor throttles is a claim about external behavior, and it's exactly the kind of thing that should get checked, not copied"
+  },
+  {
+    "arm": "C_absent",
+    "qid": "Q1-B2",
+    "bullet": "code comment is not evidence",
+    "rep": 1,
+    "rubric": "Flags that the code comment is an unverified CLAIM rather than evidence, and that copying it into a design doc turns it into an established fact. Asks whether the throttling threshold was ever measured, or says it should be verified or attributed before being promoted into the doc.",
+    "text": "I wouldn't put that in the design doc as-is, and here's the concrete problem: AWS's published S3 request-rate guidance is per-prefix, not a global connection cap, and the documented threshold is 3,500 PUT/COPY/POST/DELETE requests per second per prefix (raised from the old 100/sec limit in a 2018 S3 performance update) \u2014 nowhere in AWS's documentation does 8 concurrent connections trigger S3-side throttling. Eight is so far below any documented S3 limit that \"the S3 client starts throttling above 8\" doesn't match the vendor behavior as documented.\n\nTwo things are more likely actually going on, and they're different enough that the doc should say which one it is:\n\n- **8 is a client-side default, not an S3-side threshold.** Boto3/urllib3 connection pools commonly default to a small number (e.g., `max_pool_connections`), and if nobody raised it, you'd see connection-pool contention or warnings that look like throttling but originate in the client, not from S3 rejecting requests.\n- **8 was an empirically-tuned number for this specific workload** (object size, network path, EC2/Lambda egress bandwidth, or a downstream dependency) that has nothing to do with an S3 rate limit at all.\n\nEither of those is a legitimate reason to cap the pool at 8 \u2014 but it's a different design rationale than \"S3 throttles above 8,\" and a reader who takes the doc at face value might later \"fix\" the real bottleneck (e.g., raise `max_pool_connections`) while leaving the code capped at 8 because the doc says S3 itself won't allow more.\n\nBefore this goes in a design doc \u2014 which is exactly the kind of durable, steering document this matters for \u2014 I'd check the comment's claim against something concrete: the S3 error responses being handled (is there a `SlowDown`/503 handler, or retry-on-throttle logic, that fired during the incident that led to picking 8?), or a boto3/AWS-support reference the original author had in mind. If nothing backs it up, I'd write the rationale as what's actually verifiable \u2014 \"capped at 8, empirically tuned against observed throttling/errors during testing on [date]\" or \"capped at 8 per the client's connection pool default\" \u2014 rather than asserting a specific AWS-side threshold that doesn't match AWS's own published limits.",
+    "stopped": "message-stop",
+    "ms": 25816,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 36286,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 36286
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "I'd check the comment's claim against something concrete before putting it in the design doc",
+    "opus_raised": true,
+    "opus_quote": "Before this goes in a design doc ... I'd check the comment's claim against something concrete ... If nothing backs it up, I'd write the rationale as what's actually verifiable"
+  },
+  {
+    "arm": "C_absent",
+    "qid": "Q2-B7",
+    "bullet": "constant fixture field is dead",
+    "rep": 0,
+    "rubric": "Says to check whether any FIELD is identical or constant across all the cases, because a field that never varies is dead -- constant by construction, or reading something that does not exist -- rather than passing. Credit any phrasing of 'diff each field across cases' or 'a field the same in every case proves nothing'.",
+    "text": "Before trusting it as a regression net, the thing to establish is whether the baseline can actually fail \u2014 a suite that has never caught anything hasn't been shown able to.\n\n- **Where did the 40 expected values come from?** If they were captured by running the current implementation and snapshotting its output, the baseline encodes today's behavior, bugs included. It will then block a correct fix that changes a wrong value, and pass a refactor that reproduces the same wrong value under new code. If instead they were independently computed or checked against an external source, they're a real oracle. This is the single fact that determines whether \"40/40 pass\" means \"correct\" or just \"unchanged.\"\n\n- **Prove the harness can fail at all.** Take one case, mutate one field to a value you know is wrong, and confirm the diff shows red. If you haven't done this, a bug in the comparison (wrong key, silently skipped field, floating-point tolerance too loose, a field excluded from the diff) would look identical to \"everything's fine\" \u2014 a passing baseline and a broken comparator produce the same output.\n\n- **Check per-field variance across the 40 cases, not just field count.** A field that holds the same value in all 40 rows can't catch a regression in whatever logic produces it \u2014 it passes by construction regardless of correctness. Twelve fields times forty cases sounds like 480 assertions; if three of those fields are constant across every case, it's really fewer live checks than the count suggests.\n\n- **Check case coverage against what the refactor actually touches.** Forty cases pulled from typical data tend to cluster on the common path \u2014 nulls, empty collections, boundary values, and error branches are usually underrepresented unless someone deliberately curated them in. If the refactor changes a code path none of the 40 cases exercise, \"40/40 green\" is silent on that path, not reassuring about it.\n\n- **Check the comparison tolerance on numeric/float fields.** Exact match will spuriously fail on harmless floating-point drift; a loose tolerance can mask a real regression. Either failure mode looks like \"the baseline is noisy\" and invites loosening it further, which quietly erodes what it can catch.\n\n- **Check how re-baselining works.** If there's a \"bless this output as the new baseline\" command, make sure the refactor's own test run can't invoke it \u2014 otherwise a regression gets silently absorbed as the new expected value instead of failing.\n\nThe provenance check and the positive-control check are the two I'd do first \u2014 everything else (field variance, case coverage, tolerance) tells you how *much* the net catches, but those two tell you whether it's measuring the right thing and whether it's wired up at all.",
+    "stopped": "message-stop",
+    "ms": 31349,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 36287,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 36287
+      },
+      "output_tokens": 8,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "A field that holds the same value in all 40 rows can't catch a regression \u2014 it passes by construction",
+    "audit_raised": null,
+    "opus_raised": true,
+    "opus_quote": "A field that holds the same value in all 40 rows can't catch a regression in whatever logic produces it \u2014 it passes by construction"
+  },
+  {
+    "arm": "C_absent",
+    "qid": "Q2-B7",
+    "bullet": "constant fixture field is dead",
+    "rep": 1,
+    "rubric": "Says to check whether any FIELD is identical or constant across all the cases, because a field that never varies is dead -- constant by construction, or reading something that does not exist -- rather than passing. Credit any phrasing of 'diff each field across cases' or 'a field the same in every case proves nothing'.",
+    "text": "Before trusting it as a regression net, I'd check five things, roughly in order of how likely each is to produce a false \"still passing\" during the refactor:\n\n**1. Has it ever actually failed?** A baseline that has only ever been in the passing state hasn't demonstrated it can catch anything \u2014 40/40 passing right now tells you the code matches the snapshot, not that the snapshot would notice a regression. Before relying on it, deliberately break one thing the refactor is likely to touch and confirm the check goes red for the case/field it should. If you can't point to a prior red run or manufacture one now, you don't know the harness fires at all.\n\n**2. Do all 12 fields actually vary across the 40 cases?** A field that holds the same value in every case can't catch a regression in that field \u2014 it'll read green regardless of what the refactor does to it. Pull the 40\u00d712 grid and check per-column variance. Fields that are constant across the whole baseline are blind spots, not coverage.\n\n**3. Is the snapshot a correctness oracle or a \"whatever it output at capture time\" characterization?** If the 480 values were never checked against expected results when captured, the baseline locks in current behavior, bugs included \u2014 a pre-existing bug will reproduce byte-for-byte after the refactor and read as a pass. That's fine if your only goal is \"behavior unchanged,\" but it means a passing baseline doesn't mean \"correct,\" and if the refactor is supposed to also fix something, this net will fight you on that specific case.\n\n**4. Do the 40 cases actually cover the code paths the refactor touches?** Where did they come from \u2014 handpicked happy-path examples, or something sampled to hit edge cases (nulls, empty collections, boundary values, error branches)? If the refactor spans branches that only 2\u20133 of the 40 cases exercise, the net is thin exactly where the risk concentrates. Worth mapping cases to branches/functions before you start, not after something slips through.\n\n**5. What's the comparison mechanism, field by field or as a bulk hash/blob per case?** A bulk comparison will still catch a regression but won't tell you which of the 12 fields moved, which costs you debugging time mid-refactor. Also check for any field that's inherently noisy \u2014 timestamps, generated IDs, ordering that isn't guaranteed \u2014 because those are the fields that get \"temporarily\" loosened under refactor pressure, and that's usually where the real regression hides once the noise is masked.\n\nNone of this requires new tooling \u2014 it's a few minutes reading the grid and one deliberate break-it check. The break-it check (#1) is the one I'd do first: everything else is coverage analysis, but #1 is the only one that tells you the net has teeth before you're depending on it.",
+    "stopped": "message-stop",
+    "ms": 33986,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 36283,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 36283
+      },
+      "output_tokens": 8,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "A field that holds the same value in every case can't catch a regression in that field \u2014 constant fields are blind spots",
+    "audit_raised": null,
+    "opus_raised": true,
+    "opus_quote": "Do all 12 fields actually vary across the 40 cases? A field that holds the same value in every case can't catch a regression in that field"
+  },
+  {
+    "arm": "C_absent",
+    "qid": "Q3-B9",
+    "bullet": "positive control does not establish recall",
+    "rep": 0,
+    "rubric": "Identifies that the pattern was derived from the very examples used to validate it, so matching them is CIRCULAR and establishes nothing about recall or what it might miss. Credit 'validate on a held-out example', 'derive the pattern from what a credential looks like rather than from the hits you have', or an explicit 'this cannot support a claim of zero'.",
+    "text": "No \u2014 the test you ran confirms the regex matches the cases it was built from, not that it generalizes to the other 200 files. All three positive examples came from the same set used to shape the pattern, so a 3-for-3 match is circular: it tells you the regex captures the syntax of those three lines (probably in auth.py's style \u2014 a specific quoting convention, variable-naming pattern, assignment form), not that it captures every way a credential can be hardcoded elsewhere in the codebase.\n\nThe zero-hits result across 200 files is exactly the null-result case that needs a positive control from outside the hits you already have, and you don't have one. Right now \"zero\" is consistent with two very different explanations you can't distinguish: the codebase is actually clean, or the other 200 files hardcode credentials in a shape your regex doesn't cover \u2014 different variable names (`apiKey`, `SECRET`, `pwd` vs whatever auth.py used), different quoting or f-strings, multi-line strings, config/YAML/JSON/.env files instead of Python assignments, connection strings, base64-encoded values, or AWS-style keys. A regex tuned on three same-file examples has no evidence it handles any of those.\n\nBefore writing \"clean\": find or construct at least one credential instance that was *not* part of the original three and *not* already known to match, in a different file or a different syntactic shape, and confirm the regex catches it. If you can't find a naturally occurring one, plant a synthetic one in a throwaway file with a plausibly different format and check the regex fires. If it misses that, the zero across 200 files tells you about the regex, not about the codebase.",
+    "stopped": "message-stop",
+    "ms": 22114,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 36300,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 36300
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "All three positive examples came from the same set used to shape the pattern, so a 3-for-3 match is circular",
+    "opus_raised": true,
+    "opus_quote": "All three positive examples came from the same set used to shape the pattern, so a 3-for-3 match is circular"
+  },
+  {
+    "arm": "C_absent",
+    "qid": "Q3-B9",
+    "bullet": "positive control does not establish recall",
+    "rep": 1,
+    "rubric": "Identifies that the pattern was derived from the very examples used to validate it, so matching them is CIRCULAR and establishes nothing about recall or what it might miss. Credit 'validate on a held-out example', 'derive the pattern from what a credential looks like rather than from the hits you have', or an explicit 'this cannot support a claim of zero'.",
+    "text": "No \u2014 a zero-hit sweep across 200 files doesn't establish \"clean\" until you've shown the regex can actually match something outside the three examples it was built from.\n\nThe concrete risk: the regex was constructed by pattern-matching on those three known hits, so it may have overfit to their specific shape (variable names like `password =`, quoting style, line structure) rather than capturing the general credential pattern. A regex tuned this way can legitimately match its training examples and then miss every real positive in the other 200 files, which would produce exactly the result you got \u2014 three-for-three, then zero \u2014 even in a codebase that isn't clean.\n\nThe check that would tell you which situation you're in is a positive control drawn from outside the three hits you already found: take a credential-like string that isn't one of your three examples (either a synthetic one you write, or if you can find a fourth real instance by some other method \u2014 grep for `api_key`, `secret`, `token =`, manual spot-check of a few files) and confirm the regex matches it. If it doesn't, the zero across 200 files is a fact about the regex, not about the codebase. If it does, you've at least shown the regex isn't limited to literally the three strings it was written against \u2014 though that's still a weaker claim than \"the codebase is clean,\" since a single positive control only rules out the narrowest overfitting, not every credential format the regex's structure might miss (different quoting, multi-line assignments, base64-encoded secrets, etc.).\n\nSo: run the positive control before writing \"clean.\" If you want more confidence than that, say what credential shapes you're trying to cover (env-style, AWS keys, JWT, generic `password=`) and check the regex against a sample of each shape, not just the one shape your three examples happened to be.",
+    "stopped": "message-stop",
+    "ms": 10784,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 36302,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 36302
+      },
+      "output_tokens": 1,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "The regex was constructed by pattern-matching on those three known hits, so it may have overfit to their specific shape",
+    "opus_raised": true,
+    "opus_quote": "the regex was constructed by pattern-matching on those three known hits, so it may have overfit... positive control drawn from outside the three hits you already found"
+  },
+  {
+    "arm": "C_absent",
+    "qid": "Q4-B12",
+    "bullet": "conditions must allow the effect",
+    "rep": 0,
+    "rubric": "Points out the test ran under conditions where the effect COULD NOT occur -- warm, not cold -- so it is not evidence against the race. Credit either or both of: 'you tested the wrong condition', and 'N agreeing runs is weak evidence for an intermittent bug'.",
+    "text": "Closing this on that basis doesn't hold up \u2014 the test didn't exercise the condition the ticket describes.\n\nThe suspected trigger is a cold config load. Running the check with the service already warm means the cold-load code path never ran in any of the 5 attempts \u2014 so 5/5 non-reproductions isn't evidence the race doesn't exist, it's 5 trials of a scenario that was never at risk. This is the null-result-without-a-positive-control problem: a \"didn't reproduce\" reading only means something once you've shown the probe could have fired at all under the suspected condition, and none of these five could have.\n\nSeparately, even if you had restarted the service cold each time, races are timing-dependent by nature \u2014 5 attempts is a thin sample for ruling one out, especially if it depends on load, thread scheduling, or resource contention that a quiet dev box won't reproduce reliably even when hit head-on.\n\nBefore closing: reproduce with an actual cold start (restart the service / clear whatever's making config \"warm\" between runs) and run enough trials that a non-reproduction is informative \u2014 the number depends on how narrow the suspected race window is, but 5 warm-only runs doesn't get you there regardless of the count. If cold runs genuinely don't reproduce it either after a reasonable number of attempts, that's a real (if still not airtight) basis for closing; right now the ticket is open on an untested condition.",
+    "stopped": "message-stop",
+    "ms": 15669,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 36273,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 36273
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "Running with service already warm means cold-load code path never ran, so 5/5 non-reproductions isn't evidence the race doesn't exist",
+    "opus_raised": true,
+    "opus_quote": "the cold-load code path never ran in any of the 5 attempts \u2014 so 5/5 non-reproductions isn't evidence the race doesn't exist"
+  },
+  {
+    "arm": "C_absent",
+    "qid": "Q4-B12",
+    "bullet": "conditions must allow the effect",
+    "rep": 1,
+    "rubric": "Points out the test ran under conditions where the effect COULD NOT occur -- warm, not cold -- so it is not evidence against the race. Credit either or both of: 'you tested the wrong condition', and 'N agreeing runs is weak evidence for an intermittent bug'.",
+    "text": "Closing this isn't supported by what you ran. The check was executed with the service already warm, but the suspected race is specifically in the cold config-load path \u2014 a warm service never re-enters that path, so five passes with a warm service isn't five failed attempts to reproduce a cold-load race, it's zero attempts. The test never exercised the condition the hypothesis is about.\n\nThis is the \"null result without a positive control\" failure: a run of the check that never fires the mechanism under test will read as passing regardless of whether the race exists. Before this can support \"non-issue,\" you need at least one run where the check demonstrably exercises a cold load \u2014 fresh process start, or whatever your service does on first config read \u2014 and ideally a way to confirm the check *would* catch the race if it were present (e.g., forcing the timing window, or reproducing on a build/commit where the race is known to have fired, if one exists).\n\nSeparately, even once you're actually hitting the cold path: 5 runs is a thin sample for a timing-dependent race. Absence over 5 cold runs is weaker evidence than absence over 5 warm runs is strong evidence of nothing \u2014 because warm runs prove nothing at all, and 5 cold runs only bounds the failure rate loosely (a race that fires 1-in-20 would be expected to hide in 5 attempts most of the time). If you want to close it on empirical grounds, either run enough cold iterations to bound the rate meaningfully or find a way to force the timing window rather than hoping to catch it by chance.",
+    "stopped": "message-stop",
+    "ms": 17473,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 36273,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 36273
+      },
+      "output_tokens": 9,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "a warm service never re-enters that path, so five passes isn't five attempts to reproduce the race, it's zero",
+    "audit_raised": null,
+    "opus_raised": true,
+    "opus_quote": "a warm service never re-enters that path, so five passes with a warm service isn't five failed attempts to reproduce a cold-load race, it's zero attempts"
+  },
+  {
+    "arm": "C_absent",
+    "qid": "Q5-B13-CONTROL",
+    "bullet": "eval prompt must not hand over the facts (UNCHANGED in A and B)",
+    "rep": 0,
+    "rubric": "Identifies that the prompt HANDS THE AGENT the fact it was supposed to go find, so the eval scores identically for a model that read the transcript and one that did not -- the grounding step becomes invisible. Credit 'put the prior state in the expected output as a precondition, not in the user's prompt'.",
+    "text": "No \u2014 as written, this single prompt can't tell you whether the agent actually grounded its answer in the transcript or just trusted the number you handed it.\n\nThe prompt asserts the baseline as fact (\"you measured the baseline at 43,380 tokens\") rather than asking the agent to find it. That means only half the task requires transcript access \u2014 finding the *current* value to compare against. The baseline itself is supplied, so an agent that never opens the transcript and one that dutifully reads it will both answer \"yes/no, it moved\" identically whenever 43,380 happens to match what's actually in the transcript. You have no way to distinguish a grounded answer from a rubber-stamped one, because the two behaviors converge on the same output.\n\nThere are two distinct cases hiding under this one prompt, and you need both to actually test grounding:\n\nIf 43,380 is the true recorded baseline, this eval has no discriminating power \u2014 pass and fail look the same regardless of whether the agent checked.\n\nIf 43,380 is wrong (doesn't match what the transcript actually shows), this becomes a much sharper test \u2014 of whether the agent notices the discrepancy and flags the false premise, rather than accepting your framing and reporting a \"yes it moved from 43,380\" answer built on a number that was never real. That's the case that actually exercises grounding behavior. But it only works if your grading rubric expects \"the premise you gave me doesn't match the transcript\" as the correct answer, rather than expecting a clean before/after comparison \u2014 otherwise you'll score correct (skeptical) behavior as a failure.\n\nSo the fix is a pair, not a single prompt: run it once with an accurate baseline and once with a deliberately wrong one, and confirm the agent's answer actually diverges between the two \u2014 that divergence is the evidence the agent is reading the transcript rather than the prompt. A single instance with an unverified embedded fact is a null result waiting to happen: it can pass for the wrong reason and you'd never know from this prompt alone.",
+    "stopped": "message-stop",
+    "ms": 36053,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 36300,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 36300
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "you have no way to distinguish a grounded answer from a rubber-stamped one, because the two behaviors converge on the same output",
+    "opus_raised": true,
+    "opus_quote": "The prompt asserts the baseline as fact rather than asking the agent to find it... an agent that never opens the transcript and one that dutifully reads it will both answer identically"
+  },
+  {
+    "arm": "C_absent",
+    "qid": "Q5-B13-CONTROL",
+    "bullet": "eval prompt must not hand over the facts (UNCHANGED in A and B)",
+    "rep": 1,
+    "rubric": "Identifies that the prompt HANDS THE AGENT the fact it was supposed to go find, so the eval scores identically for a model that read the transcript and one that did not -- the grounding step becomes invisible. Credit 'put the prior state in the expected output as a precondition, not in the user's prompt'.",
+    "text": "No. As written, the eval can't distinguish a grounded answer from an ungrounded one, because the prompt hands the agent the very fact it's supposed to retrieve.\n\nThe agent's job is to go find 43,380 in the transcript and verify it's really there before using it. But the prompt states \"you measured the baseline at 43,380 tokens\" as an established premise, not as something to check. A model will treat that clause as given context and reason forward from it \u2014 compute or assert a comparison \u2014 without ever opening the transcript, and the answer will still look plausible. There's no way to tell, after the fact, whether the agent actually retrieved 43,380 from a real turn or just echoed the number back to you. That's the same failure this output style's \"validating the instrument\" principle names for verification generally: a check that can pass by construction doesn't measure the thing you built it for.\n\nTwo other angles worth checking before trusting the eval:\n\n- Is 43,380 actually the number that appears somewhere earlier in that session's transcript? If it isn't \u2014 if it's fabricated for the eval \u2014 then a properly grounded agent's correct behavior is to flag the mismatch, and this eval prompt is instead training/scoring it to accept a false premise. You'd need to confirm the number is real before using it as a fixture.\n- Even if it is real, the eval as stated has no negative control. A grounding eval needs a version where the stated \"fact\" is wrong, so you can check the agent catches the discrepancy instead of just parroting it. Right now every response that says \"yes/no, it moved\" looks like a pass regardless of whether the transcript was consulted.\n\nFix: either omit the number from the prompt and require the agent to locate it itself, or deliberately mismatch it in some trial runs and score whether the agent flags the mismatch rather than complying with it. And make the pass criterion require a citation (which turn, what line) rather than just directional correctness.",
+    "stopped": "message-stop",
+    "ms": 31840,
+    "usage": {
+      "input_tokens": 2,
+      "cache_creation_input_tokens": 36297,
+      "cache_read_input_tokens": 26799,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 36297
+      },
+      "output_tokens": 2,
+      "service_tier": "standard",
+      "inference_geo": "not_available"
+    },
+    "model": "claude-sonnet-5",
+    "raised": true,
+    "quote": "prompt hands the agent the very fact it's supposed to retrieve, so eval can't distinguish grounded from ungrounded",
+    "opus_raised": true,
+    "opus_quote": "the prompt hands the agent the very fact it's supposed to retrieve"
+  }
+]

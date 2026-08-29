@@ -1,11 +1,13 @@
 # A durable memory model that stops the always-loaded tier growing
 
-**Status as of 2026-08-28.** Tasks 1 and 2 are done and Task 1's **premise held**: `paths:` is
+**Status as of 2026-08-29.** Tasks 1 and 2 are done and Task 1's **premise held**: `paths:` is
 honoured at user scope, so §4's global routing lane is real rather than assumed. §1's *method* stands,
 but its **numbers are a 2026-08-25 baseline, not current** — the live global `CLAUDE.md` has since
-grown from 49,553 B to **55,978 B**, and nothing has re-measured its token share. Task 3's split is
-rebuilt against the drifted file and still proved lossless, but **not applied**: its step 5, the
-firing measurement, has not run, and **Tasks 5 and 6** are gated on that one result. Task 4 is
+grown from 49,553 B to **56,836 B**, and nothing has re-measured its token share. Task 3's split is
+rebuilt against the drifted file and still proved lossless, but **not applied**: its step 5 has now
+**run and returned a null** — all three arms fired 30/30, including the arm with the section
+deleted, so the probe cannot discriminate and licenses neither applying the split nor abandoning
+it. **Tasks 5 and 6 remain gated**, now on a redesigned probe rather than on an unrun one. Task 4 is
 unblocked and untouched; Tasks 5-8 are not started. **Task 9 was added, designed, revised and
 completed on 2026-08-28.** It asked whether an instruction-file edit reaches a session that is
 already running, and the answer is **replay on ordinary turns, rebuild at compaction** — the
@@ -21,7 +23,7 @@ a lock**, and unblocks that task.
 |---|---|---|---|---|
 | 1 | Falsify the user-scope `paths:` premise | `0f82133` — no code commit; the result **is** §5 Task 1 below | **DONE 2026-08-25** | `InstructionsLoaded` hook log + model self-report, 2 sessions, 4 arms, 5 controls, all passed. Verbatim log line in §5 Task 1 |
 | 2 | Record the real baseline | `0f82133` — no code commit; the result **is** §1 below | **DONE 2026-08-25** | differential token measurement, 11 `claude -p` runs, each arm controlled by the same hook log. Method, and the two arms it voided, in §1 |
-| 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` + `08239e7` re-cuts | **Steps 1-4 DONE (re-proved 2026-08-28), step 5 BLOCKED** | split built and proved lossless: 17 bullets, **11,350 -> 8,310 B (-26.8%)**, all 14 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection, and check 4 re-injected on 2026-08-28. Guard has fired twice; both re-cuts are in the commit cell. **Firing not measured** — see the step-5 note in §5 Task 3 |
+| 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` + `08239e7` re-cuts | **Steps 1-4 DONE (re-proved 2026-08-28); step 5 RAN 2026-08-29 and returned a NULL — the split is still NOT applied and Tasks 5-6 are still gated** | Steps 1-4: split built and proved lossless: 17 bullets, **11,350 -> 8,310 B (-26.8%)**, all 14 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection, and check 4 re-injected on 2026-08-28. Guard fired twice, then **passed clean on 2026-08-29** — no third re-cut needed. Step 5: 30 responses on `claude-sonnet-5`, `RESTORED OK` (sha verified), **30/30 raised on all three arms including the deleted arm** ⇒ `A≈B≈C`, **probe dead, licenses nothing either way**. Judged twice, 100% agreement. Full result and the three routes out in the step-5 note in §5 Task 3 |
 | 4 | Route the file-triggered content | — | **Not started** — unblocked by Task 1 | — |
 | 5 | Roll the split across the rest of global CLAUDE.md | — | **BLOCKED on Task 3** | — |
 | 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
@@ -86,9 +88,13 @@ a loss:
 
 Apply it **after** step 5, then re-cut. Applying it before means doing the re-cut twice.
 
-**Next command — Task 3 step 5, and it is now the only candidate.** Task 9 is done; the two-way
-choice this block used to describe is closed. **Do not re-run any part of Task 9** — its steps 2 and
-3 are retired on the result, not left undone, and §5 Task 9 says why.
+**Next command — redesign step 5's probe. Step 5 ran on 2026-08-29 and returned `A≈B≈C` at the
+ceiling: 30/30 on every arm, including the arm with the section deleted.** By its own
+pre-registered reading rule that licenses nothing in either direction, so Tasks 5 and 6 are
+**still gated** and the split is **still not applied**. Do not re-run `measure-rule-firing.py`
+unchanged — it is not a flake and a repeat buys nothing. The result, why the queries saturated,
+and the three routes out are in §5 Task 3's step-5 note. **Do not re-run any part of Task 9** —
+its steps 2 and 3 are retired on the result, not left undone, and §5 Task 9 says why.
 
 **One thing Task 9 changed about running step 5.** The old advice was to keep other sessions closed
 because a re-read would perturb them. Measured, that is not the mechanism: ordinary turns replay, so
@@ -150,17 +156,31 @@ whole recovery.
 ```sh
 python scripts/measure-rule-firing.py    # 3 arms x 5 queries x 2 repeats = 30 responses,
                                          # judged one call each on claude-haiku-4-5
+python scripts/rejudge-on-opus.py        # only if the audit gate trips; re-judges the same
+                                         # 30 recorded responses, does not re-run the probe leg
 # results  -> docs/task-3-firing-results.json
 # scratch  -> .task3-probe/ (gitignored)
 # expect   -> "RESTORED OK", then an Opus-vs-Haiku agreement rate over a random 10 of the 30
 ```
 
 Agreement below 90% means stop and re-judge everything on Opus before reading any arm difference:
-that number is a fact about the judge, not about the split. Read the arms by the three-way rule in
+that number is a fact about the judge, not about the split. **On the 2026-08-29 run the gate
+tripped at 60% and the trip was spurious** — a fault in the gate, not in the judge. `judge()`
+returns `raised=None` when a reply has no parseable JSON, and the audit scores
+`a["raised"] == records[i]["raised"]`, so `None != True` counts as a *disagreement*. The 6/10 was
+6 agreements, 0 disagreements and 4 unreadable Opus replies. "The judges disagree" and "one judge
+did not answer" need different fixes, and the gate reported the second as the first; a rate must
+never fold in the cases the instrument failed to score. `scripts/rejudge-on-opus.py` is the
+recovery — it re-judges the recorded responses rather than re-running the expensive probe leg,
+gives the judge a longer timeout, retries an unreadable reply once, and reports holes separately
+from the rate. It returned **30/30 judged, 0 unreadable, Haiku-vs-Opus 30/30 = 100%**.
+
+Read the arms by the three-way rule in
 §5 Task 3 — `A≈B>C` licenses applying the split, `A>B≈C` says §3b is wrong and everything
 downstream stops, `A≈B≈C` means the probe is dead and licenses nothing either way. Whichever it
 is, three things here go stale the moment it runs and are updated in the same step: this block,
-the Task 3 row's status cell, and §5 Task 3's "written and unrun".
+the Task 3 row's status cell, and §5 Task 3's "written and unrun". **All three were updated on
+2026-08-29; the answer was `A≈B≈C`.**
 
 The problem this solves: `distill-lessons` routes standing instructions to CLAUDE.md, so every
 lesson that qualifies grows a file loaded into every session, forever. `refile-rules` can shrink
@@ -686,8 +706,9 @@ something already points at it. These are evidence, so they are files.
    dead, not passing" bullet describes. **Do not run it here and do not read a matching pair of
    numbers from it as agreement.**
 
-   What step 5 needs instead is a **behavioural probe**, written and unrun at
-   `scripts/measure-rule-firing.py`. Three arms differing only in this section of
+   What step 5 needs instead is a **behavioural probe**, at
+   `scripts/measure-rule-firing.py` — **run 2026-08-29; the result is the step-5 block below and
+   it is a null**. Three arms differing only in this section of
    `~/.claude/CLAUDE.md`: **A** full (11,350 B), **B** split (8,310 B), **C** deleted — built from
    `docs/task-3-section-{before,after}.md` and verified to differ by exactly 3,040 B and 11,350 B
    `[checked 2026-08-25, re-checked after the e7ddc91 re-cut]`. Arm C is load-bearing: without
@@ -738,6 +759,90 @@ something already points at it. These are evidence, so they are files.
 
 **If firing degrades, stop.** §3b is wrong and §3c's ceilings are unreachable by this route. Say
 so here and report before continuing.
+
+**Step 5 result, 2026-08-29: `A≈B≈C` at the ceiling. The probe is dead and licenses nothing.**
+
+| query | A full | B split | C deleted |
+|---|:--:|:--:|:--:|
+| Q1-B2 comment is not evidence | 2/2 | 2/2 | 2/2 |
+| Q2-B7 constant fixture field | 2/2 | 2/2 | 2/2 |
+| Q3-B9 control ≠ recall | 2/2 | 2/2 | 2/2 |
+| Q4-B12 conditions allow the effect | 2/2 | 2/2 | 2/2 |
+| Q5-B13 CONTROL (identical in A and B) | 2/2 | 2/2 | 2/2 |
+| **probes only, control excluded** | **8/8** | **8/8** | **8/8** |
+
+Run hygiene first, because the result is only worth reading if the mechanics held. `RESTORED OK`,
+sha `49b5d278f376`, re-hashed independently afterwards. All 30 answered on `claude-sonnet-5` —
+the pin held, and it is checkable after the fact because each response records its own model.
+30/30 `message-stop`, no timeouts, no empty texts, responses 1,023-2,777 chars. The hook log
+gained **+20 lines in every arm**, including C, confirming the arm really was mounted and read
+each time. The §0 guard passed clean at 11,350 B, its first non-firing.
+
+**The floor did not drop, which is the whole finding.** Arm C exists precisely so that `A≈B`
+cannot be confused with a probe that never saw the section, and it did its job: it reported that
+this probe never discriminated. `A≈B` here is not evidence the split is safe.
+
+**Why it saturated — not "the queries are too easy", which is the diagnosis that would send you to
+write harder ones and fail the same way.** Read against arm C, `claude-sonnet-5` raises every one
+of the five points *unprompted, correctly, and in the rubric's own terms* with the section deleted:
+Q1 "a code comment asserting *why*... should get checked, not copied, when it's about to be
+promoted into a design doc"; Q4 "5/5 non-reproductions isn't evidence the race doesn't exist, it's
+5 trials of a scenario that was never at risk"; Q5 "an agent that never opens the transcript and
+one that dutifully reads it will both answer identically". These bullets encode general
+methodological competence that a frontier model already has, so **the rule was never the thing
+supplying the answer** and no arm could have differed.
+
+There is a sharper structural reason underneath, and it generalizes past this section. **§3b's
+split removes evidence and keeps recognition + action. The probe scores whether the action
+fires — and the action text is present in both A and B by construction.** A-vs-B was therefore
+near-guaranteed to be flat whatever the truth is; the only live comparison was A-vs-C, and that
+one measures whether the model needs the rule at all. On rules whose action restates a widely-held
+practice, it does not. A probe of this shape can only ever discriminate on rules that are
+**local and non-obvious** — `grep -c` exiting non-zero on its informative answer, a named tool's
+version-specific behavior, a threshold from one incident — which is a different sample of bullets
+than the pilot section offers.
+
+**What this does and does not license.** It does **not** say the split is safe: applying it on
+`A≈B` would be reading a null as a pass, which is the failure this section's own bullets describe.
+It does **not** say §3b is wrong either — nothing degraded, because nothing could. Tasks 5 and 6
+stay gated. The split stays built, proved lossless, and unapplied.
+
+**Three routes out, cheapest first.** (a) **Re-select the queries against rules that are local and
+non-obvious**, using arm C as the screen: draft a query, run arm C only, and keep it only if the
+model *fails* to raise the point without the rule — a two-response pre-test per candidate, and it
+kills a dead query for ~$0.10 instead of ~$3. (b) **Measure the evidence, not the action** — the
+split's actual deletion is dates, numbers and incidents, so score whether the response can still
+*cite* the specific case, which is the thing B no longer carries inline. This is the measurement
+that matches what §3b changes, and (a) does not test it at all. (c) **Accept the split on the
+lossless proof alone** and drop the firing claim from §3b, which is honest but gives up the
+argument Tasks 5-6 were resting on. (a) and (b) compose — (a) fixes the sample, (b) fixes what is
+scored — and doing (b) without (a) risks the same ceiling.
+
+**Cost, now measured rather than estimated, and the estimate was low.** The probe leg cost
+**$3.11** at Sonnet rates against a predicted ~71% of $1-$6 `[computed 2026-08-29 from the
+per-response `usage` recorded in `task-3-firing-results.json`; output tokens are undercounted
+because `usage` is read at `message_start`, worth ~$0.15 at ~500 tokens x 30]`. The reason is a
+bad input, not bad arithmetic: **the per-response prefix is ~66,780 tokens, not the 43,380 §1's
+estimate inherited — 54% higher.** Cache hit rate was 40% (1,179,526 created against 777,171
+read), so the run was closer to the cold case than the warm one. Anything downstream that
+inherited the 43,380 figure inherits the same error.
+
+**The audit gate has a defect, and it is the reusable lesson here.** It tripped at 60% and the trip
+was spurious — 6 agreements, 0 disagreements, 4 Opus replies that returned no parseable JSON and
+were scored as disagreements by `None != True`. A rate that folds in the cases the instrument
+failed to score cannot distinguish "the judges disagree" from "one judge did not answer", and those
+have different fixes. `scripts/rejudge-on-opus.py` separates them, and re-judging all 30 on Opus
+gave 30/30 judged, 0 unreadable, **100% Haiku-vs-Opus agreement** — so the cheap judge was fine all
+along and the gate nearly bought an unnecessary re-run.
+
+**One check worth not repeating the way I first ran it.** Asked whether the judges' quotes were
+real, an exact-substring test said 43% were fabricated. They were not: the test scored *elisions*
+as inventions — Haiku's Q2 quote drops the clause "in whatever logic produces it" from a sentence
+that is otherwise verbatim. A fuzzy rewrite was no better, scoring zero of 60 quotes as verbatim
+when at least one plainly is. Both versions of the check were wrong in the direction that would
+have discredited a sound judge. What actually settled it was reading five arm-C responses in full;
+the earlier read that seemed to show Q2 missing its point was truncated at 1,000 characters and
+the point was in the third bullet.
 
 **Steps 1-4 result, 2026-08-25.** Inventory: `task-3-split-inventory.md`, built before any edit. The
 section is **17 bullets** (14 top-level, 3 nested), not the flat list it reads as. **Three of the 17
