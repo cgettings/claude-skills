@@ -81,6 +81,20 @@ dash-specific), *shrinking* the section by 54 B, while one bullet gained 335 B o
 +281 B, and a re-cut that touched all 17 bullets and all 14 lesson files rather than one of each,
 because check 4 tests the original verbatim and "the original" had changed everywhere.
 
+**The normalization was a hand edit, not a tool** — the repo owner made it on 2026-08-26 while
+testing cache rewrites `[stated by them 2026-08-28]`. That is the reassuring answer and the
+inconvenient one at once. Nothing is going to re-run it, so no scheduled process has to be found and
+stopped; but the file's drift is driven by a person editing it, which no schedule predicts and no
+guard can pre-empt. Assume the section has moved every time you approach step 5, and note the two
+firings had *different* causes — a lessons pass, then a manual sweep — so do not narrow the guard to
+either. Its value is that it is indifferent to the reason.
+
+**Step 5 inherits a sharper version of this.** The probe swaps three arms over the live
+`~/.claude/CLAUDE.md` and restores in a `finally`; an edit to that file *while the run is in flight*
+lands on an arm rather than on the real file, and the restore then writes back a file the edit never
+reached. The run takes long enough for that to be a real window. Agree with the owner not to touch
+`~/.claude/CLAUDE.md` for the duration, and read the `RESTORED OK` line rather than assuming it.
+
 The recipe holds either way, and step 1 absorbs a mechanical drift for free: re-cut `before.md`
 from the live file, apply the same mechanical transform to `after.md` and `~/.claude/lessons/`,
 re-split any genuinely amended bullet, then propagate the new byte counts here and into
