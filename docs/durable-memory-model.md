@@ -707,13 +707,31 @@ something already points at it. These are evidence, so they are files.
    the agreement rate is reported. Below 90%, re-judge everything on Opus before reading any arm
    difference: low agreement is a fact about the judge, not about the split.
 
-   **Cost, revised 2026-08-25 against real pricing** (Opus 5 `$5`/`$25` per Mtok, cache read 0.1x,
-   write 1.25x — the earlier `~$5-8` here was computed against a wrong `$15`/Mtok input rate):
-   **~$2 if the prefix cache holds, ~$11 if it never hits.** The probe leg is ~71% of that and is
-   irreducible — 30 cold sessions x ~43K of fixed prefix *is* the experiment; only fewer arms or
-   fewer repeats would move it, and both weaken the design. Estimated from §1's measured
-   43,380-token baseline, which was measured in-repo while the probe runs from a workdir, so it is
-   conservative — an estimate, not a measurement.
+   **Which model the arms run on, and why it is pinned.** `run_probe` used to spawn `claude -p`
+   with **no `--model`**, so the 30 responses that *are* the experiment resolved from
+   `~/.claude/settings.json` — `"model": "sonnet"` on this machine `[verified 2026-08-28: a bare
+   `claude -p` returns `claude-sonnet-5`]`. The judge and auditor were pinned; the measured thing
+   was not, so a settings edit or a `/model` elsewhere would have silently changed it. Now
+   `PROBE_MODEL = "claude-sonnet-5"`, and each response records its own answering model into the
+   results JSON, so the pin is checkable after the fact rather than only asserted.
+
+   **Sonnet is the conservative arm, which is the reason to keep it.** Step 5 asks whether trimming
+   evidence out of a rule degrades firing, and a more capable model can infer from a trimmed rule
+   what a weaker one cannot. A pass on Opus would license a split that might still break Sonnet
+   sessions; a pass on Sonnet implies Opus passes too. Revisit only if every session these rules
+   serve runs on Opus.
+
+   **Cost, recomputed 2026-08-28 after the pin.** The 2026-08-25 figures — `~$2` cached, `~$11`
+   cold — were computed at **Opus** rates and the probe leg does not run on Opus. Current rates:
+   Opus 5 `$5`/`$25` per Mtok, **Sonnet 5 `$2`/`$10`**, Haiku 4.5 `$1`/`$5`, cache read 0.1x, write
+   1.25x `[claude-api skill's pricing table, cached 2026-06-24, read 2026-08-28]`. Sonnet is exactly
+   **0.4x** Opus on both axes; the probe leg is ~71% of the run and the Haiku judge and Opus auditor
+   are unchanged, so the total scales by `0.71x0.4 + 0.29 ≈ 0.57`: **~$1 if the prefix cache holds,
+   ~$6 if it never hits.** The probe leg stays irreducible — 30 cold sessions x ~43K of fixed prefix
+   *is* the experiment; only fewer arms or fewer repeats would move it, and both weaken the design.
+   Still an estimate, and now a compounded one: it inherits §1's measured 43,380-token baseline
+   (taken in-repo while the probe runs from a workdir, so conservative) *and* the ~71% split. Read
+   the order of magnitude, not the digits.
 
    That ratio is itself a datapoint for §3c: the global `CLAUDE.md` is **11,973 of the 43,380
    tokens on every invocation, 27.6%**. The probe is expensive for the reason the spec exists.

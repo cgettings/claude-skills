@@ -82,6 +82,19 @@ HOOK_LOG = Path("C:/Users/Chris/probe-instructions-loaded.log")
 STRIP_ENV = {"CLAUDECODE", "ANTHROPIC_LOG", "ANTHROPIC_BASE_URL",
              "HTTPS_PROXY", "https_proxy"}
 
+# The arms themselves. Pinned, because an unpinned `claude -p` resolves from
+# ~/.claude/settings.json ("model": "sonnet" on this machine), which makes the
+# experiment depend on ambient config: a settings edit, or a /model in some
+# other session, silently changes what was measured.
+#
+# Sonnet rather than Opus is the conservative direction, and the reasoning is
+# the point. Step 5 asks whether trimming evidence out of a rule degrades
+# firing. A more capable model can infer from a trimmed rule what a weaker one
+# cannot -- so a PASS on Opus would greenlight a split that might still break
+# Sonnet sessions, while a PASS on Sonnet implies Opus passes too. Test on the
+# weaker arm. Revisit only if every session these rules serve runs on Opus.
+PROBE_MODEL = "claude-sonnet-5"
+
 JUDGE_MODEL = "claude-haiku-4-5"
 AUDIT_MODEL = "claude-opus-5"
 AUDIT_SAMPLE = 10
@@ -191,7 +204,8 @@ def run_probe(query: str, cwd: Path, timeout: int = 240) -> dict:
     """One probe run; capture the whole first assistant text turn plus usage."""
     env = {k: v for k, v in os.environ.items() if k not in STRIP_ENV}
     proc = subprocess.Popen(
-        ["claude", "-p", query + SUFFIX, "--output-format", "stream-json",
+        ["claude", "-p", query + SUFFIX, "--model", PROBE_MODEL,
+         "--output-format", "stream-json",
          "--verbose", "--include-partial-messages"],
         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, cwd=str(cwd))
     out = {"text": "", "usage": None, "model": None, "stopped": None, "ms": None}
