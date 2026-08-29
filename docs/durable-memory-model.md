@@ -6,11 +6,12 @@ but its **numbers are a 2026-08-25 baseline, not current** — the live global `
 grown from 49,553 B to **55,978 B**, and nothing has re-measured its token share. Task 3's split is
 rebuilt against the drifted file and still proved lossless, but **not applied**: its step 5, the
 firing measurement, has not run, and **Tasks 5 and 6** are gated on that one result. Task 4 is
-unblocked and untouched; Tasks 5-8 are not started. **Task 9 was added 2026-08-28** and is not
-started: it asks whether an instruction-file edit reaches a session that is already running, its
-steps 0 and 1 are free and run today, and it gates Task 7's write protocol. Its design was
-**reviewed and revised later the same day, before any arm ran** — a step 0 added, the nonce made
-two-sided, one arm moved; the change list is at the end of §5 Task 9.
+unblocked and untouched; Tasks 5-8 are not started. **Task 9 was added 2026-08-28** and asks whether
+an instruction-file edit reaches a session that is already running; it gates Task 7's write
+protocol. Its design was **reviewed and revised the same day, before any arm ran** — a step 0 added,
+the nonce made two-sided, one arm moved. **Step 0 then ran and answered**: memory topic files arrive
+by file tool (63 measured `Read` calls), so step 1's X moves off the memory file onto this repo's
+project `CLAUDE.md`. Steps 1-3 are not started; step 1 is free and needs two live sessions.
 
 ## 0. Ledger
 
@@ -24,7 +25,7 @@ two-sided, one arm moved; the change list is at the end of §5 Task 9.
 | 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
 | 7 | Make the routing rule enforceable at write time | — | **Not started** — its write protocol is gated on Task 9 | — |
 | 8 | Make the ceiling check mechanical | — | **Not started** | — |
-| 9 | Does an instruction-file edit reach a running session? | — | **Not started** — gates Task 7's write protocol, not its existence; steps 0-1 are free and run today. Design revised 2026-08-28 before any arm ran | — |
+| 9 | Does an instruction-file edit reach a running session? | — | **Step 0 DONE 2026-08-28, steps 1-3 not started.** Gates Task 7's write protocol, not its existence. Design revised 2026-08-28 before any arm ran | Step 0: `scripts/probe-memory-delivery.py` over 281 transcripts / 182,561 lines, 0 unreadable. **63 `Read` calls on memory topic files** ⇒ file-tool delivery is real, so arm 1 moves off the memory file onto the project `CLAUDE.md`. One-directional: cannot rule out a co-existing injection path. Detail in §5 Task 9 |
 
 **Live environment state — not in this repo, and it goes with the machine rather than the branch.**
 Task 1 registered an `InstructionsLoaded` hook in `~/.claude/settings.json` and **deliberately left
@@ -69,13 +70,12 @@ the global `CLAUDE.md` (49,553 B, measured) against the file as it now stands (5
 `~/.claude/CLAUDE.md` and any other session's turn during the run reads an arm. Pick one, finish it,
 then pick the other.
 
-**Task 9 steps 0-1 are the cheaper of the two and are unblocked**: one transcript grep plus six
-short turns, no measurement, no spend, and they gate Task 7's write protocol. Its procedure,
-predictions and controls are in §5 Task 9 — run it from there rather than from this block, because
-the controls are the part that makes it worth running. **Do not skip step 0**: it decides whether
-step 1 can answer at all, and running step 1 first is how this design fails while appearing to
-succeed. Step 1 needs a purpose-made memory file — create it, record it in the live-state block
-above, and delete it afterwards.
+**Task 9 step 1 is the cheaper of the two and is unblocked**: six short turns, no measurement, no
+spend, and it gates Task 7's write protocol. **Step 0 has already run** — do not repeat it; its
+result is in §5 Task 9 and it moved step 1's X onto this repo's project `CLAUDE.md`. Run step 1 from
+that section rather than from this block, because the controls are the part that makes it worth
+running. X is a tracked file, so the nonce edit is visible to `git status`: revert with
+`git checkout -- CLAUDE.md` and do not let a `git add -A` sweep it up mid-run.
 
 **Task 3 step 5** is the other, and it is the gate everything downstream of Task 3 sits
 on. It costs money (see the estimate in §5 Task 3, which is stale low — it was computed against a
@@ -809,9 +809,10 @@ a commit — it is that passing the ceiling surfaces as a routing decision inste
 
 ### Task 9: Does an instruction-file edit reach a session that is already running?
 
-**Files:** `scripts/capture-proxy.py` (new, step 2 and step 3); this section for the result. Steps 0
-and 1 are manual and need no script — the earlier `scripts/probe-edit-propagation.py` line named a
-file with no described job and is dropped.
+**Files:** `scripts/probe-memory-delivery.py` (step 0, **written and run**);
+`scripts/capture-proxy.py` (new, step 2 and step 3); this section for the result. Step 1 is manual
+and needs no script — the earlier `scripts/probe-edit-propagation.py` line named a file with no
+described job and is dropped.
 
 **Interfaces:** consumes nothing — it is answerable today and gates **Task 7**, which decides how
 `distill-lessons` writes. It also constrains **Task 3 step 5**: see "Interaction with step 5" below.
@@ -901,6 +902,42 @@ call is.
 Running step 1 without this is the shape §Verification calls *a test run under conditions where the
 effect cannot occur* — which is not evidence against the effect.
 
+**Step 0 RESULT, 2026-08-28 — row 1. It needed no session at all.** The population form of the
+question is answerable from transcripts already on disk, so this cost one sweep rather than the
+session pair the step was scoped for. `python scripts/probe-memory-delivery.py`, re-runnable:
+
+| | |
+|---|---:|
+| transcripts scanned | 281 (182,561 lines) |
+| files that failed to open | 0 |
+| lines unparsed | 190 — **174 of them in one file** (`047c3934`) |
+| tool calls on memory **topic** files | **233**, across 46 sessions |
+| — `Edit` / `Read` / `Write` / `Grep` | 139 / **63** / 30 / 1 |
+| tool calls on `MEMORY.md` | 73 |
+
+**63 `Read` calls put row 1 in force**: §2's *"standard file tools"* quote describes something that
+demonstrably happens, so a topic file does arrive as a tool result — conversation history, which
+nothing re-reads from disk.
+
+**Read this one-directionally, which is the whole discipline of the step.** A non-zero count proves
+the file-tool path is real and in use. It does **not** rule out a co-existing injection path, and no
+count here ever could: injected blocks are not written to the JSONL (see "What the transcripts
+cannot do"), so this instrument is structurally blind to the alternative. Zero would have been the
+uninformative outcome; non-zero is the informative one, and that asymmetry is why the sweep was
+worth running before the session pair rather than instead of it.
+
+**Consequence for step 1, and it changes which file gets edited.** Arm 1 on a memory topic file is
+the void case. Step 1 runs on **this repo's project `CLAUDE.md`** — unambiguously injected, per §2's
+first table row. The purpose-made memory file below becomes optional: keep it only to exercise the
+write-hazard cell, drop it if step 1 is only chasing the injection question.
+
+**A second finding, free from the same sweep.** 169 writes to topic files (139 `Edit`, 30 `Write`)
+across those 46 sessions. That establishes the write path is *frequent* — not that two sessions ever
+wrote concurrently, which this cannot see — so Task 7's concurrent-writer scenario is drawn from
+live behaviour rather than from hypothesis. The corpus also grows while the instrument runs: two
+consecutive runs read 182,540 and 182,561 lines, the difference being the measuring session's own
+transcript. Quote these counts with their date.
+
 **Predictions.** Written 2026-08-28 before any arm ran, and **revised 2026-08-28, still before any
 arm ran** — no result exists to have been fitted to, which is checkable: no `capture-proxy.py`, no
 results file, and §0's Task 9 row reads not started. Two rows changed and the reasons are below the
@@ -912,7 +949,7 @@ session in a **different repo**, X being project-scoped — old / old*.
 | 1 | B quotes X from context, tools forbidden, **two-sided nonce** | S present, T absent | S absent, T present |
 | 2 | B's request body, before vs after the edit | differs **only** in B's own new turn; X's region byte-identical | differs from X's injection point down |
 | 3 | New session started after the edit (control) | S absent, T present | S absent, T present |
-| 4 | Parallel session in **another worktree of this repo** (control) | S present, T absent | S absent, T present |
+| 4 | Parallel session in **another worktree of this repo** — *memory-file cell only, see below* | S present, T absent | S absent, T present |
 
 **Arm 3 rules out one explanation, and its stated one is available more cheaply.** "The edit never
 landed on disk" is settled by `wc -c`. What arm 3 uniquely rules out is *the harness reads X from a
@@ -928,6 +965,26 @@ non-trivial prediction, and it is the exact configuration Task 7's threat model 
 `distill-lessons` pass in one worktree writing a store another worktree's live session is holding.
 It is promoted out of step 3's grid for that reason.
 
+**Arm 4 does not survive step 0's move of X, and that is a constraint on the whole design.** Its
+entire force came from auto-memory being one *shared* store across worktrees. A project `CLAUDE.md`
+is a **tracked file**, so every worktree checks out its own copy — §1 measures four EH-dataportal
+worktrees carrying four different sizes, 20,666 to 59,726 B. Editing this worktree's copy cannot
+reach another worktree's session under any hypothesis, so on the `CLAUDE.md` run arm 4 is degenerate
+in exactly the way the unrelated-repo version was. Do not run it there and read agreement as
+confirmation.
+
+So the arms split by file class, and this is the reason to keep the optional memory-file cell rather
+than drop it:
+
+- **`CLAUDE.md` run (steps 1-2):** arms 1, 2, 3. Arm 4 is unavailable — no cross-session cell exists
+  for a per-worktree tracked file. A session in an unrelated repo can be run as a **scoping assert**
+  if you want it, but it is a sanity check on §4, not a finding: it returns "no T" whichever way the
+  harness works.
+- **Memory-file cell (optional):** the *only* place arm 4 has a non-trivial prediction, because the
+  store is genuinely shared. It cannot answer the injection question — step 0 settled that — but it
+  is the one configuration that tests cross-session reach directly, and it is Task 7's threat model
+  exactly. Run it for arm 4 or not at all.
+
 **Arm 1's negative had four innocent explanations and one control.** For "old token": (1) replay —
 the finding; (2) X arrived as a tool result, so injection was never under test; (3) the harness
 rebuilds at events and this turn was not one; (4) both copies are present and the model quoted the
@@ -936,13 +993,17 @@ two-sided nonce below kills (4).
 
 **Step 1 — the correctness arm. No proxy, no measurement, and it runs today.**
 
-1. Open two sessions in this repo. Get each to recall memory file X by asking a question that
-   surfaces it. **Confirm the recall happened, and record how** — step 0's table. This is arm 3's
-   precondition and the commonest way this design fails silently.
-2. Edit X from outside both sessions, making **two changes in one edit**: delete a distinctive
-   sentence **S**, and add a distinctive nonce token **T**.
+0. Pick **S**, a distinctive sentence already in `CLAUDE.md`, and **T**, a nonce token not in it.
+   Note the file's byte count.
+1. Open two sessions, A and B, in this repo. **Confirm each holds X before editing anything** — ask
+   for S verbatim, tools forbidden. Step 0 settled the mechanism (injection at session start), so
+   what this confirms is that *these two sessions* actually have it, which is arm 3's precondition
+   and the commonest way this design fails silently. A session that cannot quote S is not a control.
+2. Edit X **from outside both sessions** — a third terminal, not A and not B — making **two changes
+   in one edit**: delete S, add T. Record the wall-clock time and the new byte count.
 3. Ask session B what X says, **forbidding tool use in the prompt**, so it must answer from context.
    Ask twice, worded differently. Sample again after a `/compact`.
+4. Revert: `git checkout -- CLAUDE.md`, and confirm the byte count matches step 0's.
 
 **Why the nonce is two-sided.** An added token can be supplied by *either* mechanism — a stale copy
 does not have it, and a fresh injection does, but so does a fresh injection that arrives *alongside*
@@ -974,6 +1035,32 @@ probe is broken rather than answered: arm 3 returning **S present** voids the ru
 started *after* the edit cannot see deleted text, so the edit is not reaching the harness's read
 path); arm 1 reading *pure re-read* while arm 2 shows X's region byte-identical means the
 tool-and-injection check failed, not that the harness is inconsistent. Neither is a result.
+
+**Which model runs B — and do not generalize the Haiku line under Cost.** That line scopes Haiku to
+**step 3**, on the stated grounds that the question there "is about request bytes and is
+model-independent." Step 1 is not that question. Its output is a **model report about its own
+context**, and three things in the report are capability-dependent:
+
+- **Obeying "without using any tools"** — the named trap that voids the arm. Weaker
+  instruction-following raises the chance B fetches T from disk, which scores identically under both
+  branches.
+- **Quoting S verbatim** rather than paraphrasing, or a stale copy cannot be told from a
+  reconstruction.
+- **Reporting a contradiction instead of smoothing it over.** This is the one that decides it. The
+  S-present *and* T-present cell requires B to notice two conflicting versions in its own context and
+  say so. A model that silently reports whichever it met first collapses that cell into a false
+  *pure replay* or a false *pure re-read* — and both look like clean results, so the failure is
+  invisible.
+
+**Run B on Sonnet.** Reliable on all three and cheaper than Opus; step 1 has no judgment task
+needing the top model. The cost argument for going smaller buys almost nothing — B is ~4 turns on
+this repo's ~13K-token always-loaded prefix (§1), which is cents on any model, against a voided run
+whose real cost is a coordination round-trip. Keep **Haiku for arm 3**, one near-mechanical turn.
+
+**Optional and near-free:** a second B on Haiku, same prompts, in parallel. Agreement is a
+robustness check; disagreement localizes the failure to instruction-following rather than to the
+harness, which is worth knowing before building the proxy. Not load-bearing — skip it if the extra
+terminal is a nuisance.
 
 **Step 2 — run it unless step 1 lands in the pure-replay cell.** The gate used to read "only if step
 1 says re-read," and that was unsound while the nonce was one-sided: a single added token cannot
@@ -1064,21 +1151,30 @@ null by construction — that session never held the content — which makes it 
 finding. The **worktree** row is no longer in this grid: it is arm 4, promoted because it is the one
 cross-session cell where the shared-store scoping makes a non-trivial prediction.
 
-**Order, and why the memory file goes first — a consequence argument, not a discrimination one.**
-X is an individual memory file, not `MEMORY.md` and not a `CLAUDE.md`. It is the only one of the
-four with a correctness failure mode, its cost is positional rather than fixed, and it is the exact
-file `distill-lessons` writes — so it is both the likeliest to bite and the one whose answer changes
-Task 7. Every clause of that is about what the answer would *mean*; none of it establishes that the
-arm can produce an answer, which is step 0's job. Keep the ordering, run step 0 first.
+**~~Order, and why the memory file goes first.~~ Retired by step 0's result.** The argument was that
+X should be an individual memory file, because it is the only one of the four with a correctness
+failure mode, its cost is positional rather than fixed, and it is the exact file `distill-lessons`
+writes — the likeliest to bite and the one whose answer changes Task 7. Every clause of that is
+about what the answer would *mean*, and none establishes that the arm can produce an answer. Step 0
+measured the missing half: the topic file arrives by file tool, so it is the one file class on which
+arm 1 **cannot** discriminate.
 
-**Name X, and treat it as live environment state.** The procedure above says "memory file X" and
-never names one, and §0 tracks every other piece of live state on this machine with a restore recipe
-— the `InstructionsLoaded` hook, `~/.claude/lessons/`. A nonce-edited memory file would be a third
-with none. Two requirements before step 1 runs: **use a purpose-made memory file, not a real one**,
-so a failed restore cannot corrupt a rule something depends on; and **record it in §0's live-state
-block with its removal command**, alongside the other two. A purpose-made file still exercises the
-recall path, because step 1.1's confirm-the-recall precondition is what tests that — write its
-`description:` so a chosen question matches it, then verify the match before editing anything.
+**X is the project `CLAUDE.md` of this repo.** Injected at session start per §2's first table row,
+so the question is live on it; small, so a nonce edit is easy to place and revert; and repo-scoped,
+which keeps arm 4's worktree cell meaningful. The consequence argument above still holds for the
+memory file — it is simply not answerable by this arm, and Task 7 inherits its write hazard from
+step 0's 169 measured writes instead.
+
+**Whatever X is, treat it as live environment state.** §0 tracks every other piece of live state on
+this machine with a restore recipe — the `InstructionsLoaded` hook, `~/.claude/lessons/`. A
+nonce-edited instruction file is a third with none, and this one is *tracked*, which the other two
+are not: X is now the repo's project `CLAUDE.md`, so the nonce edit shows up in `git status` and a
+stray `git add -A` commits it. Requirements before step 1 runs: **branch or stash-and-restore rather
+than editing in place on a branch you intend to commit**, and **note the edit in §0's live-state
+block** with the command that reverts it — `git checkout -- CLAUDE.md` is the whole recovery, which
+is a reason to prefer the tracked file over an untracked one. If the optional memory-file cell is
+also run, use a **purpose-made** memory file rather than a real one, so a failed restore cannot
+corrupt a rule something depends on.
 
 **Interaction with step 5.** Task 3 step 5 swaps three arms over the live `~/.claude/CLAUDE.md` and
 restores in a `finally`. Under the re-read branch that perturbs every live session for the duration
