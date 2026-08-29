@@ -65,7 +65,26 @@ Still owed: a `reconcile-records` sweep of this project's memory store and `READ
 **deferred until step 5 lands**, because that run moves the same numbers again — one of the four
 memory files was spot-checked (`eval-suites-have-no-behavioural-runner`, current) and the other
 three were not. The 2026-08-28 re-cut adds to what that sweep must reconcile: §1's byte figures for
-the global `CLAUDE.md` (49,553 B, measured) against the file as it now stands (55,978 B).
+the global `CLAUDE.md` (49,553 B, measured) against the file as it now stands (**56,836 B**, after
+the 2026-08-28 lessons pass added 858 B).
+
+**Also owed, and held deliberately: one lessons-pass bullet that would fire the step-5 guard.** The
+2026-08-28 pass produced three entries for the global `CLAUDE.md`. Two were applied — they land in
+`Choosing and running the check` and `Session workflow`, and the guard still reads 11,350. The
+third lands in **`Validating the instrument`, which is the Task 3 pilot section**, so applying it
+would move the section a third time and force a third re-cut of `task-3-section-{before,after}.md`
+and the 14 lesson files, immediately before step 5 — the exact incident §0 records twice already.
+It is held until step 5 has run, and its text is parked here so the deferral cannot quietly become
+a loss:
+
+> - **A precondition check that reads the same field the measurement reads contaminates it.**
+>   Verify the precondition on a different instance than the one you perturb. Confirming a session
+>   held a file meant asking it to quote the sentence that would later be deleted — which put that
+>   sentence in the session's own history, so "still present" afterwards no longer proved stale
+>   context. The added-token half of the nonce stayed clean and carried the result; the deleted
+>   half was dead on arrival `[2026-08-28]`.
+
+Apply it **after** step 5, then re-cut. Applying it before means doing the re-cut twice.
 
 **Next command — Task 3 step 5, and it is now the only candidate.** Task 9 is done; the two-way
 choice this block used to describe is closed. **Do not re-run any part of Task 9** — its steps 2 and
