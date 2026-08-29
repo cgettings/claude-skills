@@ -9,6 +9,15 @@ re-questions of data already on disk — and each is capable of ending the inves
 Only Task 3 spends tokens, and only Task 4 costs real build time. Do not start at Task 4 because it
 is the one already designed.
 
+**Zero API spend is not zero cost, so every step writes its per-event output to a file and prints
+only aggregates.** Tasks 1 and 2 buy no sessions, but they run *inside* one, and whatever an
+analysis pulls inline is re-read at cache rates on every later turn of that session — which is the
+same charge this investigation is about. The dumps are large: Task 2 emits a 20-record lead-in for
+each surviving event, order 900–1,500 lines — arithmetic from 31 events at a ~30-record window,
+estimated and not measured. The answers are small: counts with denominators. So
+each step below names the file it writes and the aggregate it prints, all such files are gitignored,
+and the dump is opened only when an aggregate is surprising — with `grep` or `sed -n`, never whole.
+
 Sibling document: `docs/durable-memory-model.md`, on branch `feature-durable-memory-model`, not on
 this one. Its §5 Task 9 holds the proxy design that Task 4 below reuses, and its §0 is the ledger
 format this document borrows.
@@ -113,9 +122,12 @@ already on disk.
 **Files:**
 - `scripts/sweep-cache-rewrites.py` — the instrument; extend it rather than writing a second one
 - `~/.claude/projects/*/*.jsonl` — read-only corpus
+- `task1-residual.json` — written, not read into the session. The residual event set, one object per
+  event, so Task 2 consumes a file rather than a number retyped from a summary
 
 **Interfaces:** consumes nothing. Produces the residual set of events that survive every free
-explanation, which is the input to Task 2.
+explanation, which is the input to Task 2. Each step prints its counts; the per-event detail behind
+those counts stays in `task1-residual.json`.
 
 **Step 1 — is the offset a pure function of version?** Group the unexplained events by
 `version` and report the offset distribution within each. **Expected if the block is version-fixed:
@@ -169,17 +181,22 @@ Costs nothing. This is the task most likely to identify the mechanism outright, 
 candidates A, C and D at once.
 
 **Files:**
-- `scripts/sweep-cache-rewrites.py` — add an antecedent dump behind a flag
+- `scripts/sweep-cache-rewrites.py` — add an antecedent dump behind a flag. The flag writes to a
+  path and prints only the tally; it must not stream the dump to stdout
 - `~/.claude/projects/*/*.jsonl`
+- `task1-residual.json` — read
+- `task2-antecedents.txt` — written, not read into the session
 
 **Interfaces:** consumes Task 1's residual event set. Produces either a named trigger, which sends
 you to Task 3 to confirm it, or a null, which sends you to Task 3 to test candidate B.
 
-**Step 1 — dump the antecedents.** For each surviving event, emit every record between the previous
-assistant turn and the rewriting turn, with `type`, tool name, and any `subtype`. Include the 20
-records before that window, because the trigger may precede the last clean turn.
+**Step 1 — dump the antecedents to `task2-antecedents.txt`.** For each surviving event, emit every
+record between the previous assistant turn and the rewriting turn, with `type`, tool name, and any
+`subtype`. Include the 20 records before that window, because the trigger may precede the last clean
+turn. One line per record, prefixed with the event id, so the file is greppable per signature —
+that is what makes Step 2 a `grep -c` against the file instead of a read of it.
 
-**Step 2 — look for the four signatures**, in this order: a `ToolSearch` call or first use of a
+**Step 2 — count the four signatures in that file**, in this order: a `ToolSearch` call or first use of a
 previously-unused tool (candidate A); an MCP tool call, especially a first one (D); a skill
 entry or exit (C); anything else common to a majority. **All three named signatures exist in the
 corpus and span the event window, so a null here is a real null rather than a dead probe**
@@ -196,7 +213,9 @@ the same sessions. **The comparison is the instrument; a raw count is not a resu
 record that Task 2 returned a null, rather than proceeding as though it had been skipped.
 
 **Proof:** for each candidate signature, its frequency before events against its frequency before
-matched non-events, both with denominators. A candidate is named only if the two differ.
+matched non-events, both with denominators. A candidate is named only if the two differ. That table
+is the whole of what this task puts into the session; `task2-antecedents.txt` stays on disk unless a
+row of it needs explaining.
 
 ---
 
