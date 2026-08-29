@@ -5,8 +5,10 @@ honoured at user scope, so §4's global routing lane is real rather than assumed
 but its **numbers are a 2026-08-25 baseline, not current** — the live global `CLAUDE.md` has since
 grown from 49,553 B to **55,978 B**, and nothing has re-measured its token share. Task 3's split is
 rebuilt against the drifted file and still proved lossless, but **not applied**: its step 5, the
-firing measurement, has not run, and everything downstream is gated on that one result. Task 4 is
-unblocked and untouched; Tasks 5-8 are not started.
+firing measurement, has not run, and **Tasks 5 and 6** are gated on that one result. Task 4 is
+unblocked and untouched; Tasks 5-8 are not started. **Task 9 was added 2026-08-28** and is not
+started: it asks whether an instruction-file edit reaches a session that is already running, its
+step 1 is free and runs today, and it gates Task 7's write protocol.
 
 ## 0. Ledger
 
@@ -18,8 +20,9 @@ unblocked and untouched; Tasks 5-8 are not started.
 | 4 | Route the file-triggered content | — | **Not started** — unblocked by Task 1 | — |
 | 5 | Roll the split across the rest of global CLAUDE.md | — | **BLOCKED on Task 3** | — |
 | 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
-| 7 | Make the routing rule enforceable at write time | — | **Not started** | — |
+| 7 | Make the routing rule enforceable at write time | — | **Not started** — its write protocol is gated on Task 9 | — |
 | 8 | Make the ceiling check mechanical | — | **Not started** | — |
+| 9 | Does an instruction-file edit reach a running session? | — | **Not started** — gates Task 7; step 1 is free and runs today | — |
 
 **Live environment state — not in this repo, and it goes with the machine rather than the branch.**
 Task 1 registered an `InstructionsLoaded` hook in `~/.claude/settings.json` and **deliberately left
@@ -59,8 +62,18 @@ memory files was spot-checked (`eval-suites-have-no-behavioural-runner`, current
 three were not. The 2026-08-28 re-cut adds to what that sweep must reconcile: §1's byte figures for
 the global `CLAUDE.md` (49,553 B, measured) against the file as it now stands (55,978 B).
 
-**Next command.** Task 3 step 5 — the firing measurement, the one gate everything downstream sits
-on. The probe is written and unrun at `scripts/measure-rule-firing.py` (see the step-5 note in §5
+**Next command — two candidates, and they cannot run at the same time.** Task 9 step 1 needs
+**two live sessions**; Task 3 step 5 needs **none**, because it swaps arms over the live
+`~/.claude/CLAUDE.md` and any other session's turn during the run reads an arm. Pick one, finish it,
+then pick the other.
+
+**Task 9 step 1 is the cheaper of the two and is unblocked**: four short turns, no measurement, no
+spend, and it gates Task 7. Its procedure, predictions and controls are in §5 Task 9 — run it from
+there rather than from this block, because the controls are the part that makes it worth running.
+
+**Task 3 step 5** is the other, and it is the gate everything downstream of Task 3 sits
+on. It costs money (see the estimate in §5 Task 3, which is stale low — it was computed against a
+43,380-token prefix and the global file has grown since) and it mutates the live file. The probe is written and unrun at `scripts/measure-rule-firing.py` (see the step-5 note in §5
 Task 3 for what it does, how to read each outcome, and why the originally-named instrument could
 not). It refuses to run if the section is not found exactly once in the live file, so the check
 below is what it does first anyway:
@@ -787,6 +800,109 @@ edit is a separate manifest line from the move.
 Report bytes for each always-loaded file against §3c's ceiling, and `MEMORY.md` against both the
 200-line and 25KB platform caps. Non-zero exit when a ceiling is passed. The point is not to block
 a commit — it is that passing the ceiling surfaces as a routing decision instead of silently.
+
+### Task 9: Does an instruction-file edit reach a session that is already running?
+
+**Files:** `scripts/probe-edit-propagation.py` (new); `scripts/capture-proxy.py` (new, step 3 only);
+this section for the result.
+
+**Interfaces:** consumes nothing — it is answerable today and gates **Task 7**, which decides how
+`distill-lessons` writes. It also constrains **Task 3 step 5**: see "Interaction with step 5" below.
+Nothing else in this document depends on it.
+
+**Why this gates Task 7.** Task 7 makes `distill-lessons` route a lesson to a tier and split it at
+write time. Both of those are *file writes*, and this document has so far reasoned about their cost
+at session start only. If a write also reaches sessions that are already running, the write protocol
+has to change — batching, or writing at a boundary, or taking a lock — and that is a Task 7 design
+input, not an optimization to bolt on afterwards.
+
+**The question, stated so it can come back "no".** Two sessions, both live, both with file X in
+context. One edits X. On the other session's next turn, does the request body it sends differ?
+
+Two branches, and they fail in completely different ways — which is the reason this is worth
+measuring rather than assuming:
+
+- **Replay** — the harness re-sends the message array it already holds. The edit costs the other
+  session nothing, but that session now holds **stale content and cannot tell**. It may reason from,
+  or write back, a memory the first session just corrected. A correctness failure, not a cost one,
+  and the concurrent writer it threatens is another `distill-lessons` pass.
+- **Re-read** — the harness rebuilds from disk at request time. The edit changes the body from the
+  injection point down, so the cost is **positional**: content injected early invalidates nearly
+  everything, content injected late costs almost nothing. Materially different from the global
+  `CLAUDE.md`, which sits in the first user message and therefore always invalidates the whole
+  prefix.
+
+**Predictions, written 2026-08-28 before any arm ran.** Recorded because a run that fails for an
+unexpected reason reads as a flake without them.
+
+| # | Arm | If **replay** | If **re-read** |
+|---|---|---|---|
+| 1 | B quotes X from context, tools forbidden | old token | new token |
+| 2 | B's request body, before vs after the edit | byte-identical above B's own new turn | differs from X's injection point down |
+| 3 | New session started after the edit (control) | new token | new token |
+| 4 | Parallel session in a **different repo**, X being project-scoped (control) | old token | old token |
+
+Arm 3 is the positive control and is not optional: without it, "B does not know the new token" and
+"the edit never landed on disk" are the same observation. Arm 4 is a negative control that should
+come back *old* under both branches, because project-scoped content was never in that session's
+prefix; if it returns *new*, the scoping model in §4 is wrong and that is a bigger finding than the
+one being chased.
+
+**Step 1 — the correctness arm. No proxy, no measurement, and it runs today.**
+
+1. Open two sessions in this repo. Get each to recall memory file X by asking a question that
+   surfaces it. **Confirm the recall happened in both** before editing anything — this is arm 3's
+   precondition and the commonest way this design fails silently.
+2. Edit X from outside both sessions, changing one distinctive nonce token.
+3. Ask session B what X says, **forbidding tool use in the prompt**, so it must answer from context.
+
+The trap that voids this arm: B reaches for `Read` and reports the new token from disk, which scores
+identically under both branches. The prompt must block tools, and the transcript must be checked for
+a tool call before the answer is believed. Same rule as the eval-prompt bullet in §Verification —
+do not hand the model the fact under test, and do not let it go fetch it either.
+
+**Step 2 — only if step 1 says re-read.** Then the cost question is live and the instrument is the
+outgoing request body, not the cache counters. Point `ANTHROPIC_BASE_URL` at a local logging proxy
+and diff two consecutive bodies across an edit. This answers directly what the counters can only
+imply, because it distinguishes *the file body changed* from *a system-reminder about the file was
+injected* — two findings the token counts cannot tell apart.
+
+`ANTHROPIC_BASE_URL`, `HTTPS_PROXY`, `NODE_EXTRA_CA_CERTS` and `DISABLE_PROMPT_CACHING` are all
+present as strings in the installed binary `[verified 2026-08-28: 52, 52, 36 and 30 occurrences
+respectively in ~/.local/bin/claude.exe]`. That proves the strings exist, not that any is honoured —
+the §Verification rule about grep hits applies to this one too. The arm is self-validating, though:
+either requests arrive at the proxy or they do not, and a proxy that logs and returns a stub without
+forwarding costs nothing at all.
+
+**Step 3 — scope expansion, only if step 2 says re-read.** Then, and only then, enumerate the
+cells: sessions in the same repo, in a worktree of it, and in an unrelated repo, crossed with global
+`CLAUDE.md`, project `CLAUDE.md`, `MEMORY.md`, and an individual memory file. Do not run this
+grid first. Most of its cells are determined by step 1, and the project-scoped rows are predicted
+null by construction (arm 4), which makes them controls rather than findings.
+
+**Order, and why the memory file goes first.** X is an individual memory file, not `MEMORY.md` and
+not a `CLAUDE.md`. It is the only one of the four with a correctness failure mode, its cost is
+positional rather than fixed, and it is the exact file `distill-lessons` writes — so it is both the
+likeliest to bite and the one whose answer changes Task 7.
+
+**Interaction with step 5.** Task 3 step 5 swaps three arms over the live `~/.claude/CLAUDE.md` and
+restores in a `finally`. Under the re-read branch that perturbs every live session for the duration
+of the run, and a hand edit landing mid-run is written onto an arm and lost at the restore. Run step
+5 with no other sessions live, whichever way Task 9 comes out.
+
+**What the transcripts cannot do, recorded so nobody spends the afternoon on it again.** The
+injected instruction blocks are not stored in the session JSONL: on this session every `claudeMd`
+and `system-reminder` hit was assistant text from the conversation itself, not the real injection
+`[verified 2026-08-28: parsed the message content of every record in 4489d30b's transcript]`. So the
+transcript records neither the block nor its changes, and cannot discriminate the two branches at
+any sample size. This is the same wall §0's unexplained-re-render note hit. Steps 1 and 2 are the
+way through it.
+
+**Cost.** Step 1 is four short turns and no measurement. Step 2 is free if the proxy stubs rather
+than forwards. Step 3, if it is ever reached, runs on Haiku with one- and two-turn sessions, because
+the question is about request bytes and is model-independent; at §1's measured 43,380-token prefix a
+full rewrite is a few cents, so the grid is order $1. *Estimated from §1's baseline, not measured —
+and §1's baseline is itself now stale (see the status line).*
 
 ---
 
