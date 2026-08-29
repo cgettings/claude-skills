@@ -6,12 +6,14 @@ but its **numbers are a 2026-08-25 baseline, not current** — the live global `
 grown from 49,553 B to **55,978 B**, and nothing has re-measured its token share. Task 3's split is
 rebuilt against the drifted file and still proved lossless, but **not applied**: its step 5, the
 firing measurement, has not run, and **Tasks 5 and 6** are gated on that one result. Task 4 is
-unblocked and untouched; Tasks 5-8 are not started. **Task 9 was added 2026-08-28** and asks whether
-an instruction-file edit reaches a session that is already running; it gates Task 7's write
-protocol. Its design was **reviewed and revised the same day, before any arm ran** — a step 0 added,
-the nonce made two-sided, one arm moved. **Step 0 then ran and answered**: memory topic files arrive
-by file tool (63 measured `Read` calls), so step 1's X moves off the memory file onto this repo's
-project `CLAUDE.md`. Steps 1-3 are not started; step 1 is free and needs two live sessions.
+unblocked and untouched; Tasks 5-8 are not started. **Task 9 was added, designed, revised and
+completed on 2026-08-28.** It asked whether an instruction-file edit reaches a session that is
+already running, and the answer is **replay on ordinary turns, rebuild at compaction** — the
+replay/re-read binary it was framed around is false. Steps 2 and 3 are **retired rather than
+skipped**: a write costs a concurrent session nothing at any injection point, so the proxy has
+nothing to measure. What survives is a correctness hazard: a session that has not compacted since a
+write holds superseded content and cannot tell, which makes **Task 7's protocol read-before-write or
+a lock**, and unblocks that task.
 
 ## 0. Ledger
 
@@ -23,9 +25,9 @@ project `CLAUDE.md`. Steps 1-3 are not started; step 1 is free and needs two liv
 | 4 | Route the file-triggered content | — | **Not started** — unblocked by Task 1 | — |
 | 5 | Roll the split across the rest of global CLAUDE.md | — | **BLOCKED on Task 3** | — |
 | 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
-| 7 | Make the routing rule enforceable at write time | — | **Not started** — its write protocol is gated on Task 9 | — |
+| 7 | Make the routing rule enforceable at write time | — | **Not started, but unblocked** — Task 9 settled its write protocol: **read-before-write or a lock**, for correctness. No batching or write boundary is needed; the write is free to concurrent sessions | — |
 | 8 | Make the ceiling check mechanical | — | **Not started** | — |
-| 9 | Does an instruction-file edit reach a running session? | — | **Step 0 DONE 2026-08-28, steps 1-3 not started.** Gates Task 7's write protocol, not its existence. Design revised 2026-08-28 before any arm ran | Step 0: `scripts/probe-memory-delivery.py` over 281 transcripts / 182,561 lines, 0 unreadable. **63 `Read` calls on memory topic files** ⇒ file-tool delivery is real, so arm 1 moves off the memory file onto the project `CLAUDE.md`. One-directional: cannot rule out a co-existing injection path. Detail in §5 Task 9 |
+| 9 | Does an instruction-file edit reach a running session? | — | **DONE 2026-08-28.** Answer: **replay on ordinary turns, rebuild at compaction** — the pre-registered binary was false. Steps 2-3 retired, not skipped: nothing is left for the proxy to measure | Step 0: `scripts/probe-memory-delivery.py`, 281 transcripts / 182,561 lines, 0 unreadable, **63 `Read` calls on topic files** ⇒ moved X to the project `CLAUDE.md`. Step 1: 2 sessions, 4 asks + `/compact` + arm 3, **0 tool calls** in B (transcript-checked), stale window **~2m55s across 2 turns**. Full timeline in §5 Task 9 |
 
 **Live environment state — not in this repo, and it goes with the machine rather than the branch.**
 Task 1 registered an `InstructionsLoaded` hook in `~/.claude/settings.json` and **deliberately left
@@ -65,19 +67,18 @@ memory files was spot-checked (`eval-suites-have-no-behavioural-runner`, current
 three were not. The 2026-08-28 re-cut adds to what that sweep must reconcile: §1's byte figures for
 the global `CLAUDE.md` (49,553 B, measured) against the file as it now stands (55,978 B).
 
-**Next command — two candidates, and they cannot run at the same time.** Task 9 step 1 needs
-**two live sessions**; Task 3 step 5 needs **none**, because it swaps arms over the live
-`~/.claude/CLAUDE.md` and any other session's turn during the run reads an arm. Pick one, finish it,
-then pick the other.
+**Next command — Task 3 step 5, and it is now the only candidate.** Task 9 is done; the two-way
+choice this block used to describe is closed. **Do not re-run any part of Task 9** — its steps 2 and
+3 are retired on the result, not left undone, and §5 Task 9 says why.
 
-**Task 9 step 1 is the cheaper of the two and is unblocked**: six short turns, no measurement, no
-spend, and it gates Task 7's write protocol. **Step 0 has already run** — do not repeat it; its
-result is in §5 Task 9 and it moved step 1's X onto this repo's project `CLAUDE.md`. Run step 1 from
-that section rather than from this block, because the controls are the part that makes it worth
-running. X is a tracked file, so the nonce edit is visible to `git status`: revert with
-`git checkout -- CLAUDE.md` and do not let a `git add -A` sweep it up mid-run.
+**One thing Task 9 changed about running step 5.** The old advice was to keep other sessions closed
+because a re-read would perturb them. Measured, that is not the mechanism: ordinary turns replay, so
+another session's turn *during* the run does **not** read an arm. The real hazard is unchanged and
+is the other one — a session live across the run holds whichever arm was mounted when it last
+compacted, and a hand edit landing mid-run is written onto an arm and lost at the restore. Still run
+it with no other sessions live, but for the correctness reason, not the cost one.
 
-**Task 3 step 5** is the other, and it is the gate everything downstream of Task 3 sits
+**Task 3 step 5** is the gate everything downstream of Task 3 sits
 on. It costs money (see the estimate in §5 Task 3, which is stale low — it was computed against a
 43,380-token prefix and the global file has grown since) and it mutates the live file. The probe is written and unrun at `scripts/measure-rule-firing.py` (see the step-5 note in §5
 Task 3 for what it does, how to read each outcome, and why the originally-named instrument could
@@ -834,6 +835,15 @@ skip one:
 Stated this way so a *replay* verdict does not read as "Task 7 unblocked, nothing to do." It is the
 branch with the correctness failure. What Task 9 supplies is which protocol, not whether.
 
+**ANSWERED 2026-08-28 — it is the replay branch, so Task 7 needs the correctness protocol and not
+the cost one.** Step 1's result is below. Ordinary turns replay, so no batching, no write boundary
+and no lock is needed *for cost*: the write is free to every concurrent session. What is now a
+measured hazard rather than a hypothesis is the **lost update** — a session that has not compacted
+since the write is reasoning from superseded content and cannot tell, so a second `distill-lessons`
+pass can overwrite a correction the first just made. Task 7's write protocol is therefore
+**read-before-write on the target file**, or a lock; the observed stale window was ~3 minutes and
+two turns, and only a compaction closed it.
+
 **The question, stated so it can come back "no".** Two sessions, both live, both with file X in
 context. One edits X. On the other session's next turn, does the request body it sends differ?
 
@@ -1062,7 +1072,66 @@ robustness check; disagreement localizes the failure to instruction-following ra
 harness, which is worth knowing before building the proxy. Not load-bearing — skip it if the extra
 terminal is a nuisance.
 
-**Step 2 — run it unless step 1 lands in the pure-replay cell.** The gate used to read "only if step
+**STEP 1 RESULT, 2026-08-28 — the pre-registered binary is false. Replay on ordinary turns, rebuild
+at compaction.** X was this repo's `CLAUDE.md`, 1,861 B at `4735508`. S was the second bullet's
+bolded opener; T was `NONCE-Q7X4`. Session B ran on **Sonnet**; times are local, transcript
+`759b36ac` (UTC, −4).
+
+| Local | Ask | S | T | Reading |
+|---|---|---|---|---|
+| 23:04:40 | openers list — **pre-edit** | present | — | baseline; B holds X |
+| **23:06:40** | **edit lands**, 1,861 → 1,850 B | | | |
+| 23:08:38 | openers list again | present | **absent** | **replay** |
+| 23:09:35 | second bullet's opener, reworded | present | **absent** | **replay** |
+| 23:10:54 | `/compact` | | | summary carries S forward |
+| 23:14:54 | full bullet, body demanded | *(in note)* | **present** | **rebuild from disk** |
+| ~23:19 | arm 3 — fresh `claude -p`, Haiku | absent | present | control passes |
+
+**Admissible: 0 tool calls across the whole of session B**, checked against the transcript rather
+than taken on report — the arm's stated precondition, and the one that voids it silently.
+
+**Observed stale window: ~2m55s across two turns**, closed by the compaction. Nothing here measures
+whether it would have expired on its own; it was still stale when the compact ended it.
+
+**Steps 2 and 3 are retired, and by a stronger argument than their gate.** The gate said run the
+proxy unless step 1 lands in pure replay. It did — but there is nothing left for the proxy to
+measure. Ordinary turns replay, so a write costs other live sessions **zero**. The compaction turn
+rebuilds, but it rebuilds whether or not anyone edited, so the marginal cost of the write is zero
+there too. **A `distill-lessons` write never costs a concurrent session anything**, at any injection
+point, which is the positional-cost question §5 opened with, answered in the negative. Do not build
+`capture-proxy.py`.
+
+**§2's compaction quote is now confirmed by observation, not only cited.** The doc's claim that a
+`/compact` re-reads the project `CLAUDE.md` from disk is what the 23:14:54 row shows directly.
+
+**The predicted confound landed exactly.** The compact summary carried S forward — B's own earlier
+answers — and B's post-compact reply cited "what I quoted earlier in this conversation." So the
+S column post-compaction is uninformative by construction and **T is what carried the result**. That
+was called before the run, which is the only reason the 23:14:54 row is readable at all.
+
+**Two methodological findings, both worth more than the arm they came from.**
+
+- **The precondition collides with the deletion signal.** Confirming B holds X requires B to quote
+  S, which puts S into B's own conversation history — so from the first post-edit ask onward,
+  "S present" no longer proves a stale injection. T stayed clean and was sufficient. **Fix: confirm
+  the precondition on a *different* bullet than the one you edit.** The procedure above had B quote
+  all three openers, which guaranteed the collision.
+- **An instruction-shaped nonce trips the model's prompt-injection defenses.** B's reasoning flagged
+  `NONCE-Q7X4 replaces this opener for a propagation test` as a possible injection embedded in the
+  project instructions, and considered whether to execute or report it. It reported accurately and
+  flagged the discrepancy unprompted — arguably better than the design asked for — but that is luck,
+  not design. **Make the nonce inert:** a bare token swapped into otherwise natural prose, never a
+  sentence that announces itself as a test.
+
+**The Sonnet call is vindicated observably.** The capability the model-choice note said Haiku might
+lack — noticing a contradiction rather than smoothing it over — is exactly what B did, in its
+reasoning and again in its answer. Had it smoothed, the 23:14:54 row would have read as a clean
+single value and the both-copies condition would have been invisible.
+
+---
+
+**~~Step 2 — run it unless step 1 lands in the pure-replay cell.~~ Retired by the step 1 result
+above; kept for the reasoning, which still applies if the harness changes.** The gate used to read "only if step
 1 says re-read," and that was unsound while the nonce was one-sided: a single added token cannot
 tell replay from a stale-copy-plus-fresh-injection, so a false *replay* terminated the whole
 investigation. The two-sided nonce is what makes the gate sound — **S present, T absent** is a
