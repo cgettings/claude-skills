@@ -8,7 +8,9 @@ rebuilt against the drifted file and still proved lossless, but **not applied**:
 firing measurement, has not run, and **Tasks 5 and 6** are gated on that one result. Task 4 is
 unblocked and untouched; Tasks 5-8 are not started. **Task 9 was added 2026-08-28** and is not
 started: it asks whether an instruction-file edit reaches a session that is already running, its
-step 1 is free and runs today, and it gates Task 7's write protocol.
+steps 0 and 1 are free and run today, and it gates Task 7's write protocol. Its design was
+**reviewed and revised later the same day, before any arm ran** — a step 0 added, the nonce made
+two-sided, one arm moved; the change list is at the end of §5 Task 9.
 
 ## 0. Ledger
 
@@ -22,7 +24,7 @@ step 1 is free and runs today, and it gates Task 7's write protocol.
 | 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
 | 7 | Make the routing rule enforceable at write time | — | **Not started** — its write protocol is gated on Task 9 | — |
 | 8 | Make the ceiling check mechanical | — | **Not started** | — |
-| 9 | Does an instruction-file edit reach a running session? | — | **Not started** — gates Task 7; step 1 is free and runs today | — |
+| 9 | Does an instruction-file edit reach a running session? | — | **Not started** — gates Task 7's write protocol, not its existence; steps 0-1 are free and run today. Design revised 2026-08-28 before any arm ran | — |
 
 **Live environment state — not in this repo, and it goes with the machine rather than the branch.**
 Task 1 registered an `InstructionsLoaded` hook in `~/.claude/settings.json` and **deliberately left
@@ -67,9 +69,13 @@ the global `CLAUDE.md` (49,553 B, measured) against the file as it now stands (5
 `~/.claude/CLAUDE.md` and any other session's turn during the run reads an arm. Pick one, finish it,
 then pick the other.
 
-**Task 9 step 1 is the cheaper of the two and is unblocked**: four short turns, no measurement, no
-spend, and it gates Task 7. Its procedure, predictions and controls are in §5 Task 9 — run it from
-there rather than from this block, because the controls are the part that makes it worth running.
+**Task 9 steps 0-1 are the cheaper of the two and are unblocked**: one transcript grep plus six
+short turns, no measurement, no spend, and they gate Task 7's write protocol. Its procedure,
+predictions and controls are in §5 Task 9 — run it from there rather than from this block, because
+the controls are the part that makes it worth running. **Do not skip step 0**: it decides whether
+step 1 can answer at all, and running step 1 first is how this design fails while appearing to
+succeed. Step 1 needs a purpose-made memory file — create it, record it in the live-state block
+above, and delete it afterwards.
 
 **Task 3 step 5** is the other, and it is the gate everything downstream of Task 3 sits
 on. It costs money (see the estimate in §5 Task 3, which is stale low — it was computed against a
@@ -803,18 +809,29 @@ a commit — it is that passing the ceiling surfaces as a routing decision inste
 
 ### Task 9: Does an instruction-file edit reach a session that is already running?
 
-**Files:** `scripts/probe-edit-propagation.py` (new); `scripts/capture-proxy.py` (new, step 3 only);
-this section for the result.
+**Files:** `scripts/capture-proxy.py` (new, step 2 and step 3); this section for the result. Steps 0
+and 1 are manual and need no script — the earlier `scripts/probe-edit-propagation.py` line named a
+file with no described job and is dropped.
 
 **Interfaces:** consumes nothing — it is answerable today and gates **Task 7**, which decides how
 `distill-lessons` writes. It also constrains **Task 3 step 5**: see "Interaction with step 5" below.
 Nothing else in this document depends on it.
 
-**Why this gates Task 7.** Task 7 makes `distill-lessons` route a lesson to a tier and split it at
-write time. Both of those are *file writes*, and this document has so far reasoned about their cost
-at session start only. If a write also reaches sessions that are already running, the write protocol
-has to change — batching, or writing at a boundary, or taking a lock — and that is a Task 7 design
-input, not an optimization to bolt on afterwards.
+**Why this gates Task 7 — and it gates the protocol's *shape*, not its existence.** Task 7 makes
+`distill-lessons` route a lesson to a tier and split it at write time. Both of those are *file
+writes*, and this document has so far reasoned about their cost at session start only.
+
+Both branches below force a write protocol, for opposite reasons, and neither verdict lets Task 7
+skip one:
+
+- **Re-read** ⇒ a write perturbs every live session's prefix, so the cost question is live and the
+  answer is batching, writing at a boundary, or a lock.
+- **Replay** ⇒ a live session holds a stale copy it cannot detect, so a concurrent `distill-lessons`
+  pass can write back over a correction another session just made. That is the **lost-update**
+  hazard, and it needs read-before-write or a lock — more protocol, not less.
+
+Stated this way so a *replay* verdict does not read as "Task 7 unblocked, nothing to do." It is the
+branch with the correctness failure. What Task 9 supplies is which protocol, not whether.
 
 **The question, stated so it can come back "no".** Two sessions, both live, both with file X in
 context. One edits X. On the other session's next turn, does the request body it sends differ?
@@ -832,58 +849,227 @@ measuring rather than assuming:
   `CLAUDE.md`, which sits in the first user message and therefore always invalidates the whole
   prefix.
 
-**Predictions, written 2026-08-28 before any arm ran.** Recorded because a run that fails for an
-unexpected reason reads as a flake without them.
+**Those two are endpoints, not alternatives, and §2 already rules out the pure-replay end for
+instruction files.** §2 quotes the official docs: *"Project-root CLAUDE.md survives compaction:
+after `/compact`, Claude re-reads it from disk and re-injects it into the session. Nested CLAUDE.md
+files … and rules with `paths:` frontmatter reload as Claude reads files they apply to."* So the
+harness demonstrably rebuilds instruction content from disk **at defined events inside a running
+session** — a compaction, and a path-glob match. That quote is about `CLAUDE.md` and `paths:` rules,
+so it does not by itself settle a memory file, which is step 0's job. What it does settle is that
+the machinery exists and has named trigger points: the live question is therefore not *replay or
+re-read* but **at which events does it rebuild**, with "every request" and "never" as the ends and
+two rebuild events already documented for one file class.
+
+Two consequences, and both change what gets run:
+
+- Replay on an ordinary turn is the *expected* reading, not a finding. A design that stops there
+  answers a question already half-answered.
+- The Task 7-relevant quantity is the **stale window**: how long a session can hold a superseded
+  copy, and which events close it. That is measurable and the binary is not.
+
+So every arm below is sampled **twice** after the edit — once on the next ordinary turn, once after
+an event §2 names as a rebuild point. A single post-event read cannot separate "never rebuilds" from
+"rebuilds on a trigger that did not fire," which is §Verification's single-point-reading rule on its
+time axis.
+
+**Step 0 — establish how X reaches B's context. Free, and it decides whether step 1 can answer.**
+
+X was chosen at "Order, and why the memory file goes first" below on grounds of *consequence* —
+correctness failure mode, positional cost, the file `distill-lessons` writes. None of those is a
+reason the arm can **discriminate**. That depends on the delivery mechanism, and the two candidates
+give opposite answers:
+
+- **Tool result.** §2 quotes the docs: *"Claude reads them on demand using its standard file tools
+  when it needs the information."* On that path X is ordinary conversation history. Nothing re-reads
+  a past tool result from disk, so arm 1 returns *old* under every hypothesis and step 2 never runs.
+  The injection machinery would never have been under test at all.
+- **Injected block.** This harness's own memory instructions describe recalled memories arriving
+  inside `<system-reminder>` blocks `[first-party, read 2026-08-28 in this session's system prompt]`
+  — an injection, not a tool call, and on that path the question is live.
+
+Those two claims are both current and they disagree. **Resolve it before step 1 rather than
+assuming it**, and the resolution is free: step 1.1 already requires confirming the recall happened;
+record *how*. §0's transcript finding says an injected block is not in the JSONL — but a `Read`
+call is.
+
+| Transcript shows | Mechanism | What it means for step 1 |
+|---|---|---|
+| A `Read` of X | tool result | arm 1 is **void as an injection test**. Add a second X that is unambiguously injected — this repo's project `CLAUDE.md` — and run the arms on that |
+| No tool call, B knows X | injected block | arm 1 is live; proceed |
+| No tool call, B does not know X | recall never fired | precondition failed; fix the question before editing anything |
+
+Running step 1 without this is the shape §Verification calls *a test run under conditions where the
+effect cannot occur* — which is not evidence against the effect.
+
+**Predictions.** Written 2026-08-28 before any arm ran, and **revised 2026-08-28, still before any
+arm ran** — no result exists to have been fitted to, which is checkable: no `capture-proxy.py`, no
+results file, and §0's Task 9 row reads not started. Two rows changed and the reasons are below the
+table. Superseded: row 1 read *old token / new token* on a single added nonce; row 4 read *Parallel
+session in a **different repo**, X being project-scoped — old / old*.
 
 | # | Arm | If **replay** | If **re-read** |
 |---|---|---|---|
-| 1 | B quotes X from context, tools forbidden | old token | new token |
-| 2 | B's request body, before vs after the edit | byte-identical above B's own new turn | differs from X's injection point down |
-| 3 | New session started after the edit (control) | new token | new token |
-| 4 | Parallel session in a **different repo**, X being project-scoped (control) | old token | old token |
+| 1 | B quotes X from context, tools forbidden, **two-sided nonce** | S present, T absent | S absent, T present |
+| 2 | B's request body, before vs after the edit | differs **only** in B's own new turn; X's region byte-identical | differs from X's injection point down |
+| 3 | New session started after the edit (control) | S absent, T present | S absent, T present |
+| 4 | Parallel session in **another worktree of this repo** (control) | S present, T absent | S absent, T present |
 
-Arm 3 is the positive control and is not optional: without it, "B does not know the new token" and
-"the edit never landed on disk" are the same observation. Arm 4 is a negative control that should
-come back *old* under both branches, because project-scoped content was never in that session's
-prefix; if it returns *new*, the scoping model in §4 is wrong and that is a bigger finding than the
-one being chased.
+**Arm 3 rules out one explanation, and its stated one is available more cheaply.** "The edit never
+landed on disk" is settled by `wc -c`. What arm 3 uniquely rules out is *the harness reads X from a
+different path or a cached index than the one you edited* — state it that way, or it reads as
+redundant and gets dropped.
+
+**Arm 4 changed cell, because the old one could not be informative.** §2 states auto-memory is
+machine-local and *"all worktrees and subdirectories within the same git repository share one auto
+memory directory."* A session in an **unrelated** repo never held X, so "old token" there passes
+under every hypothesis except a broadcast model nobody has proposed — an arm spent on the cell with
+the least information. A **different worktree of this repo** shares the store, so it makes a
+non-trivial prediction, and it is the exact configuration Task 7's threat model describes: a
+`distill-lessons` pass in one worktree writing a store another worktree's live session is holding.
+It is promoted out of step 3's grid for that reason.
+
+**Arm 1's negative had four innocent explanations and one control.** For "old token": (1) replay —
+the finding; (2) X arrived as a tool result, so injection was never under test; (3) the harness
+rebuilds at events and this turn was not one; (4) both copies are present and the model quoted the
+staler. Arm 3 kills only (1). Step 0 kills (2), the twice-sampling above kills (3), and the
+two-sided nonce below kills (4).
 
 **Step 1 — the correctness arm. No proxy, no measurement, and it runs today.**
 
 1. Open two sessions in this repo. Get each to recall memory file X by asking a question that
-   surfaces it. **Confirm the recall happened in both** before editing anything — this is arm 3's
+   surfaces it. **Confirm the recall happened, and record how** — step 0's table. This is arm 3's
    precondition and the commonest way this design fails silently.
-2. Edit X from outside both sessions, changing one distinctive nonce token.
+2. Edit X from outside both sessions, making **two changes in one edit**: delete a distinctive
+   sentence **S**, and add a distinctive nonce token **T**.
 3. Ask session B what X says, **forbidding tool use in the prompt**, so it must answer from context.
+   Ask twice, worded differently. Sample again after a `/compact`.
 
-The trap that voids this arm: B reaches for `Read` and reports the new token from disk, which scores
-identically under both branches. The prompt must block tools, and the transcript must be checked for
-a tool call before the answer is believed. Same rule as the eval-prompt bullet in §Verification —
-do not hand the model the fact under test, and do not let it go fetch it either.
+**Why the nonce is two-sided.** An added token can be supplied by *either* mechanism — a stale copy
+does not have it, and a fresh injection does, but so does a fresh injection that arrives *alongside*
+the stale copy. A deletion is one-directional: no re-read and no re-injection can supply text that
+is no longer on disk, so quoting S is proof of stale context that cannot be manufactured. Together
+they turn one guess into a self-diagnosing 2×2 with its own dead-probe cell — the shape Task 3
+step 5 already has and this task lacked:
 
-**Step 2 — only if step 1 says re-read.** Then the cost question is live and the instrument is the
-outgoing request body, not the cache counters. Point `ANTHROPIC_BASE_URL` at a local logging proxy
-and diff two consecutive bodies across an edit. This answers directly what the counters can only
-imply, because it distinguishes *the file body changed* from *a system-reminder about the file was
-injected* — two findings the token counts cannot tell apart.
+| | **T absent** | **T present** |
+|---|---|---|
+| **S present** | pure replay | both copies live — stale retained *beside* a fresh one |
+| **S absent** | probe dead: B is not answering from X | pure re-read |
+
+The bottom-left cell is the one worth naming: it licenses nothing either way, exactly as `A≈B≈C`
+does in Task 3.
+
+**The trap has two legs, and the second is the one the transcript cannot see.** The named leg: B
+reaches for `Read` and reports T from disk, which scores identically under both branches — so the
+prompt must block tools and the transcript must be checked for a tool call before the answer is
+believed. The unnamed leg: asking B about X may itself trigger a **fresh recall injection**, no tool
+call, new content. Per §0, injected blocks are not in the JSONL, so *no absence of a tool call
+establishes that B answered from pre-edit context*. Step 1 is not fully falsifiable on its own
+instrument; the two-sided nonce is what bounds the damage, because that leak lands in the
+S-present/T-present cell rather than masquerading as re-read. Same rule as the eval-prompt bullet in
+§Verification — do not hand the model the fact under test, and do not let it go fetch it either.
+
+**Read the joint outcome, not four separate arms.** Some combinations are incoherent and mean the
+probe is broken rather than answered: arm 3 returning **S present** voids the run (stop — a session
+started *after* the edit cannot see deleted text, so the edit is not reaching the harness's read
+path); arm 1 reading *pure re-read* while arm 2 shows X's region byte-identical means the
+tool-and-injection check failed, not that the harness is inconsistent. Neither is a result.
+
+**Step 2 — run it unless step 1 lands in the pure-replay cell.** The gate used to read "only if step
+1 says re-read," and that was unsound while the nonce was one-sided: a single added token cannot
+tell replay from a stale-copy-plus-fresh-injection, so a false *replay* terminated the whole
+investigation. The two-sided nonce is what makes the gate sound — **S present, T absent** is a
+trustworthy negative and is the one cell that retires the cost question. The other three all need
+the bytes: *pure re-read* to locate the injection point, *both copies live* to see whether the
+injected block changed, and *probe dead* because step 1 answered nothing.
+
+Then the instrument is the outgoing request body, not the cache counters. Point `ANTHROPIC_BASE_URL`
+at a local logging proxy and diff two consecutive bodies across an edit. This answers directly what
+the counters can only imply, because it distinguishes *the file body changed* from *a system-reminder
+about the file was injected* — two findings the token counts cannot tell apart.
+
+**Capture a null-edit pair first.** Two consecutive bodies with **no edit between them**, to
+establish the natural per-turn diff. Without that baseline every observed difference is
+unattributable, and §0 already records ~2K of injected content appearing at a prefix break that the
+typed prompt could not account for — so "byte-identical" was never a safe prediction and the arm-2
+row above no longer makes it. *"Unchanged" is a null result too, and the comparison is the
+instrument.*
+
+**The stub has to be well-formed, or step 2 cannot produce its own pair.** A proxy that logs and
+returns nothing costs no tokens — and gets you exactly **one** body, because B's turn then fails and
+the session cannot reach the second. The diff needs two successful turns. Return a minimal
+well-formed Anthropic-shaped response instead: both turns complete, the session survives, and the
+token spend is still zero. Worth stating, because the non-forwarding version is the one the sentence
+above describes and it dead-ends at the console.
 
 `ANTHROPIC_BASE_URL`, `HTTPS_PROXY`, `NODE_EXTRA_CA_CERTS` and `DISABLE_PROMPT_CACHING` are all
-present as strings in the installed binary `[verified 2026-08-28: 52, 52, 36 and 30 occurrences
+present as strings in the installed binary `[verified 2026-08-28: 77, 52, 36 and 30 occurrences
 respectively in ~/.local/bin/claude.exe]`. That proves the strings exist, not that any is honoured —
 the §Verification rule about grep hits applies to this one too. The arm is self-validating, though:
 either requests arrive at the proxy or they do not, and a proxy that logs and returns a stub without
 forwarding costs nothing at all.
 
+**The built-in request logging looks like it would replace the proxy, and it does not.** Recorded
+because it is the obvious thing to try first. Both `ANTHROPIC_LOG=debug` and `claude --debug api`
+dump the outgoing request — URL, full headers, timing, and the top-level body shape — and
+`ANTHROPIC_LOG=debug` needs no flag alongside it `[verified 2026-08-28 on claude-cli/2.1.227: one
+`claude -p` on Haiku, dump present with no --debug]`. But **every field this task needs is elided**:
+`messages`, `system` and `tools` render as `[Object ...]` at the inspector's depth limit, so the
+dump proves a request was sent and how many system blocks it carried, never what was in them. It
+also carries no `usage` block and no cache counters. Shape, not content — which cannot distinguish
+a changed file body from an injected notice about the file, the one distinction step 2 exists to
+make. Use it to confirm a request fired; use the proxy for the bytes.
+
+Three practical notes on it, since they cost a run each to establish `[all verified 2026-08-28]`.
+It writes to **stdout**, not stderr (stderr was 0 B on a split-stream run), which is the likely
+reason it seems inert in the interactive TUI — that owns stdout — though this was checked under
+`claude -p` and not by driving the TUI. `--debug-file` does **not** capture it: that file receives
+the internal `[DEBUG]` startup stream instead, and the API dump still goes to stdout. And it
+**breaks `--output-format json` and `stream-json`** by prepending non-JSON to stdout — a parse
+failure on the first character. That last one is a live hazard for `scripts/measure-rule-firing.py`,
+which reads `stream-json`: if `ANTHROPIC_LOG` is set in the environment when step 5 runs, every
+probe response parses as empty and the arms come back indistinguishable, which reads as `A≈B≈C`
+— "the probe is dead" — rather than as a broken harness. The script now strips it from the child
+environment (`STRIP_ENV`), so this needs no action before a step-5 run.
+
+**One thing it does buy, and it is one-directional.** The dump reports how many system blocks a
+request carried. A **change** in that count across an edit is positive evidence that the injected
+set moved, obtainable without building anything — so it is worth reading as triage before the proxy
+exists. **No** change is uninformative: it cannot see a content change inside an existing block,
+which is the likelier shape. A cheap yes, never a trustworthy no.
+
+**Step 2 introduces a second variable with the step-5 failure signature, and `STRIP_ENV` does not
+cover it.** `measure-rule-firing.py` strips `CLAUDECODE` and `ANTHROPIC_LOG`. Step 2 deliberately
+sets `ANTHROPIC_BASE_URL` (and possibly `HTTPS_PROXY`); if either is still exported when step 5
+runs, its 30 probes go to the stub proxy, every response comes back empty, and the arms are again
+indistinguishable — `A≈B≈C`, "the probe is dead," from a live harness pointed at a stub. Identical
+signature, different cause, and it only exists because Task 9 exists. **Owed: add
+`ANTHROPIC_BASE_URL` and `HTTPS_PROXY` to `STRIP_ENV`.** Not done here — that file was being edited
+in parallel while this review ran, and a concurrent write to it is the exact hazard Task 9 is about.
+
 **Step 3 — scope expansion, only if step 2 says re-read.** Then, and only then, enumerate the
 cells: sessions in the same repo, in a worktree of it, and in an unrelated repo, crossed with global
 `CLAUDE.md`, project `CLAUDE.md`, `MEMORY.md`, and an individual memory file. Do not run this
-grid first. Most of its cells are determined by step 1, and the project-scoped rows are predicted
-null by construction (arm 4), which makes them controls rather than findings.
+grid first. Most of its cells are determined by step 1, and the **unrelated-repo** row is predicted
+null by construction — that session never held the content — which makes it a control rather than a
+finding. The **worktree** row is no longer in this grid: it is arm 4, promoted because it is the one
+cross-session cell where the shared-store scoping makes a non-trivial prediction.
 
-**Order, and why the memory file goes first.** X is an individual memory file, not `MEMORY.md` and
-not a `CLAUDE.md`. It is the only one of the four with a correctness failure mode, its cost is
-positional rather than fixed, and it is the exact file `distill-lessons` writes — so it is both the
-likeliest to bite and the one whose answer changes Task 7.
+**Order, and why the memory file goes first — a consequence argument, not a discrimination one.**
+X is an individual memory file, not `MEMORY.md` and not a `CLAUDE.md`. It is the only one of the
+four with a correctness failure mode, its cost is positional rather than fixed, and it is the exact
+file `distill-lessons` writes — so it is both the likeliest to bite and the one whose answer changes
+Task 7. Every clause of that is about what the answer would *mean*; none of it establishes that the
+arm can produce an answer, which is step 0's job. Keep the ordering, run step 0 first.
+
+**Name X, and treat it as live environment state.** The procedure above says "memory file X" and
+never names one, and §0 tracks every other piece of live state on this machine with a restore recipe
+— the `InstructionsLoaded` hook, `~/.claude/lessons/`. A nonce-edited memory file would be a third
+with none. Two requirements before step 1 runs: **use a purpose-made memory file, not a real one**,
+so a failed restore cannot corrupt a rule something depends on; and **record it in §0's live-state
+block with its removal command**, alongside the other two. A purpose-made file still exercises the
+recall path, because step 1.1's confirm-the-recall precondition is what tests that — write its
+`description:` so a chosen question matches it, then verify the match before editing anything.
 
 **Interaction with step 5.** Task 3 step 5 swaps three arms over the live `~/.claude/CLAUDE.md` and
 restores in a `finally`. Under the re-read branch that perturbs every live session for the duration
@@ -898,11 +1084,48 @@ transcript records neither the block nor its changes, and cannot discriminate th
 any sample size. This is the same wall §0's unexplained-re-render note hit. Steps 1 and 2 are the
 way through it.
 
-**Cost.** Step 1 is four short turns and no measurement. Step 2 is free if the proxy stubs rather
-than forwards. Step 3, if it is ever reached, runs on Haiku with one- and two-turn sessions, because
-the question is about request bytes and is model-independent; at §1's measured 43,380-token prefix a
-full rewrite is a few cents, so the grid is order $1. *Estimated from §1's baseline, not measured —
-and §1's baseline is itself now stale (see the status line).*
+**What it *can* do, which the paragraph above overstated away.** A tool call **is** in the JSONL.
+That is a different question from "what did the injected block say," and it is the one step 0 asks:
+present `Read` of X means the tool-result path, absent means the injection path. The transcript is
+useless for the block's *content* and sufficient for the *mechanism* — do not let the first fact
+retire the second, which is what "cannot discriminate at any sample size" invites.
+
+**Cost.** Step 0 is one transcript grep, free. Step 1 is now six short turns rather than four —
+two recalls, one edit, two differently-worded questions, one post-`/compact` resample — and still no
+measurement and no spend. Step 2 costs no tokens *if the stub is well-formed*; the earlier "free if
+the proxy stubs rather than forwards" undercounted, because a non-forwarding stub yields one body
+and the diff needs two. Building the proxy is the real cost of step 2, and the parallel session's
+finding above is what makes it unavoidable: the built-in dump elides `messages` and `system`, so
+there is no cheaper instrument to fall back on. Step 3, if it is ever reached, runs on Haiku with
+one- and two-turn sessions, because the question is about request bytes and is model-independent; at
+§1's measured 43,380-token prefix a full rewrite is a few cents, so the grid is order $1.
+*Estimated from §1's baseline, not measured — and §1's baseline is itself now stale (see the status
+line).*
+
+**Design review, 2026-08-28 — what changed and why, before any arm ran.** A review pass over the
+arms, tests and predictions, run against the working tree including the parallel session's
+built-in-logging findings. Seven changes, in the order they matter:
+
+1. **Step 0 added.** X's delivery mechanism was never established, and §2's own quote predicts the
+   tool-result path — on which arm 1 cannot discriminate and the gated step 2 never runs.
+2. **The binary is false and §2 holds the counterexample.** Compaction and path-glob matches are
+   documented rebuild events, so the question is *which events*, and every arm is now sampled twice.
+3. **Two-sided nonce.** Deletion is one-directional and an addition is not; the 2×2 gives arm 1 a
+   dead-probe cell and makes step 2's gate sound, which it was not before.
+4. **Arm 4 moved** from an unrelated repo, where its prediction was degenerate, to another worktree
+   of this repo, where the shared store makes it non-trivial and Task 7's threat model lives.
+5. **The Task 7 gate is two-branch.** Replay is the branch with the lost-update hazard; the old
+   wording named only re-read as forcing a protocol, which let a *replay* verdict read as "nothing
+   to do."
+6. **Arm 2's prediction weakened** from "byte-identical" — §0 already records unexplained injected
+   content at prefix breaks — and given a null-edit baseline.
+7. **A joint reading rule**, a named X with a restore recipe, and the `ANTHROPIC_BASE_URL` /
+   `STRIP_ENV` hazard that step 2 creates for step 5.
+
+The parallel session's finding changed one thing beyond its own paragraph: it retired the cheap
+alternative to the proxy, which strengthens the case for building one but does **not** reorder the
+steps. The two-sided nonce is what licenses keeping step 1 ahead of step 2 — with the old one-sided
+nonce the gate was unsound and the proxy should have run first.
 
 ---
 

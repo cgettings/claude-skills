@@ -62,6 +62,13 @@ BEFORE = ROOT / "docs" / "task-3-section-before.md"
 AFTER = ROOT / "docs" / "task-3-section-after.md"
 HOOK_LOG = Path("C:/Users/Chris/probe-instructions-loaded.log")
 
+# ANTHROPIC_LOG prepends the SDK's request dump to STDOUT, which breaks the
+# stream-json parse below on its first character -- every response then reads as
+# empty and the three arms come back indistinguishable. That looks exactly like
+# the "A~=B~=C, probe is dead" outcome rather than like a broken harness, so it
+# is stripped rather than detected. [verified 2026-08-28 on claude-cli/2.1.227]
+STRIP_ENV = {"CLAUDECODE", "ANTHROPIC_LOG"}
+
 JUDGE_MODEL = "claude-haiku-4-5"
 AUDIT_MODEL = "claude-opus-5"
 AUDIT_SAMPLE = 10
@@ -155,7 +162,7 @@ def build_arms(workdir: Path) -> dict:
 def claude(prompt: str, cwd: Path, model: str | None = None,
            timeout: int = 240) -> str:
     """One `claude -p`, returning the assistant's text. Empty string on failure."""
-    env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+    env = {k: v for k, v in os.environ.items() if k not in STRIP_ENV}
     cmd = ["claude", "-p", prompt]
     if model:
         cmd += ["--model", model]
@@ -169,7 +176,7 @@ def claude(prompt: str, cwd: Path, model: str | None = None,
 
 def run_probe(query: str, cwd: Path, timeout: int = 240) -> dict:
     """One probe run; capture the whole first assistant text turn plus usage."""
-    env = {k: v for k, v in os.environ.items() if k != "CLAUDECODE"}
+    env = {k: v for k, v in os.environ.items() if k not in STRIP_ENV}
     proc = subprocess.Popen(
         ["claude", "-p", query + SUFFIX, "--output-format", "stream-json",
          "--verbose", "--include-partial-messages"],
