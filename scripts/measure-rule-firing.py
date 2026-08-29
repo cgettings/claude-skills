@@ -62,12 +62,25 @@ BEFORE = ROOT / "docs" / "task-3-section-before.md"
 AFTER = ROOT / "docs" / "task-3-section-after.md"
 HOOK_LOG = Path("C:/Users/Chris/probe-instructions-loaded.log")
 
-# ANTHROPIC_LOG prepends the SDK's request dump to STDOUT, which breaks the
-# stream-json parse below on its first character -- every response then reads as
-# empty and the three arms come back indistinguishable. That looks exactly like
-# the "A~=B~=C, probe is dead" outcome rather than like a broken harness, so it
-# is stripped rather than detected. [verified 2026-08-28 on claude-cli/2.1.227]
-STRIP_ENV = {"CLAUDECODE", "ANTHROPIC_LOG"}
+# Four variables that all produce the SAME wrong answer by different routes:
+# every response comes back empty, the three arms are indistinguishable, and the
+# run reads as "A~=B~=C, probe is dead" -- a licensed conclusion about the split
+# -- rather than as a broken harness. Stripped rather than detected, because a
+# detector only helps if someone reads its output.
+#
+#   ANTHROPIC_LOG    prepends the SDK's request dump to STDOUT, breaking the
+#                    stream-json parse below on its first character.
+#                    [verified 2026-08-28 on claude-cli/2.1.227]
+#   ANTHROPIC_BASE_URL,
+#   HTTPS_PROXY,
+#   https_proxy      point the probes at Task 9 step 2's logging proxy, which
+#                    answers with a stub. The parse succeeds and the content is
+#                    empty, so this one leaves no error at all. Both spellings
+#                    of the proxy var occur in the installed binary, so both are
+#                    stripped -- stripping one that turns out to be ignored
+#                    costs nothing, missing one that is honoured costs a run.
+STRIP_ENV = {"CLAUDECODE", "ANTHROPIC_LOG", "ANTHROPIC_BASE_URL",
+             "HTTPS_PROXY", "https_proxy"}
 
 JUDGE_MODEL = "claude-haiku-4-5"
 AUDIT_MODEL = "claude-opus-5"

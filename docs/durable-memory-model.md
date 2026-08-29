@@ -1003,11 +1003,19 @@ token spend is still zero. Worth stating, because the non-forwarding version is 
 above describes and it dead-ends at the console.
 
 `ANTHROPIC_BASE_URL`, `HTTPS_PROXY`, `NODE_EXTRA_CA_CERTS` and `DISABLE_PROMPT_CACHING` are all
-present as strings in the installed binary `[verified 2026-08-28: 77, 52, 36 and 30 occurrences
-respectively in ~/.local/bin/claude.exe]`. That proves the strings exist, not that any is honoured —
-the §Verification rule about grep hits applies to this one too. The arm is self-validating, though:
-either requests arrive at the proxy or they do not, and a proxy that logs and returns a stub without
-forwarding costs nothing at all.
+present as strings in the installed binary `[verified 2026-08-28: 77, 68, 55 and 48 occurrences
+respectively, plus 30 for lowercase https_proxy, by grep -oa <name> ~/.local/bin/claude.exe | wc -l]`.
+That proves the strings exist, not that any is honoured — the §Verification rule about grep hits
+applies to this one too. The arm is self-validating, though: either requests arrive at the proxy or
+they do not, and a proxy that logs and returns a stub without forwarding costs nothing at all.
+
+**The counts are method-dependent and the earlier list mixed two methods** — recorded because the
+figure is decorative but the mixing is the kind of thing that hardens. This line previously read
+*77, 52, 36 and 30*, of which only the first was re-measured; under the single stated method above
+the four come out *77, 68, 55 and 48*, so one of four agreed and the list was not internally
+consistent with any one method. Nothing downstream turns on the magnitudes — the claim being made is
+**presence**, and all five strings are present under both — but quote the command with the number or
+the next reader inherits a count they cannot reproduce.
 
 **The built-in request logging looks like it would replace the proxy, and it does not.** Recorded
 because it is the obvious thing to try first. Both `ANTHROPIC_LOG=debug` and `claude --debug api`
@@ -1043,9 +1051,10 @@ cover it.** `measure-rule-firing.py` strips `CLAUDECODE` and `ANTHROPIC_LOG`. St
 sets `ANTHROPIC_BASE_URL` (and possibly `HTTPS_PROXY`); if either is still exported when step 5
 runs, its 30 probes go to the stub proxy, every response comes back empty, and the arms are again
 indistinguishable — `A≈B≈C`, "the probe is dead," from a live harness pointed at a stub. Identical
-signature, different cause, and it only exists because Task 9 exists. **Owed: add
-`ANTHROPIC_BASE_URL` and `HTTPS_PROXY` to `STRIP_ENV`.** Not done here — that file was being edited
-in parallel while this review ran, and a concurrent write to it is the exact hazard Task 9 is about.
+signature, different cause, and it only exists because Task 9 exists. **Closed 2026-08-28:**
+`STRIP_ENV` now holds `CLAUDECODE`, `ANTHROPIC_LOG`, `ANTHROPIC_BASE_URL`, `HTTPS_PROXY` and
+`https_proxy`. Both proxy spellings, because both occur in the binary and the cost is asymmetric —
+stripping one that is ignored costs nothing, missing one that is honoured costs a 30-probe run.
 
 **Step 3 — scope expansion, only if step 2 says re-read.** Then, and only then, enumerate the
 cells: sessions in the same repo, in a worktree of it, and in an unrelated repo, crossed with global
