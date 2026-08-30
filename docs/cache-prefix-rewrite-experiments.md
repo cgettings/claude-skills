@@ -26,10 +26,11 @@ format this document borrows.
 
 ## 0. Ledger
 
-**Status as of 2026-08-30: four nulls and no mechanism. Tasks 1, 2 and 5 are done; Task 3 has run
-two of its four arms and both returned nulls. Candidate F is falsified in every member testable
-without a version bump. Arm F/quit-relaunch has predictions written and is the next thing to run;
-arm E is unrun; Task 4 is unparked behind them.**
+**Status as of 2026-08-30: five nulls and no mechanism. Tasks 1, 2 and 5 are done; Task 3 has run
+three of its five arms and all three returned nulls. Candidate F is falsified in every member
+testable without a version bump — reconnection and resumption both. Arm E (permission mode) is
+the last surviving lead; its predictions are written below and it is the next thing to run. Task 4
+is unparked behind it, and arm B still has no non-VS Code entrypoint.**
 
 | # | Task | Commit | Status | Proof that ran |
 |---|---|---|---|---|
@@ -37,10 +38,10 @@ arm E is unrun; Task 4 is unparked behind them.**
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
 | 3a | Task 3 arm F/window-reload | `07bca1c`, `d343ce6` | **DONE 2026-08-30** — null | Session `6597c649`: turn 7 read 52,670 = 52,487 + 183, exact. Predictions 1, 4 hit; 2 missed; 3 N/A |
 | 3b | Task 3 arm F/host-restart | `d7cba60` predictions, `41e34cd` result | **DONE 2026-08-30** — null | Session `1b26f4d4`: turn 7 read 52,895 = 52,750 + 145, exact; `bridges_before` `t1:2 … t7:3`. All 4 predictions hit |
-| 3c | Task 3 arm F/quit-relaunch | `41e34cd` predictions | **NEXT** — predictions written, run pending | — |
-| 3d | Task 3 arm E (permission mode) | *no commit* | **Not started** | — |
+| 3c | Task 3 arm F/quit-relaunch | `41e34cd` predictions, *ledger commit follows* for the result | **DONE 2026-08-30** — null | Session `06de8063`: turn 7 read 52,907 = 52,725 + 182, exact; resumed in place, same file and same `bridgeSessionId`; `bridges_before` `t1:2 … t7:3`. Predictions 1, 3, 4, 5 hit; 2 missed; 6 N/A |
+| 3d | Task 3 arm E (permission mode) | *ledger commit follows* for the predictions | **NEXT** — predictions written, run pending | — |
 | 3e | Task 3 arm B (cli vs claude-vscode) | *no commit* | **Not started** — needs a non-VS Code entrypoint | — |
-| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* | **UNPARKED 2026-08-30** — behind arms 3c and 3d, which are hours cheaper | — |
+| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* | **UNPARKED 2026-08-30** — behind arm 3d, which is hours cheaper | — |
 | 5 | Do the rewrites sit on a client reconnect? | `fd87d13` | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
@@ -70,8 +71,9 @@ check contamination against. Unhold it if a denominator is ever established.
 - **The probe sessions live in `~/.claude/projects/c--Users-Chris-Documents-Projects-rewrite-testing/`
   and none of them may be added to.** Each is one arm's evidence; a further turn fuses two triggers
   into one continuity sequence. Which is which: `6597c649` = arm F/window-reload, 7 turns, cold
-  start; `1b26f4d4` = arm F/host-restart, 7 turns, warm start; `157ef24e` = discarded, 1 turn,
-  contaminated, and now the control for the +284 measurement in Task 3. The scratch project
+  start; `1b26f4d4` = arm F/host-restart, 7 turns, warm start; `06de8063` = arm F/quit-relaunch,
+  7 turns, warm start; `157ef24e` = discarded, 1 turn, contaminated, and now the control for the
+  first-turn growth measurement in Task 3. The scratch project
   directory `~/Documents/Projects/rewrite-testing` is empty and must stay empty — a project
   `CLAUDE.md` appearing there would change the prefix under the probe.
 - **Do not write to `~/.claude/CLAUDE.md` or `MEMORY.md` while a probe session is open.** Both are
@@ -82,16 +84,18 @@ check contamination against. Unhold it if a denominator is ever established.
 
 **Re-run of the state check, 2026-08-30: reproduces.** `--min-create=0` over 369 files / 14,037
 turns gives 114 events, 33 unexplained, self-check 13,591 exact / 171 broken (79:1). Against
-2026-08-29's 367 / 13,963 the corpus grew and the counts did not, so the instrument is intact and
-the two surviving candidates are unchanged. Output in `.task3-probe/sweep-2026-08-30.txt`.
+2026-08-29's 367 / 13,963 the corpus grew and the counts did not, so the instrument is intact.
+Output in `.task3-probe/sweep-2026-08-30.txt`. It was two surviving candidates on that date and is
+one now — F closed later the same day (§2).
 
-**Next command — score arm 3c (quit-relaunch) once it has run.** Its predictions are in Task 3 and
-were committed before the run; score against them rather than restating them. A human runs the
-turns, because no session can type into the one under test.
+**Next command — score arm 3d (permission mode) once it has run.** Its predictions are in Task 3
+and were committed before the run; score against them rather than restating them. A human runs the
+turns, because no session can type into the one under test. **Arm 3d reads its triggers at three
+boundaries, not one, so read the continuity table per pair rather than looking only at turn 7.**
 
 ```sh
 cd ~/Documents/Projects/claude-skills
-# 1. find the new transcript: the one that is neither 6597c649, 1b26f4d4 nor 157ef24e
+# 1. find the new transcript: the one that is none of 6597c649, 1b26f4d4, 06de8063, 157ef24e
 ls -t ~/.claude/projects/c--Users-Chris-Documents-Projects-rewrite-testing/*.jsonl
 
 # 2. per-turn continuity -- predictions 1, 2 and 4 read off this table directly.
@@ -99,21 +103,26 @@ ls -t ~/.claude/projects/c--Users-Chris-Documents-Projects-rewrite-testing/*.jso
 #    the probe prefix is ~53,000, so a real rebuild would sit on the threshold.
 python scripts/read-session-prefix.py '<the new transcript, as a WINDOWS path>'
 
-# 3. prediction 5 -- the bridge cluster, which is what makes a null readable
+# 3. prediction 3 -- the per-turn permissionMode label, which is what makes a null readable.
+#    Positive control: this returns 7 `acceptEdits` lines on 06de8063 [verified 2026-08-30].
+python -c "import json,sys; [print('rec %3d  %s' % (i, r.get('permissionMode'))) for i,r in enumerate(json.loads(l) for l in open(sys.argv[1],encoding='utf-8') if l.strip()) if isinstance(r,dict) and r.get('permissionMode')]" '<WINDOWS path>'
+
+# 4. the bridge cluster -- not a prediction for arm E, but free, and it is how the three F arms
+#    established that their trigger fired at all
 python -c "import importlib.util as u; sp=u.spec_from_file_location('sw','scripts/sweep-cache-rewrites.py'); m=u.module_from_spec(sp); sp.loader.exec_module(m); t,_=m.session_turns(r'<WINDOWS path>'); print(' '.join('t%d:%d'%(i,x['bridges_before']) for i,x in enumerate(t,1)))"
 ```
 
-**Expected on a null** (predictions 1 and 2 both holding): seven turns, every continuity cell `OK`,
-`version` `2.1.251` throughout, bridge signature ending `t7:>=1`. **Expected on a hit:** turn 7
-reads `REWRITE`, and then read the offset against 908 and whether `cache_read` fell to 0 or to
-24,939 — prediction 6, and those are two different mechanisms.
+**Expected on a null** (prediction 2 missing): seven turns, every continuity cell `OK`, `version`
+`2.1.251` throughout, and the mode label changing at turns 4, 6 and 7 — the label is what makes the
+null readable, so check it before recording anything. **Expected on a hit:** one of turns 4, 6 or 7
+reads `REWRITE`; then read which transition it was, the offset against 908, and whether `cache_read`
+fell to 0 or to 24,939 — prediction 5, and the last two are different mechanisms.
 
 **Hand Python a Windows path, never a `/c/...` one.** Git Bash's form reaches a Windows interpreter
 as a relative path and raises `FileNotFoundError` on a file that exists `[2026-08-30]`.
 
-**Then arm 3d (permission mode)** — same session shape, trigger = leaving plan mode, which is the
-transition two of the three observed events share. Write its predictions before running it, as
-3a-3c did. Task 4 is what remains after that.
+**Then Task 4**, unless arm E hits or its predictions 3/6 send you to an `ExitPlanMode` arm first.
+Arm B (3e) stays blocked on a non-VS Code entrypoint and is not in the critical path.
 
 **Do not spend a session on an extension update.** §2 records why that member cannot produce an
 unexplained event: a trigger that moves the version string tests an already-explained cause, which
@@ -190,7 +199,8 @@ unexplained set. **Permission mode sits at 8.1x on n=3** — `plan→auto`, `aut
 could have produced. Treat it as a lead, not a finding: one of the three is a `cache_read == 0`
 event, the control was refined after seeing the data, `permissionMode` appears on only ~1,357
 records, and direction of causation is untested. Two of three involve leaving plan mode, which is
-a mechanism rather than a bare correlation.
+a mechanism rather than a bare correlation. **This is the last surviving lead as of 2026-08-30, and
+its arm has predictions written** — see "Predictions for arm E" in Task 3.
 
 **F. The extension host restarts, re-registering the IDE connection and changing the tool block.**
 Proposed 2026-08-29. A *family*, not one event — a manual window reload, an extension restart, an
@@ -251,7 +261,15 @@ and extension restart untouched, since both predict the uniform scatter observed
 narrowly**: `version` is the Claude Code version, and whether a VS Code extension update bumps that
 field is unestablished — if it does not, the proxy never tracked the thing it stood in for.
 
-**Run this family first in Task 3**, because one deliberate action tests it and no analysis will.
+**Closed 2026-08-30, after three arms.** Window reload, extension-host restart and full
+quit-relaunch each produced the reconnect signature and each left the prefix exactly where continuity
+predicts; Task 5 found reconnects no commoner before an unexplained event than before an ordinary
+turn. The quit arm is the one that matters most, because it tested *resumption from disk* rather
+than reconnection with the conversation still in memory, and that was the last version-silent
+mechanism the family had. What remains untested is a VS Code application update, which cannot be
+triggered on demand — and the update member that can be, a Claude Code extension update, is excluded
+by construction above. Treat F as falsified for the 33 unless the application-update remnant is
+reached some other way; Task 4's request-body diff is that other way.
 
 ---
 
@@ -371,7 +389,8 @@ without emitting a `tool_use` — see candidate F. The 829-line dump stayed in
 ## Task 3: Reproduce on demand in a cheap session
 
 **Unblocked 2026-08-29. Tasks 1 and 2 eliminated A, C and D and left exactly two candidates: F
-(extension host restart) and E (permission mode).** Run F first — one deliberate action tests it,
+(extension host restart) and E (permission mode). F closed on 2026-08-30 across three arms, so E is
+the only one left to run — Step 3's ordering below is kept as written at the time.** Run F first — one deliberate action tests it,
 and no amount of further analysis will. The question is about request structure and is
 model-independent, so this runs on `claude-haiku-4-5`, not on Opus.
 
@@ -591,6 +610,130 @@ turns 2-6:  ok / still there? / yes / fine / good
 turn 7:     still there?
 ```
 
+### Result, 2026-08-30 — arm F/quit-relaunch returned a null, and it resumed in place
+
+Session `06de8063`, 7 turns, warm start at `cache_read` 24,939.
+
+| # | Prediction | Outcome |
+|---|---|---|
+| 1 | Baseline holds, creates order 10^2 | **HIT** — turns 2-6 all exact; creates 255, 183, 133, 138, 182 |
+| 2 | The first post-relaunch turn rewrites, 53-54K | **MISS** — turn 7 read 52,907 against 52,725 + 182 expected. Exact. Nothing collapsed |
+| 3 | Validity: does it append to the same transcript? | **HIT**, and the arm's largest risk did not materialise — see below |
+| 4 | Version stays `2.1.251` | **HIT** — throughout |
+| 5 | A `bridge-session` record on the post-relaunch turn | **HIT** — three of them; `bridges_before` reads `t1:2 … t7:3` |
+| 6 | If 2 hits, read the offset and the collapse floor | **N/A** — no rewrite to measure |
+
+**Prediction 3 was the risk that would have voided the arm, and it came back the informative way.**
+A full quit of every VS Code window ends the process; the relaunch reattached to `06de8063` rather
+than opening a fresh transcript, so the resumption path this arm was built to test actually ran. The
+`bridgeSessionId` is also unchanged across the quit — `cse_01UzPspyvRRphHMQGwmbA1zv` on both sides —
+which retires the id as a reconnect signal for a second reason, the record cluster again being the
+measurement to trust (Task 5, Step 1).
+
+**This is the strongest of the three F nulls, because it is the only one that tested resumption
+rather than reconnection.** The reload and host-restart arms left the conversation in memory, so the
+client never had to rebuild anything and the mechanism argument predicted their nulls. This one
+killed the process: the client reconstructed the conversation from disk, which is the path with a
+documented prefix-divergence precedent behind it (`claude-p-resume-prefix-divergence`,
+`claude-skills` store). It still sent the same bytes — 52,907 exactly where continuity predicts, on
+a 53,073-token prefix.
+
+**Three arms, three identical bridge signatures, and the base rate now argues the check is real
+rather than decorative.** Each probe session carries exactly one `bridge-session` cluster, on the
+trigger boundary and on none of the other five. Task 5 measured the per-boundary rate at 0.304 over
+sessions that can fire; if clusters fell at random, the chance of exactly one landing on the trigger
+boundary is 0.304 x 0.696^5 ≈ 0.05 per arm, ≈ 1e-4 across three. Read this as an argument and not a
+measurement — the base rate is borrowed from a different population, long working sessions rather
+than seven-turn probes. What it supports is that the cluster tracks the trigger and not the 87-second
+pause beside it, which no arm has yet separated by design.
+
+**Scope.** n=1 per member, a 52-53K prefix against corpus events at 78K-200K, one operator, one
+machine, all on `2.1.251`.
+
+**A second post-edit replicate turns the first-turn growth figure into a range and puts a noise floor
+under it.** `06de8063`'s first prompt is byte-identical to `1b26f4d4`'s — same version, same project,
+same warm `cache_read` of 24,939, and `~/.claude/CLAUDE.md` untouched between them `[verified
+2026-08-30: mtime 02:58:13Z, both sessions later]`. First-turn `cache_creation` is 27,077 against
+27,085: **8 tokens apart on identical inputs.** So against the pre-edit control `157ef24e` (26,801)
+the 192-word edit measures +276 and +284 — 1.44 to 1.48 tokens per word — and the session-to-session
+jitter on an unchanged prefix is about 8 tokens, not the ~1 token of prompt difference the first
+measurement assumed. What varies is untested; a per-session identifier in the system block is the
+obvious candidate, since this scoring session's own prompt carries its session UUID inside a
+scratchpad path. It does not threaten the 908 cluster in §1, which is two orders of magnitude above
+it.
+
+---
+
+### Predictions for arm E (permission mode), written 2026-08-30 before the run
+
+**Run it in a NEW session in the same scratch directory.** E is what is left: Task 1 step 3 put
+permission-mode transitions at 8.1x the same-session base rate on n=3, and every other candidate is
+either falsified or untestable here.
+
+**State the lead's weaknesses before predicting from it.** The 8.1x rests on three events; one of
+them is a `cache_read == 0` event with no floor; the control was refined after the data had been
+seen; and the direction of causation is untested, since a rewrite and a mode change could both be
+downstream of a third thing. What makes it worth a session anyway is that two of the three are
+`plan -> X`, which is a mechanism and not a bare correlation.
+
+**The instrument, validated before the arm rather than after** `[verified 2026-08-30]`:
+
+- `permissionMode` rides on `user` records, one per turn, and all four probe sessions carry it — 7
+  of 7 turns each, reading `acceptEdits` throughout. The label is emitted in exactly this session
+  shape, so a transition will be visible per turn.
+- There is also a dedicated `permission-mode` **record type**, and it cannot be used here: 10
+  records across 7 sessions, all on `2.1.212`-`2.1.221`, none on a current client. It is
+  version-gated the opposite way `bridge-session` is (Task 5), so building the validity check on it
+  would produce a structural blind rather than a null.
+
+**Three transitions in one session, not one.** Each is a separate turn boundary and continuity is
+read per pair, so one session buys three triggers without fusing them. Cycle the permission mode
+with shift+tab once before each of turns 4, 6 and 7. Do not assert which mode each cycle lands in —
+read it off the per-turn label afterwards. The corpus's three events are `plan->auto`,
+`auto->acceptEdits` and `plan->acceptEdits`, and a three-step cycle covers that family whatever
+order the client cycles in.
+
+1. **Baseline holds.** Turns 2-3, `cache_read[i] == crea[i-1] + read[i-1]` exact, creates order
+   10^2. Two clean pairs is thinner than the F arms' five; three prior sessions ran perfectly clean
+   baselines, so this is a considered trade for the extra triggers rather than an oversight.
+2. **At least one of the three transition boundaries rewrites** — turn 4, 6 or 7 reads a collapsed
+   `cache_read`, 0 or ~24,939, with `cache_creation` near the whole prefix. Stated as a hit against
+   three consecutive nulls, because E is the only candidate left carrying a positive signal.
+3. **Validity: the transitions are recorded.** The per-turn `permissionMode` label changes at turns
+   4, 6 and 7. If it reads `acceptEdits` on all seven, the trigger never reached the client state
+   the corpus predicate is defined on, and a null on 2 is uninformative rather than confirming —
+   the role prediction 4 played in arm F/host-restart. Redo the arm; do not interpret it.
+4. **Validity: same session file, same `version` `2.1.251`.** Either move voids the arm (§2).
+5. **If 2 hits, read three things in this order:** *which* transition did it, since a `plan->X`
+   boundary firing where `auto->acceptEdits` does not is sharper than any of them firing; the offset
+   against 908 (§1); and whether `cache_read` collapses to 0 or to 24,939, which separates a
+   whole-prefix rebuild from a rebuild above a surviving tool block.
+6. **A miss on 2 does not clear E, and the successor is named now.** Shift+tab changes the mode and
+   nothing else, while `ExitPlanMode` changes the mode *and* injects a plan document plus an
+   approval. Two of the three corpus events are plan exits and may be the second form. A null here
+   sends you to an `ExitPlanMode` arm; only a null there unparks Task 4.
+
+```text
+turn 2:  ok
+turn 3:  still there?
+--- shift+tab once ---
+turn 4:  yes
+turn 5:  fine
+--- shift+tab once ---
+turn 6:  good
+--- shift+tab once ---
+turn 7:  still there?
+```
+
+Predictions 1, 2 and 4 read off `python scripts/read-session-prefix.py '<WINDOWS path>'`. Prediction
+3 reads off this, which prints one line per labelled record and returned 7 `acceptEdits` lines on
+`06de8063` as its positive control `[verified 2026-08-30]`:
+
+```sh
+python -c "import json,sys; [print('rec %3d  %s' % (i, r.get('permissionMode'))) for i,r in enumerate(json.loads(l) for l in open(sys.argv[1],encoding='utf-8') if l.strip()) if isinstance(r,dict) and r.get('permissionMode')]" '<WINDOWS path>'
+```
+
+---
 
 **Step 2 — establish a quiet baseline.** In a scratch directory, run five or six trivial turns with
 no tool use and confirm the prefix is stable — `cache_read[i] == crea[i-1] + read[i-1]` on every
@@ -599,13 +742,14 @@ trigger.**
 
 **Step 3 — trigger one candidate**, mid-session, changing nothing else.
 
-- **F, and run it first.** Reload the VS Code window, then send one more trivial turn. The family
-  has several members and they are separate arms, not one test: a manual reload, an extension
-  restart, and an extension update followed by a reload. Run the manual reload first because it is
-  the only one that can be triggered on demand. If it reproduces, the others are variants of a
-  known mechanism rather than open questions.
-- **E.** Change permission mode mid-session — leaving plan mode is the transition two of the three
-  observed events share — then send one trivial turn.
+- **F — done, three arms, all null (3a, 3b, 3c).** Reload the VS Code window, then send one more
+  trivial turn. The family has several members and they are separate arms, not one test: a manual
+  reload, an extension restart, and an extension update followed by a reload. Run the manual reload
+  first because it is the only one that can be triggered on demand. If it reproduces, the others are
+  variants of a known mechanism rather than open questions. *In the event none reproduced, and the
+  quit-relaunch arm added a fourth member the list did not have — resumption from disk.*
+- **E — next, and the predictions are written above.** Change permission mode mid-session — leaving
+  plan mode is the transition two of the three observed events share — then send one trivial turn.
 - **B.** Run the identical script under `cli` and under `claude-vscode`. This is the one pair the
   corpus cannot supply, and the arms must differ only in entrypoint.
 
