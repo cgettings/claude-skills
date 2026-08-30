@@ -6,8 +6,10 @@ often; it does not establish **why**. This plan is the cheapest ordered path to 
 
 The constraint is cost, and it is taken seriously here: **Tasks 1 and 2 spend nothing** — they are
 re-questions of data already on disk — and each is capable of ending the investigation on its own.
-Only Task 3 spends tokens, and only Task 4 costs real build time. Do not start at Task 4 because it
-is the one already designed.
+Only Task 3 spends tokens. **Task 4 was the one that would have cost real build time, and it was
+retired unbuilt on 2026-08-30** when the field it was going to reconstruct turned out to be in the
+transcript already (Task 6). The ordering principle survives its own best example: the expensive
+instrument was the one already designed, and being designed is not a reason to reach for it.
 
 **Zero API spend is not zero cost, so every step writes its per-event output to a file and prints
 only aggregates.** Tasks 1 and 2 buy no sessions, but they run *inside* one, and whatever an
@@ -19,23 +21,30 @@ each step below names the file it writes and the aggregate it prints, all such f
 and the dump is opened only when an aggregate is surprising — with `grep` or `sed -n`, never whole.
 
 Sibling document: `docs/durable-memory-model.md`, on branch `feature-durable-memory-model`, not on
-this one. Its §5 Task 9 holds the proxy design that Task 4 below reuses, and its §0 is the ledger
+this one. Its §5 Task 9 holds the proxy design Task 4 was built on before that task was retired
+unbuilt, and its §0 is the ledger
 format this document borrows.
 
 ---
 
 ## 0. Ledger
 
-**Status as of 2026-08-30: every free question is now answered, both candidates are down, and Task 4
-is the only thing left.** Tasks 1, 2 and 5 are done. Task 3 ran four arms: the three F arms all
-returned nulls and closed that candidate, reconnection and resumption both. Arm E ran on Haiku,
-where entering plan mode swaps the model and effort, so its plan boundaries tested an
-already-explained cause — void, not a null. Task 1 Step 5 then asked the corpus directly, over 58
-mode-alone boundaries rather than the 3 the lead rested on: **pooled it reads 15x, and that is
-composition — mode changes sit at a median 487 s of idle against 13 s at a control boundary, and
-within gap bands nothing readable survives.** E is not supported, arm 3f is not worth buying, and
-**Task 4 (the logging proxy) is unparked unconditionally and is the next thing to do.** Arm B still
-has no non-VS Code entrypoint and is not in the critical path.
+**Status as of 2026-08-30: the residual set is not unexplained. The API labels 27 of the 33, and
+the label was in the transcript from the start.** `message.diagnostics.cache_miss_reason` gives
+**`tools_changed` 13, `messages_changed` 9, `system_changed` 5, absent 6** — see Task 6. The field
+validates on the explained population: all 16 `effort` switches read `unavailable`, all 3 model
+changes read `model_changed`, 29 of 30 TTL events read `previous_message_not_found`.
+
+**Three consequences, in order of how much they change.** **Candidate A is reopened and is the
+commonest cause in the residual set** — it was rejected on a `ToolSearch` call-frequency proxy while
+the direct field said `tools_changed`; D is reopened with it. **`messages_changed` is a class §2
+never contained**, and the undetected compaction family (§1.5, open item 1) is its leading
+explanation. **Task 4 is retired**: it existed to recover from request bytes a fact the server
+states in a field.
+
+Tasks 1, 2, 3 and 5 stand as run, but read their nulls narrowly — each tested a *trigger* predicate
+against a residual set that was never causeless. Arm B still has no non-VS Code entrypoint and is
+not in the critical path.
 
 | # | Task | Commit | Status | Proof that ran |
 |---|---|---|---|---|
@@ -47,9 +56,12 @@ has no non-VS Code entrypoint and is not in the critical path.
 | 3c | Task 3 arm F/quit-relaunch | `41e34cd` predictions, `ff2767a` result | **DONE 2026-08-30** — null | Session `06de8063`: turn 7 read 52,907 = 52,725 + 182, exact; resumed in place, same file and same `bridgeSessionId`; `bridges_before` `t1:2 … t7:3`. Predictions 1, 3, 4, 5 hit; 2 missed; 6 N/A |
 | 3d | Task 3 arm E (permission mode), on Haiku | `ff2767a` predictions, `8e072c6` result | **VOID 2026-08-30** for its two plan boundaries; one clean null beside them | Session `9e76ff00`: labels `acceptEdits→plan→default→acceptEdits`, so predictions 1, 3, 4 hit. Both rewrites carry `haiku/None → sonnet-5/high`, an already-explained cause. Boundary 6→7 mode-alone, read 54,230 = 52,472 + 1,758, exact |
 | 3e | Task 3 arm B (cli vs claude-vscode) | *no commit* | **Not started** — needs a non-VS Code entrypoint | — |
-| 3f | Task 3 arm E re-run, on a model whose plan mode is mode-alone | *no commit* | **NOT WORTH BUYING 2026-08-30** — Step 5 put E's signal down to gap composition. Unblock only if Task 4 turns up a mode-linked block; the two-turn pre-flight below still applies if it ever runs | — |
-| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* | **NEXT 2026-08-30** — unparked unconditionally; every free check is spent and no candidate survives | — |
+| 3f | Task 3 arm E re-run, on a model whose plan mode is mode-alone | *no commit* | **NOT WORTH BUYING 2026-08-30** — Step 5 put E's signal down to gap composition. Unblock only if a mode-linked block turns up; Task 4, which was that route, is retired, so the live route is the 5 `system_changed` events in Task 6. The two-turn pre-flight below still applies if it ever runs | — |
+| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* — never built | **RETIRED 2026-08-30** — superseded by Task 6. It existed to recover injected block identity from request bytes; `cache_miss_reason` states it directly, retroactively, corpus-wide | — |
 | 5 | Do the rewrites sit on a client reconnect? | `fd87d13` | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
+| 6 | Join the server's `cache_miss_reason` onto the events | see the commit that adds `scripts/join-cache-miss-reason.py` | **DONE 2026-08-30** — 27 of 33 labelled | `scripts/join-cache-miss-reason.py --min-create=0`: 376 files, 14,344 turns, 116 events, 33 unexplained. Instrument validated on the explained set (16/16 effort to `unavailable`, 3/3 model to `model_changed`) |
+| 7 | Audit the compaction classifier against the client's real compaction family | *no commit* | **NOT STARTED** — the leading explanation for `messages_changed` | — |
+| 8 | The 6 events carrying no diagnostics | *no commit* | **NOT STARTED** — genuinely open; the only members of the original 33 still causeless | — |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
 of the three bands. The bands did not survive re-baselining (§1), so there is nothing stable to
@@ -73,7 +85,7 @@ check contamination against. Unhold it if a denominator is ever established.
   `.task3-probe/`, `scripts/__pycache__/` and `scripts/plugin update scratch.md` are ignored on
   `feature-durable-memory-model`, whose `.gitignore` carries the rules; this branch's does not
   `[verified 2026-08-30: git check-ignore exits 1 on .task3-probe/ here]`. Stage by path here.
-  `.task3-probe/` holds eight files `[verified 2026-08-30: `ls -1`]`, including
+  `.task3-probe/` holds ten files `[verified 2026-08-30: `ls -1 | wc -l`]`, including `cache-miss-reason-join.txt` (Task 6's per-event detail) and
   `sweep-2026-08-30.txt`, the 69-row `arm-e-mode-effort-crosstab.txt` behind the arm E result, and a
   `CLAUDE.md.live-backup` this plan did not create. All of it is machine-local evidence rather than
   input — nothing here should be blocked by its absence, and none of it should be committed.
@@ -103,21 +115,27 @@ Output in `.task3-probe/sweep-2026-08-30.txt`. **Superseded by the last run of t
 classified; see Task 1 Step 5's result. Two candidates survived when this paragraph was written and
 none does now.
 
-**Next command — Task 4, the logging proxy.** It is the only step left: every free question the
-corpus can answer has been asked, and neither surviving candidate came through. Its design, and the
-two constraints that each cost a run to rediscover, are in Task 4 below. **Re-read its "capture a
-null-edit pair first" constraint before writing any of it** — without that control every observed
-difference between two request bodies is unattributable.
+**Next command — Task 7, the compaction-classifier audit.** `messages_changed` is 9 of the 33 and
+§2 holds no candidate for it. The classifier keys on `isCompactSummary` or a `system` subtype
+containing `compact`, which corpus-wide is 15 records, against a client instrumenting at least
+twelve distinct compaction events (§1.5). If a microcompact writes neither marker it reaches the
+residual set as unexplained. **Do not build the proxy** — Task 4 is retired and §1.5 says why.
 
 ```sh
 cd ~/Documents/Projects/claude-skills
 
-# reproduce the state this hand-off rests on: 115 events / 33 unexplained, and the Step 5 tables
+# the finding this hand-off rests on: coverage first, then the distribution.
+# 33 unexplained is stable; the EVENT total drifts upward as the live corpus grows
+# (115 on the morning of 2026-08-30, 116 that evening) -- the drift is not a fault.
+python scripts/join-cache-miss-reason.py --min-create=0 | head -22
+
+# Task 7 starts here: do the 9 messages_changed events carry a compaction marker the
+# classifier missed? Each line names its transcript and timestamp.
+grep messages_changed .task3-probe/cache-miss-reason-join.txt | grep UNEXPLAINED
+
+# the older state, if a Step 5 figure needs re-deriving
 python scripts/sweep-cache-rewrites.py --min-create=0 --step6 > .task3-probe/step5-rerun.txt 2>&1 ; \
   sed -n '/rewrite events:/p;/Task 1 Step 5/,$p' .task3-probe/step5-rerun.txt
-
-# the design Task 4 reuses, on a branch this one does not carry
-git show feature-durable-memory-model:docs/durable-memory-model.md | sed -n '/Task 9/,/^## /p'
 ```
 
 **Arm 3f is not worth buying on current evidence** and its row says so. If Task 4 ever turns up a
@@ -195,11 +213,129 @@ across versions and projects is a *fixed block* above the cache breakpoint, not 
 content. So the question remains "what fixed block was added, and by what" — but the offset is not
 currently a reliable instrument for answering it, and Task 1 step 4 is on hold because of that.
 
-**What the transcript cannot do.** It does not record injected instruction blocks — `grep -c
-system-reminder` returns 0 on these files — so the block's *content* is not recoverable from disk
-at any sample size. It does record every tool call, timestamp, version, effort, model, and
-entrypoint, which is enough to identify the block's *trigger*. Do not let the first fact retire the
-second.
+**~~What the transcript cannot do.~~ FALSE, corrected 2026-08-30 — see §1.5.** The claim was that
+the transcript does not record injected instruction blocks, on the evidence that `grep -c
+system-reminder` returns 0 on these files, and therefore that the block's *content* is not
+recoverable from disk at any sample size. **The transcripts do record injected blocks**, as
+`attachment` records: 18,988 of them across 376 files in 24 subtypes, several carrying the injected
+text verbatim — `mcp_instructions_delta` in `addedBlocks`, `agent_listing_delta` in `addedLines`,
+`nested_memory` in both `content` and `rawContent`. The grep searched for a string this format does
+not use, and a narrow search's zero was promoted into a property of the format. **Retract it
+wherever it has been quoted**: it is the sole justification for Task 4 existing, and it retired the
+cheapest instrument in the inventory before an inventory had been taken. The rest of the paragraph
+stands — the transcript also records every tool call, timestamp, version, effort, model and
+entrypoint, which is enough to identify the block's *trigger*.
+
+---
+
+## 1.5. The instrument inventory
+
+**This section exists because it was missing, and its absence cost the investigation two candidates
+and nearly cost it a build.** §2 enumerates candidate *mechanisms*; there was never a corresponding
+list of candidate *instruments*, so every task varied the hypothesis against the one instrument
+already in hand. When §1 declared the transcript unable to carry injected content, the plan reached
+for the most expensive instrument buildable — a local HTTP proxy — with nothing enumerated in
+between. Two tiers sat in that gap, and the transcript itself had not been exhausted.
+
+**Enumerating is mechanical and free, and needs no hypothesis.** `claude --help`; the binary's own
+string namespaces (`grep -oa 'tengu_[a-z0-9_]*'` returns **1,856** event names, `grep -oa
+'OTEL_[A-Z_]*'` the telemetry surface); and `ls ~/.claude`. **Do this before enumerating mechanisms,
+not after they run out.** The failure mode it prevents is specific: a grep run in the *confirmation*
+direction — once per member of a set already chosen — cannot surface a member nobody named. The
+enumeration direction is the same tool at the same cost.
+
+| # | Instrument | Sees | Blind to | Cost | Retroactive |
+|---|---|---|---|---|---|
+| I1 | Session transcripts `~/.claude/projects/*/*.jsonl` | turn usage, every tool call, **injected blocks as `attachment` records**, mode/version/effort/model/entrypoint | request bytes as sent; system-block assembly | free | **yes, full corpus** |
+| I2 | Telemetry spill `~/.claude/telemetry/1p_failed_events.*.json` | `tengu_*` events with env, betas, auth, per-event metadata | anything that uploaded successfully | free | no — biased remnant |
+| I3 | OTEL export (`CLAUDE_CODE_ENABLE_TELEMETRY`) | the full `tengu_*` stream, live | nothing the client does not instrument | one env var | no |
+| I4 | `--debug [filter]`, `--debug-file`, `ANTHROPIC_LOG=debug` | request URL, headers, timing, body *shape*, system-block **count** | `messages`, `system`, `tools` contents (elided as `[Object ...]`); no `usage` | one flag | no |
+| I5 | Hooks | anything, at defined lifecycle events | what no hook event fires on | small script | no |
+| I6 | Per-PID session records `~/.claude/sessions/<pid>.json` | `sessionId`, `cwd`, `startedAt`, `version`, `kind`, `entrypoint`, `peerFeatures` | anything mid-session | free | partial — live PIDs only |
+| I7 | `~/.claude/history.jsonl` | user prompt display text, timestamp, project, sessionId | everything else | free | yes |
+| I8 | Logging proxy on `ANTHROPIC_BASE_URL` | the actual request bytes | nothing, but costs a build | a day + SSE relay risk | no |
+
+**I1 is the instrument this plan wrote off, and it is the richest one.** 376 files, **84,165
+top-level records**, 19 record types `[verified 2026-08-30]`. **18,988 are `attachment` records** —
+more than the 16,406 `user` turns — in 24 subtypes, of which these carry injected content:
+
+| subtype | n | carries |
+|---|---|---|
+| `output_style` | 8,848 | the injected style block |
+| `total_tokens_reminder` | 6,174 | the `<total_tokens>` literal |
+| `deferred_tools_delta` | 409 | `addedNames`, `removedNames`, `readdedNames`, `wireHiddenNames` |
+| `skill_listing` | 395 | the skill roster |
+| `hook_additional_context` | 393 | hook-injected text |
+| `mcp_instructions_delta` | 387 | `addedBlocks` — the literal instruction text |
+| `agent_listing_delta` | 385 | `addedLines` — the literal roster text |
+| `command_permissions` | 249 | `allowedTools` |
+| `edited_text_file` | 175 | `snippet` |
+| `nested_memory` | 2 | `content` **and** `rawContent`, plus `contentDiffersFromDisk` |
+
+**Two of these are the direct record for candidates §2 A and D, which were falsified by proxy.**
+A was rejected on `ToolSearch` *call* frequency while `deferred_tools_delta` records the schema
+arrivals themselves; D was rejected on MCP tool *calls*, and §2 says in as many words that "a
+re-registration emits no `tool_use` record at all, so this predicate never tested it" —
+`mcp_instructions_delta` is that record. Neither falsification tested its candidate.
+
+**I1 has a parsing trap that silently halves the corpus.** Records are not one-per-line: some are
+pretty-printed across many lines. A line-oriented `json.loads` pass drops **102,219 lines** and
+still returns plausible counts `[verified 2026-08-30: 84,165 records via the sweep's records()
+against a naive per-line pass that failed on 102,219 lines]`. Always parse through
+`sweep-cache-rewrites.py`'s `records()`, which uses `raw_decode`. This is also why `grep -c
+system-reminder` was never a sound test of what the format holds.
+
+**I2 is proof of schema, not a corpus.** 3 files / 456 KB / **187 records from 3 sessions**, and
+they are there *because they failed to upload* — a biased remnant, not a log. It cannot be mined for
+the 33 events. What it does establish, from real records, is the event shape and that these fire:
+`tengu_claudemd__initial_load` (`file_count 3`, `total_content_length 55539`, `automem_count 1`),
+`tengu_cache_eviction_hint` (`scope`, `last_request_id`), `tengu_config_cache_stats` (`cache_hits`,
+`cache_misses`, `hit_rate`). Every record's `betas` list includes
+`mid-conversation-system-2026-04-07`.
+
+**I3 is where the unexamined surface is.** Of the 1,856 instrumented events, **249 match
+prefix-relevant terms**. These are grep hits — the names exist, and nothing here establishes that
+any fires or what it carries:
+
+- Directly on this question: `tengu_prompt_cache_break`, `tengu_prompt_cache_diagnosis_received`,
+  `tengu_prompt_cache_diagnostics`, `tengu_api_cache_breakpoints`, `tengu_cache_eviction_hint`,
+  `tengu_sysprompt_block`, `tengu_sysprompt_boundary_found`,
+  `tengu_sysprompt_missing_boundary_marker`, `tengu_sysprompt_using_tool_based_cache`.
+- Named injection paths: `tengu_lsp_diagnostics_injected`, `tengu_memdir_pinned_injected`,
+  `tengu_hook_plugin_injected`, `tengu_mid_conv_system_fallback_retry`,
+  `tengu_deferred_tool_schema_not_sent`, `tengu_reload_plugins_cache_impact`.
+- **A compaction family the sweep's classifier does not know about**:
+  `tengu_time_based_microcompact`, `tengu_partial_compact`, and ten
+  `tengu_precomputed_compact_*` events (`ready`, `consumed`, `discarded`, `rehydrated`,
+  `rehydrate_rejected`, `persisted`, …). See the open item below.
+
+`tengu_prompt_cache_diagnosis_received` is the highest-value name in the list, because a
+server-supplied miss reason has already been witnessed once on this machine: the
+`claude-p-resume-prefix-divergence` memory records that "the API labels the miss `system_changed`".
+
+**Open items, each with the command that settles it.**
+
+1. **Does the sweep's compaction classifier see a microcompact or a partial compact?** It keys on
+   `isCompactSummary is True` or a `system` record whose `subtype` contains `compact`
+   (`sweep-cache-rewrites.py`, `session_turns`). Corpus-wide there are only **15 `compact_boundary`
+   subtypes and 14 `isCompactSummary` records** — against a binary that instruments at least twelve
+   distinct compaction events. If a microcompact writes neither, it rewrites the prefix and reaches
+   the residual set as unexplained. **This is a live alternative explanation for the 33 and it is
+   free to test.** Note it also predicts the Step 5 gap result: a *time-based* microcompact is
+   driven by idle duration, so the 487 s median idle that Step 5 divided out as composition would be
+   the mechanism rather than a confound.
+2. **The `--debug` category list.** The filter is free-form and the identifiers are minified, so the
+   set is not recoverable from the bundle `[checked 2026-08-30: no DEBUG_CATEG*, debugCategor*,
+   debugFilter* or isDebugEnabled* symbols survive minification]`. `--help` names `api`, `hooks`,
+   `1p` and `file` as examples only. Settle it by running one throwaway with
+   `--debug --debug-file <path>` and reading the category prefixes actually emitted.
+3. **Which of the 249 events fire, and what they carry.** One throwaway session with
+   `CLAUDE_CODE_ENABLE_TELEMETRY=1 OTEL_LOGS_EXPORTER=console`, output redirected to a file. This is
+   a positive control for I3, not an experiment.
+
+**Not instruments, but state worth knowing exists**: `file-history/` (1,401 files / 31 MB),
+`shell-snapshots/` (53 / 3.3 MB), `plans/`, `backups/`, `cache/`, `uploads/`, `ide/*.lock`. None
+carries prompt-prefix information.
 
 ---
 
@@ -208,11 +344,14 @@ second.
 Originally ranked by how cheaply each could be falsified. Three of them now have been.
 
 **A. A deferred tool schema is fetched mid-session, growing the tool-definitions block.**
-**FALSIFIED 2026-08-29 by Task 2.** This was the investigation's leading bet: tool definitions sit
-above every cache breakpoint, the predicted offset is fixed per tool-set and steps with version,
-and the block would be absent from the transcript. All true, and all irrelevant — `ToolSearch`
-appears before events at 1.24/hour against a same-session control of 2.17, and first-use-of-any-tool
-at 3.73 against 7.13. Both *below* base rate.
+**REOPENED 2026-08-30, and it is the commonest cause in the residual set.** The server labels
+**13 of the 33 `tools_changed`** (Task 6) — the tool block is what moved. The 2026-08-29
+falsification stands as a fact about its own predicate and not about the candidate: `ToolSearch`
+appears before events at 1.24/hour against a control of 2.17, and first-use-of-any-tool at 3.73
+against 7.13, both below base rate. **Tool *calls* were never the mechanism.** A schema arriving
+changes the block whether or not anything calls it, and `attachment` records of subtype
+`deferred_tools_delta` — 409 corpus-wide, carrying `addedNames` and `removedNames` — are the direct
+record the predicate should have used. What is open is which arrivals coincide with the 13.
 
 **B. The IDE integration injects editor state** — opened file, selection — into the system block.
 Predicts events uncorrelated with anything the user typed, which matches. **The corpus cannot test
@@ -223,10 +362,14 @@ this and the gap is worse than first recorded**: by turns rather than transcript
 before events against 2.46 in the same sessions, and Task 1 step 3 agrees at 0.31 against 0.53. The
 2026-08-26 observation of 3 invalidations from 11 skill exits does not survive a base rate.
 
-**D. An MCP server reconnects or re-registers mid-session**, changing the tool block. **FALSIFIED
-for tool *calls*, untouched for tool *availability*.** Any MCP use runs 0.62/hour against 2.57, and
-first MCP use is 0 of 33 with a live probe (119 control hits). But a re-registration emits no
-`tool_use` record at all, so this predicate never tested it. See F.
+**D. An MCP server reconnects or re-registers mid-session**, changing the tool block. **REOPENED
+2026-08-30 alongside A**, and for the same reason: the 13 `tools_changed` events do not distinguish
+a deferred-schema arrival from an MCP re-registration, so both candidates are live and the test that
+separates them has not been run. The call-frequency figures stand and remain irrelevant — any MCP
+use runs 0.62/hour against 2.57, first MCP use is 0 of 33 with a live probe (119 control hits), and
+this document already recorded that "a re-registration emits no `tool_use` record at all, so this
+predicate never tested it." `mcp_instructions_delta`, 387 records carrying `addedBlocks`, is the
+record it should have used (§1.5).
 
 **E. The six ruled out on 2026-08-26, re-tested at n=33 — and one did not stay ruled out.**
 Skill exit, global `CLAUDE.md` edit and memory-store write all fire *below* the same-session base
@@ -317,7 +460,9 @@ than reconnection with the conversation still in memory, and that was the last v
 mechanism the family had. What remains untested is a VS Code application update, which cannot be
 triggered on demand — and the update member that can be, a Claude Code extension update, is excluded
 by construction above. Treat F as falsified for the 33 unless the application-update remnant is
-reached some other way; Task 4's request-body diff is that other way.
+reached some other way. Task 4's request-body diff was that other way and is retired; what replaces
+it is narrower and free — F now has to account for a specific 5 of the 33, the ones the server labels
+`system_changed` (Task 6), rather than for the residual set as a whole.
 
 ---
 
@@ -989,10 +1134,17 @@ over the new transcript.
 
 ## Task 4: The logging proxy
 
-**Unparked 2026-08-30, and it is now the next step.** The unpark condition was "Tasks 1-3 identify
-no block", and they have not: A, C and D fell to Task 2; F fell across three Task 3 arms and Task 5;
-E fell to Task 1 Step 5. Every free question the corpus can answer has been asked. What remains is
-the instrument that reads the bytes.
+**RETIRED 2026-08-30, unbuilt, and superseded by Task 6.** It was unparked that morning on the
+grounds that every free question had been asked. That was false: the transcript carried
+`message.diagnostics.cache_miss_reason`, which names the block that moved, on 82% of the residual
+set. The proxy would have reconstructed from request bytes a fact the server states in a field.
+
+**Kept for the reasoning, and for one lesson that generalises past it.** The task existed because
+§1's "the transcript cannot record injected blocks" was believed, and that claim rested on a single
+narrow grep. **The cost of an unexamined instrument claim is every task built downstream of it** —
+here, a planned build plus five tasks whose nulls were all measured against a residual set that was
+never causeless. The design below is still the right design *if* request bytes are ever genuinely
+needed; nothing currently needs them.
 
 **Files:**
 - a new local stub server, path to be chosen when the task starts
@@ -1090,16 +1242,85 @@ wait; a note that the arithmetic here differs from the general case.
 
 ---
 
+## Task 6: Ask the server why the cache missed
+
+**Opened and closed 2026-08-30, and it retires Task 4.** The API returns a diagnosis of the cache
+miss on the assistant message itself: `message.diagnostics.cache_miss_reason`, an object of
+`{"type": ..., "cache_missed_input_tokens": N}`. The sweep never read the field, so the entire
+residual "UNEXPLAINED" set was constructed without consulting the one thing that names the cause.
+
+**Files:**
+- `scripts/join-cache-miss-reason.py` — new; mirrors `session_turns()` and adds `diag`
+- `.task3-probe/cache-miss-reason-join.txt` — per-event detail, written and not read into session
+
+**Interfaces:** consumes the same turn construction and the same `classify()` as the sweep, so its
+event set is the sweep's event set. Produces a cause per event, or the absence of one.
+
+**Why the field was invisible until now.** It rides on `message.diagnostics`, a key the sweep does
+not touch — it reads `message.usage` and nothing else on the message. Enumerating the assistant
+record's keys is what surfaced it, which is §1.5's method applied to a record type rather than to
+a binary. `grep -c system-reminder` had already been read as settling what the transcript holds.
+
+**Reading rule, pre-registered before the run.** Coverage is read first and the distribution second.
+The predictions written down were: some of the 33 carry a reason; those that do read `system_changed`
+or `tools_changed`; and **if 0 of 33 carry the field the result is "no coverage", not "no cause"** —
+the same no-power distinction Task 5 turned on. Corpus-wide the field is on 1.1% of turns, so
+sparseness was the live risk.
+
+### Result, 2026-08-30 — 27 of 33 labelled, and candidate A is the commonest
+
+```
+files=376  turns=14344  events=116  unexplained=33
+COVERAGE  diagnostics present on 27 of 33 unexplained events (82%)
+          and on 156 of 14344 turns corpus-wide (1.1%)
+
+cache_miss_reason on the UNEXPLAINED events        on ALL 116 rewrite events
+   tools_changed      13                              previous_message_not_found  30
+   messages_changed    9                              system_changed              21
+   system_changed      5                              unavailable                 16
+   None                6                              tools_changed               16
+                                                      messages_changed            16
+                                                      None                        14
+                                                      model_changed                3
+```
+
+**The instrument validates on the explained population, which is what licenses reading the residual
+set from it.** The server's label and the sweep's independent classifier agree wherever the sweep
+already knew the answer: **all 16 `effort X->Y` events read `unavailable`** and every `unavailable`
+in the corpus is an effort switch; **all 3 model changes read `model_changed`** and every
+`model_changed` is a model change; 29 of 30 `previous_message_not_found` are TTL events. Three
+independent exact correspondences on causes derived from different fields. `unavailable` also
+corroborates the `effort-switch-cache-lineages` memory directly — a switch to a level with no live
+entry has no lineage to read, and that is what the server calls it.
+
+**Predictions 1 and 2 hit; the no-power condition did not fire** (27 of 33, not 0).
+
+**What the label does and does not settle.** It names *which block* moved — tools, system, or
+messages. It does not name what moved it. So §1's question splits cleanly and only the second half
+survives: 13 events asking what changes a tool roster mid-session, 9 asking what edits message
+history without writing a compact boundary, 5 asking what changes the system block, 6 unlabelled.
+
+**Read every earlier null narrowly from here.** Tasks 1, 2, 3 and 5 tested *trigger* predicates
+against a set assumed causeless. It never was. A null from those tasks says the predicate did not
+fire before these events; it does not say the events lacked a cause, and it never did.
+
+---
+
 ## 3. Considered and rejected
 
 - **Re-running the sweep on more data and waiting for the pattern to sharpen.** The corpus grows
-  by ordinary use, but every added session is uncontrolled, and the corpus has now been asked
-  every free question it can answer. More of the same data answers nothing new -- and since
+  by ordinary use, but every added session is uncontrolled. **"The corpus has been asked every free
+  question it can answer" stood here until 2026-08-30 and was false** — `cache_miss_reason` sat
+  unread in every transcript (Task 6); what had been exhausted was the set of questions anyone had
+  thought to ask. More of the same data still answers nothing new -- and since
   2026-08-29 the corpus also contains this investigation's own sessions, so added data is no
   longer independent of the measurement.
-- **Reading the transcripts for the injected block.** Settled and recorded: the blocks are not in
-  the JSONL `[verified 2026-08-28: parsed the message content of every record in 4489d30b's
-  transcript]`. This is the wall Task 4 exists to go around, not a gap to try harder at.
+- **~~Reading the transcripts for the injected block.~~ WRONG, corrected 2026-08-30.** The bullet
+  read: "the blocks are not in the JSONL `[verified 2026-08-28: parsed the message content of every
+  record in 4489d30b's transcript]`. This is the wall Task 4 exists to go around." The blocks are in
+  the JSONL, as `attachment` records (§1.5) — the 2026-08-28 check parsed *message content*, which
+  is the one place they are not. A verification scoped to the wrong container returns a clean null,
+  and this one closed off the cheapest instrument in the inventory for two days.
 - **Comparing IDE against CLI sessions in the existing corpus.** Cannot work: by turns it is
   13,952 `claude-vscode` against 3 `cli`. It becomes Task 3 Step 3 instead, as a deliberate pair.
 - **Asking the model what changed.** A session cannot see its own injected blocks any more reliably
