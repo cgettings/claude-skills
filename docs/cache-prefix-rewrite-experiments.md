@@ -40,7 +40,7 @@ has no non-VS Code entrypoint and is not in the critical path.
 | # | Task | Commit | Status | Proof that ran |
 |---|---|---|---|---|
 | 1 | Re-question the existing corpus | `cf4aae9`, `6229faa` | **DONE 2026-08-29** — steps 1-3; step 4 on hold | Step 1 expectation falsified; step 3 table below |
-| 1.5 | Task 1 Step 5 — re-test E over every mode-change boundary | *ledger commit follows* | **DONE 2026-08-30** — E not supported | 58 mode-alone boundaries; pooled 8/58 vs control 55/6,130, but median gap 487 s vs 13 s and no gap band with a readable n survives. Both pre-registered no-power conditions cleared |
+| 1.5 | Task 1 Step 5 — re-test E over every mode-change boundary | `be911f6` | **DONE 2026-08-30** — E not supported | 58 mode-alone boundaries; pooled 8/58 vs control 55/6,130, but median gap 487 s vs 13 s and no gap band with a readable n survives. Both pre-registered no-power conditions cleared |
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
 | 3a | Task 3 arm F/window-reload | `07bca1c`, `d343ce6` | **DONE 2026-08-30** — null | Session `6597c649`: turn 7 read 52,670 = 52,487 + 183, exact. Predictions 1, 4 hit; 2 missed; 3 N/A |
 | 3b | Task 3 arm F/host-restart | `d7cba60` predictions, `41e34cd` result | **DONE 2026-08-30** — null | Session `1b26f4d4`: turn 7 read 52,895 = 52,750 + 145, exact; `bridges_before` `t1:2 … t7:3`. All 4 predictions hit |
