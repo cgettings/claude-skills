@@ -36,8 +36,8 @@ arm E is unrun; Task 4 is unparked behind them.**
 | 1 | Re-question the existing corpus | `cf4aae9`, `6229faa` | **DONE 2026-08-29** — steps 1-3; step 4 on hold | Step 1 expectation falsified; step 3 table below |
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
 | 3a | Task 3 arm F/window-reload | `07bca1c`, `d343ce6` | **DONE 2026-08-30** — null | Session `6597c649`: turn 7 read 52,670 = 52,487 + 183, exact. Predictions 1, 4 hit; 2 missed; 3 N/A |
-| 3b | Task 3 arm F/host-restart | `d7cba60` predictions, *ledger commit follows* for the result | **DONE 2026-08-30** — null | Session `1b26f4d4`: turn 7 read 52,895 = 52,750 + 145, exact; `bridges_before` `t1:2 … t7:3`. All 4 predictions hit |
-| 3c | Task 3 arm F/quit-relaunch | *ledger commit follows* | **NEXT** — predictions written, run pending | — |
+| 3b | Task 3 arm F/host-restart | `d7cba60` predictions, `41e34cd` result | **DONE 2026-08-30** — null | Session `1b26f4d4`: turn 7 read 52,895 = 52,750 + 145, exact; `bridges_before` `t1:2 … t7:3`. All 4 predictions hit |
+| 3c | Task 3 arm F/quit-relaunch | `41e34cd` predictions | **NEXT** — predictions written, run pending | — |
 | 3d | Task 3 arm E (permission mode) | *no commit* | **Not started** | — |
 | 3e | Task 3 arm B (cli vs claude-vscode) | *no commit* | **Not started** — needs a non-VS Code entrypoint | — |
 | 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* | **UNPARKED 2026-08-30** — behind arms 3c and 3d, which are hours cheaper | — |
