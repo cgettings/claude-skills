@@ -26,16 +26,19 @@ format this document borrows.
 
 ## 0. Ledger
 
-**Status as of 2026-08-29: the free half is spent. Tasks 1 and 2 are done and between them
-eliminated most of the candidate field — including this investigation's own leading bet. No
-mechanism is identified. Everything that survives needs Task 3, which is now cheap and specific.**
+**Status as of 2026-08-30: Task 3's first arm ran and returned a null — a manual window reload
+does not move the prefix. No mechanism is identified. But the arm left a `bridge-session` marker
+in the transcript, which reopens a free line of attack (Task 5) and falsifies a claim this plan
+had recorded as verified: `bridgeSessionId` does rotate within a transcript, in 19 of 99. The free
+half was not as spent as the 2026-08-29 status said.**
 
 | # | Task | Commit | Status | Proof that ran |
 |---|---|---|---|---|
 | 1 | Re-question the existing corpus | `cf4aae9`, `6229faa` | **DONE 2026-08-29** — steps 1-3; step 4 on hold | Step 1 expectation falsified; step 3 table below |
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
-| 3 | Reproduce on demand in a cheap session | `07bca1c` | **IN PROGRESS 2026-08-30** — step 1 done, arm F; steps 2-4 pending an operator | Step 1 predictions below, committed before turn 2 of session `6597c649`; `read-session-prefix.py` controlled on a held-out session |
-| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit yet* | **Parked** — unparked only if Task 3 fails to identify the block | — |
+| 3 | Reproduce on demand in a cheap session | `07bca1c`, this commit | **ARM F/RELOAD DONE 2026-08-30** — returned a null; arms E, F/host-restart, B not run | 5 predictions scored: 1 and 4 hit, 2 missed, 3 N/A; reload independently witnessed |
+| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit yet* | **Parked** — unparked only once Tasks 3 and 5 are both spent | — |
+| 5 | Do the rewrites sit on a client reconnect? | *no commit yet* | **NEXT** — free, opened by Task 3 | — |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
 of the three bands. The bands did not survive re-baselining (§1), so there is nothing stable to
@@ -67,15 +70,18 @@ turns gives 114 events, 33 unexplained, self-check 13,591 exact / 171 broken (79
 2026-08-29's 367 / 13,963 the corpus grew and the counts did not, so the instrument is intact and
 the two surviving candidates are unchanged. Output in `.task3-probe/sweep-2026-08-30.txt`.
 
-**Next command — Task 3 steps 2 and 3, and they need a human at the keyboard.** The session under
-test is `6597c649` in a Haiku window on `~/Documents/Projects/rewrite-testing`; no session but that
-one can send its turns. Run the turn script in Task 3 Step 1, then read it:
+**Next command — Task 5, which is free and did not exist yesterday.** Task 3's reload arm returned
+a null but left a `bridge-session` marker, and that marker is checkable against the whole corpus
+without buying a session. Do it before paying for arm E or arm F/host-restart:
 
 ```sh
-python scripts/sweep-cache-rewrites.py --min-create=0 > .task3-probe/sweep-after.txt 2>&1
-# then the per-turn read, which is what Steps 2 and 4 actually check — the sweep's
-# PREV_MIN/CREATE_MIN floors are tuned for large sessions and this prefix is 51,743
+# add the bridge-session positional signature to --step2, then:
+python scripts/sweep-cache-rewrites.py --step2 --min-create=0 > .task3-probe/step2-bridge.txt 2>&1
+# read the frequency table only; the per-record dump stays in task2-antecedents.txt
 ```
+
+The probe session `6597c649` is finished and can be closed; its transcript is the Task 3 evidence
+and should not be added to.
 
 **Then Task 3, which is the only remaining path.** Its two candidates are E (permission mode,
 from Task 1 step 3) and F (extension host restart — window reload, extension restart, or an
@@ -160,14 +166,33 @@ Proposed 2026-08-29. A *family*, not one event — a manual window reload, an ex
 extension updating and then reloading, or a VS Code update. They share the mechanism that matters:
 the client re-registers its tools, and the tool block sits above every cache breakpoint.
 
-**Undefeated but unsupported, and the distinction matters** — it survives because it is largely
-untestable from disk, not because evidence favours it. Three reasons no free check reaches the
-family: Task 2 tests tool *calls* while a restart changes tool *availability*; `bridgeSessionId`
-never rotates within a transcript, so it cannot mark a reconnect `[verified 2026-08-29: 91
-transcripts carry one bridge id each, none carries two]`; and the entrypoint comparison has no
-control arm. It fits the shape better than A did — invisible in transcripts, uncorrelated with
+**Its on-demand member is now falsified, and the reason it looked untestable was a wrong
+reading of the transcript.** Task 3 ran a manual window reload mid-session on 2026-08-30 and the
+prefix did not move: `cache_read` 52,670 against 52,487 + 183 expected, exact, with the reload
+independently witnessed in the record stream. Details and scope limits in Task 3's result table.
+
+**Two of the three reasons this family was called untestable from disk do not survive.** Task 2
+testing tool *calls* against a mechanism that changes tool *availability* still stands, and the
+entrypoint comparison still has no control arm. The third was false:
+
+- **`bridge-session` records recur within a transcript, and they mark the reconnect.** The reload
+  emitted three of them in a cluster, at the same shape the session emits at startup. Corpus-wide,
+  99 transcripts carry at least one and the counts run to 139 in a single file `[verified
+  2026-08-30]`.
+- **The id does rotate, in about a fifth of them.** 80 transcripts carry one distinct
+  `bridgeSessionId`, **19 carry two** — dated 2026-08-12 to 2026-08-22, so all of them predate the
+  2026-08-29 check that reported "91 transcripts carry one bridge id each, none carries two"
+  `[verified 2026-08-30]`. That claim was wrong when it was made; corpus growth does not explain
+  it. **Retract it wherever it has been quoted.** The measurement to trust is the record cluster
+  rather than the id, since the probe's own reload kept its id.
+
+That gives the family a free check it was thought not to have — Task 5.
+
+It fits the shape better than A did — invisible in transcripts, uncorrelated with
 anything typed, commoner in long sessions, and a block whose size would step with version as IDE
-tool schemas change.
+tool schemas change. **The reload null narrows what "fits the shape" can mean:** a restart that
+changes no request bytes changes no cache, so the live version of F is a restart that changes what
+the client *injects*, not the restart itself.
 
 **One sub-variant has been tested and is not supported.** If updates drove it, events would cluster
 shortly after a version first appears on this machine. They do not: median age 16.3 h for the 33
@@ -375,6 +400,41 @@ turn 6:  good
 turn 7:  still there?
 ```
 
+### Result, 2026-08-30 — arm F/window-reload returned a null
+
+**The predictions were on disk before the run, and the commit is not what proves it.** Prediction
+write 02:09:31Z, first probe turn of the run 02:14:03Z, commit `07bca1c` 02:18:39Z — so the turns
+fall *between* the write and the commit, and priority is established by the session transcripts,
+not by the commit timestamp. Recorded because the natural reading of a `git log` here is the wrong
+one.
+
+| # | Prediction | Outcome |
+|---|---|---|
+| 1 | Baseline holds, creates order 10^2-10^3 | **HIT** — turns 2-6 all exact; creates 282, 172, 132, 158, 183 |
+| 2 | The reload turn rewrites, rebuild 52-55K | **MISS** — turn 7 read 52,670 against 52,487 + 183 expected. Exact. Nothing collapsed |
+| 3 | Offset 0 or +908 | **N/A** — no rewrite to measure |
+| 4 | Same file, same version | **HIT** — same `6597c649…jsonl`, `2.1.251` throughout. The arm is valid, so the null is readable |
+| 5 | A miss on 2 sends you to the other F members | **In force** |
+
+**The reload is witnessed independently of the operator's report, which matters because prediction
+4 could not check whether the trigger was actually pulled.** Between turn 6 (02:14:38) and turn 7
+(02:15:12) the transcript carries `last-prompt`, `ai-title`, `atis-latch` and **three
+`bridge-session` records** — the same shape the session emits at startup, and the only such cluster
+in the file. That is a client re-attach. It does not identify *which* command produced it, so read
+it as "the client reconnected", not as "Developer: Reload Window ran".
+
+**What this does and does not settle.** One reload, one session, n=1, at a 51,743-token prefix
+against corpus events that sit at 78K-200K. It falsifies the on-demand member of F at this size,
+and it does not reach `Developer: Restart Extension Host`, an extension update, or a VS Code
+update. **A mechanism argument now predicts that null, and it was not made before the run:** prompt
+caching is keyed on the request bytes, and a client restart does not by itself change the bytes the
+client will send next. So the F member worth testing is not "the host restarted" but "the restart
+changed what the client injects" — which reframes the remaining arms rather than merely queueing
+them.
+
+**Recommended next, and it is free: Task 5 below, before buying another arm.** The reload left a
+disk-visible marker, which is the thing this investigation has been short of.
+
 **Step 2 — establish a quiet baseline.** In a scratch directory, run five or six trivial turns with
 no tool use and confirm the prefix is stable — `cache_read[i] == crea[i-1] + read[i-1]` on every
 pair. **If the baseline rewrites on its own, stop: the effect is not the thing you were going to
@@ -434,6 +494,42 @@ rediscover:
 
 **Proof:** the diff of two request bodies across the trigger, with the null-edit pair beside it as
 the control.
+
+---
+
+## Task 5: Do the rewrites sit on a client reconnect?
+
+**Opened 2026-08-30 by Task 3, and it costs nothing.** The reload that failed to move the prefix
+did leave a marker — a cluster of `bridge-session` records. If those mark client reconnects
+generally, the corpus can be asked directly whether the 33 unexplained events sit on one, which is
+the question candidate F was thought to be unable to answer from disk.
+
+**Files:**
+- `scripts/sweep-cache-rewrites.py` — a sixth signature in the existing `--step2` machinery
+- `task2-antecedents.txt` — written, not read into the session
+
+**Interfaces:** consumes the Task 1 residual event set and Task 3's marker. Produces a hit, which
+gives F a disk-visible correlate and points Task 4 at a specific pair of turns to diff, or a null,
+which removes the last free check and unparks Task 4 unconditionally.
+
+**Step 1 — position the records, do not timestamp them.** `bridge-session` records carry no
+`timestamp` field `[verified 2026-08-30: the probe's five all have `timestamp: None`]`, so the
+probe's own cluster was located by file position, between records 62 and 71. The predicate is
+therefore "does a `bridge-session` record fall between the previous assistant turn and the
+rewriting turn", by file order. **This also means Task 2's per-hour normalisation cannot be
+reused** — normalise per turn-boundary instead, since a positional signal has no duration to
+divide by. Reusing the hourly denominator here would be the free-parameter error twice over.
+
+**Step 2 — run it against the same-session base rate**, the same control that made Task 2 sound.
+
+**Step 3 — expect the base rate to be high, and say so before running.** Counts run to 139
+records in a single transcript, so a majority of *all* boundaries may carry one. A signature that
+saturates is uninformative rather than confirming, and the pre-registered reading is: if the
+control rate is above roughly half, this check has no power and the result is "no power", not
+"no effect". That distinction is the whole point of writing it down first.
+
+**Proof:** hit rate against same-session base rate, per turn-boundary, with the control rate
+stated even when the arm is a null.
 
 ---
 
