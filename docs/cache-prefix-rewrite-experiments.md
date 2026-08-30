@@ -307,6 +307,14 @@ the 33 events. What it does establish, from real records, is the event shape and
 `cache_misses`, `hit_rate`). Every record's `betas` list includes
 `mid-conversation-system-2026-04-07`.
 
+**Two parsing traps, and both return a clean false zero rather than an error.** These files are
+multi-document despite the `.json` extension, so `json.load` raises `Extra data: line 2` and a
+reader that swallows it reports no records at all — use `sweep-cache-rewrites.py`'s `records()`,
+as with I1. And the event name lives at **`event_data.event_name`**, not at any top-level key, so
+a census keyed on `name` or `eventName` returns the right record count with zero names attached.
+That second one is the dangerous shape: 187 matches the figure above exactly, which reads as the
+reader being validated when only the reader was `[both hit 2026-08-30, during Task 7]`.
+
 **I3 is where the unexamined surface is.** Of the 1,856 instrumented events, **249 match
 prefix-relevant terms**. These are grep hits — the names exist, and nothing here establishes that
 any fires or what it carries:
@@ -1408,10 +1416,9 @@ simultaneously large insertion.
 to 187 records / 3 sessions / 35 distinct `event_name` values, the positive control fires (all
 three names §1.5 quotes are present), and no compaction-family name appears. That is not
 evidence — §1.5 already establishes I2 as a biased remnant of *failed uploads*, the three
-sessions are dominated by startup events, and nothing says any of them compacted. Two parsing
-notes for whoever reads these files next: they are multi-document, so `json.load` raises
-`Extra data` and a naive reader returns a clean, false zero; and the name lives at
-`event_data.event_name`, not at any top-level key.
+sessions are dominated by startup events, and nothing says any of them compacted. Both parsing
+traps this ran into are recorded in §1.5's I2 row, where the next reader of those files will be
+standing; the census returned a clean false zero twice before its positive control caught it.
 
 ### What the nine look like instead — an observation, not a tested result
 
