@@ -36,7 +36,7 @@ first because they are hours cheaper than a proxy: E (permission mode) and F/hos
 |---|---|---|---|---|
 | 1 | Re-question the existing corpus | `cf4aae9`, `6229faa` | **DONE 2026-08-29** — steps 1-3; step 4 on hold | Step 1 expectation falsified; step 3 table below |
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
-| 3 | Reproduce on demand in a cheap session | `07bca1c`, `d343ce6` | **ARM F/RELOAD DONE 2026-08-30** — returned a null; arms E, F/host-restart, B not run | 5 predictions scored: 1 and 4 hit, 2 missed, 3 N/A; reload independently witnessed |
+| 3 | Reproduce on demand in a cheap session | `07bca1c`, `d343ce6`, this commit | **ARM F/RELOAD DONE 2026-08-30** — null. Arm F/host-restart predictions written, run pending; arms E and B not run | 5 predictions scored: 1 and 4 hit, 2 missed, 3 N/A; reload independently witnessed |
 | 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit yet* | **UNPARKED 2026-08-30** — the free checks are spent and none identified a mechanism | — |
 | 5 | Do the rewrites sit on a client reconnect? | `fd87d13` | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
 
@@ -458,6 +458,45 @@ them.
 
 **Recommended next, and it is free: Task 5 below, before buying another arm.** The reload left a
 disk-visible marker, which is the thing this investigation has been short of.
+
+### Predictions for arm F/host-restart, written 2026-08-30 before the run
+
+**Run it in a NEW session, not in `6597c649`** — that transcript is the reload arm's evidence and
+adding to it would fuse two triggers into one continuity sequence. Same scratch directory is fine.
+
+**The honest prior is that this arm returns a null, and saying so before the run is the point.**
+`Developer: Reload Window` restarts the extension host as part of what it does, and it moved
+nothing. Caching is keyed on the request bytes, and neither action changes the bytes the client
+will send next. **The arm is still worth running because the containment is not clean:** a window
+reload recreates the webview *and* the host, while a host restart kills the host under a surviving
+webview. That is a different partition, not a smaller one, and it is the only member of F left that
+can be triggered on demand without moving the version string.
+
+1. **Baseline holds.** Turns 2-6, `cache_read[i] == crea[i-1] + read[i-1]` exact on every pair,
+   creates order 10^2-10^3.
+2. **The restart turn does not rewrite** — continuity holds across it, as it did across the reload.
+   Stated as the expected outcome, against the arm's own hypothesis.
+3. **Validity: same session file, same `version`.** A new file voids the arm; so does a version
+   move, and now for a sharper reason than last time — a trigger that moves the version has tested
+   an already-explained cause (§2), so the run says nothing about the 33 and is not a confound to
+   note but an arm to re-run.
+4. **A `bridge-session` cluster appears between the turns either side of the restart.** The reload
+   produced three. **This is the check the reload arm got only by luck, and it is what makes a null
+   readable:** if no cluster appears, the restart did not re-attach the bridge, so the arm did not
+   reach the mechanism the reload arm reached, and prediction 2's null is uninformative rather than
+   confirming. Read `bridges_before` on the post-restart turn.
+5. **A miss on 2 is the interesting branch.** If the prefix *does* rewrite where a full reload did
+   not, a host restart under a surviving webview is a real mechanism, and the offset should then be
+   checked against 908 — the one constant that survived all three denominators in §1.
+
+```text
+turns 2-6:  ok / still there? / yes / fine / good
+--- Developer: Restart Extension Host ---
+turn 7:     still there?
+```
+
+Read it with `python scripts/read-session-prefix.py <new transcript>`, which prints the version
+column prediction 3 needs; `bridges_before` for prediction 4 comes from `session_turns`.
 
 **Step 2 — establish a quiet baseline.** In a scratch directory, run five or six trivial turns with
 no tool use and confirm the prefix is stable — `cache_read[i] == crea[i-1] + read[i-1]` on every
