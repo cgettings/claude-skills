@@ -34,6 +34,9 @@ Usage:  python scripts/sweep-cache-rewrites.py [flags]
                          writes the per-record dump to task2-antecedents.txt and prints
                          only the frequency table
         --step3          re-test the explanations ruled out on 2026-08-26
+        --step5          do the events sit on a client reconnect (a bridge-session record)?
+                         Positional, not timestamped, and normalised per turn boundary --
+                         see step5's docstring for why it cannot reuse --step2's denominator
 
         Both step flags normalise by window duration. They have to: every predicate asks
         whether a timestamped signal fell inside a window, and event windows run longer
@@ -90,7 +93,13 @@ def parse_ts(value):
 def session_turns(path):
     """Deduplicated assistant turns for one transcript, plus its compaction timestamps."""
     turns, seen, compactions = [], set(), []
+    bridges = 0   # bridge-session records seen since the last counted turn; see below
     for rec in records(path):
+        # bridge-session records carry no timestamp, so build_timelines drops them and no
+        # timestamp-window predicate can ever see one. They are counted here, positionally,
+        # against the turn sequence itself -- which is the only alignment available.
+        if rec.get("type") == "bridge-session":
+            bridges += 1
         if rec.get("isCompactSummary") is True or (
             rec.get("type") == "system" and "compact" in str(rec.get("subtype", "")).lower()
         ):
@@ -114,6 +123,7 @@ def session_turns(path):
                 turns[-1]["abort_after"] = True   # an aborted turn precedes the next rebuild
             continue
         turns.append({
+            "bridges_before": bridges,
             "t": parse_ts(rec.get("timestamp")),
             "effort": rec.get("effort"),
             "model": msg.get("model"),
@@ -123,6 +133,7 @@ def session_turns(path):
             "total": inp + crea + read,
             "ttl5m": (usage.get("cache_creation") or {}).get("ephemeral_5m_input_tokens", 0),
         })
+        bridges = 0
     return turns, compactions
 
 
@@ -332,6 +343,110 @@ def step2(unexplained, boundaries, out_path):
         print("not as a task left unrun -- candidate B is what remains, and it needs Task 3.")
 
 
+def step5(unexplained, boundaries, bridge_at, bridge_totals, session_version):
+    """Task 5: do the unexplained events sit on a client reconnect?
+
+    Opened by Task 3 on 2026-08-30. A manual window reload emitted a cluster of three
+    bridge-session records between the turns either side of it, so those records mark a client
+    re-attach. This asks whether the 33 unexplained events sit on one.
+
+    Two things this predicate does NOT share with Task 2's, both of which would produce a
+    confident wrong answer if carried over:
+      * bridge-session records have no timestamp, so the window is positional -- "since the
+        previous counted turn" -- not an interval. There is no duration to normalise by, so the
+        denominator is the turn boundary, not the hour.
+      * the signal may saturate. Counts reach 139 records in one transcript. A control rate above
+        ~0.5 means the predicate is true of most boundaries and separates nothing, which is a
+        statement about power, not about the effect. Pre-registered before the run.
+    """
+    print()
+    print("=== Task 5: does a bridge-session record fall in the window? ===")
+
+    # Dead-probe check first, and it is specific to this signature: only some transcripts carry
+    # bridge-session records at all. An event hosted in a session with none is a structural zero
+    # -- the probe could not have fired there, so it is not evidence of absence.
+    no_bridge = [e for e in unexplained if not bridge_totals.get(e["path"], 0)]
+    print("host sessions carrying no bridge-session record at all: %d of %d events"
+          % (len(no_bridge), len(unexplained)))
+    if len(no_bridge) == len(unexplained):
+        print("DEAD PROBE -- no event could have shown this signature. No result.")
+        return
+
+    # And that absence is not evidence of anything: the record type is version-gated, so a
+    # session below the gate is structurally blind rather than reconnect-free. Derived here
+    # rather than asserted, because it is the difference between "23 events had no reconnect"
+    # -- which would have been a finding -- and "23 events ran on a client that never emitted
+    # the record", which is a limit on the instrument.
+    def vkey(v):
+        try:
+            return tuple(int(x) for x in str(v).split("."))
+        except (ValueError, AttributeError):
+            return (0,)
+    per_version = collections.defaultdict(lambda: [0, 0])
+    for path in bridge_totals:
+        row = per_version[session_version.get(path)]
+        row[1] += 1
+        if bridge_totals[path]:
+            row[0] += 1
+    gate = None
+    versions = sorted(per_version, key=vkey)
+    for i, v in enumerate(versions):
+        rest = versions[i:]
+        if all(per_version[w][0] == per_version[w][1] for w in rest) and                 sum(per_version[w][1] for w in rest) >= 10:
+            gate = v
+            break
+    if gate:
+        above = [per_version[w] for w in versions if vkey(w) >= vkey(gate)]
+        below = [per_version[w] for w in versions if vkey(w) < vkey(gate)]
+        print("the record type is VERSION-GATED at %s: %d/%d sessions carry one at or above it, "
+              "%d/%d below"
+              % (gate, sum(a for a, _ in above), sum(b for _, b in above),
+                 sum(a for a, _ in below), sum(b for _, b in below)))
+        print("so events below the gate are structurally blind, not reconnect-free.")
+
+    # Two populations, and the restricted one is the sound comparison. Pooling sessions that
+    # carry no bridge record at all dilutes both arms, but not by the same factor -- the events
+    # and the control boundaries are not distributed across those sessions in the same
+    # proportion. The population boundary is a free parameter here, so both settings are shown.
+    def rates(events, bounds):
+        h = sum(1 for e in events if bridge_at.get((e["path"], e["t"]), 0) > 0)
+        c = sum(1 for path, _, b in bounds if bridge_at.get((path, b), 0) > 0)
+        return (h, len(events), c, len(bounds),
+                h / float(len(events)) if events else 0.0,
+                c / float(len(bounds)) if bounds else 0.0)
+
+    live_ev = [e for e in unexplained if bridge_totals.get(e["path"], 0)]
+    live_bd = [b for b in boundaries if bridge_totals.get(b[0], 0)]
+
+    print()
+    print("%-26s %-16s %-16s %s" % ("population", "unexplained", "control", "per boundary"))
+    for label, ev, bd in (("all host sessions", unexplained, boundaries),
+                          ("sessions that CAN fire", live_ev, live_bd)):
+        h, ne, c, nb, er, cr = rates(ev, bd)
+        print("%-26s %-16s %-16s %.3f vs %.3f"
+              % (label, "%d / %d" % (h, ne), "%d / %d" % (c, nb), er, cr))
+    hits, _, ctrl, _, ev_rate, ct_rate = rates(live_ev, live_bd)
+    print()
+    print("Read the restricted row: the pooled row's denominators include %d events and %d"
+          % (len(unexplained) - len(live_ev), len(boundaries) - len(live_bd)))
+    print("boundaries where the probe could not have fired at all.")
+    print()
+    if ct_rate > 0.5:
+        print("NO POWER -- the signature is true of most boundaries, so it separates nothing.")
+        print("This is a statement about the probe, not about candidate F. Do not read it as a null.")
+    elif ctrl == 0 and hits == 0:
+        print("DEAD PROBE -- fires nowhere despite host sessions carrying records. Investigate.")
+    elif ev_rate >= 2.0 * ct_rate and hits:
+        print("ENRICHED %.1fx -- candidate F gets a disk-visible correlate. Confirm before" % (ev_rate / ct_rate))
+        print("believing it: Task 3 showed a reconnect that moved nothing, so a correlation here")
+        print("is not the same claim as the reload experiment tested.")
+    else:
+        print("TASK 5 RETURNED A NULL at n=%d: reconnects are no commoner before an event than"
+              % len(live_ev))
+        print("before an ordinary turn. Recorded as a result -- but state the n beside it. At this")
+        print("sample the check excludes a large effect only; it does not retire candidate F.")
+
+
 def step3(unexplained, boundaries, per_session, global_edits):
     """Re-test the ruled-out explanations at n=31, each beside a control that it can fire at all."""
     print()
@@ -385,12 +500,13 @@ def main():
     run_step3 = "--step3" in argv
     sensitivity = "--sensitivity" in argv
     run_step2 = "--step2" in argv
+    run_step5 = "--step5" in argv
     min_create = CREATE_MIN
     for arg in argv:
         if arg.startswith("--min-create="):
             min_create = int(arg.split("=", 1)[1])
     unknown = [a for a in argv if not a.startswith("--") or (
-        a not in ("--all", "--step3", "--sensitivity", "--step2")
+        a not in ("--all", "--step3", "--sensitivity", "--step2", "--step5")
         and not a.startswith("--min-create="))]
     if unknown:
         # A tool whose bare invocation is the useful one treats an unrecognised argument exactly
@@ -416,6 +532,17 @@ def main():
     # version AND a project, which is a property of the fixed blocks rather than of one session's
     # history. Both keys are needed: the always-loaded CLAUDE.md files sit above the breakpoint too
     # and differ per project, so a floor pooled across projects measures the wrong thing.
+    # Positional bridge-session index for Task 5, keyed the way events and boundaries are keyed.
+    # host_sessions counts only records that landed against a turn, which is deliberately the
+    # population the predicate can see -- records trailing after the final turn are invisible to
+    # it, so counting them would make the dead-probe check report power the probe does not have.
+    bridge_at, bridge_totals, session_version = {}, {}, {}
+    for path, turns, _ in sessions:
+        bridge_totals[path] = sum(t["bridges_before"] for t in turns)
+        session_version[path] = turns[0]["version"]
+        for t in turns:
+            bridge_at[(path, t["t"])] = t["bridges_before"]
+
     version_floor = {}
     for path, turns, _ in sessions:
         key = (turns[0]["version"], os.path.basename(os.path.dirname(path)))
@@ -537,7 +664,7 @@ def main():
               % (key[0], key[1][-38:], rows[0]["vfloor"], len(rows),
                  offsets[-1] - offsets[0], " ".join(str(o) for o in offsets)))
 
-    if run_step2 or run_step3:
+    if run_step2 or run_step3 or run_step5:
         host_sessions = set(e["path"] for e in unexplained)
         event_windows = set((e["path"], e["t_prev"], e["t"]) for e in unexplained)
         controls = [b for b in boundaries
@@ -547,6 +674,8 @@ def main():
     if run_step3:
         per_session, global_edits = collect_signals()
         step3(unexplained, controls, per_session, global_edits)
+    if run_step5:
+        step5(unexplained, controls, bridge_at, bridge_totals, session_version)
 
 
 if __name__ == "__main__":

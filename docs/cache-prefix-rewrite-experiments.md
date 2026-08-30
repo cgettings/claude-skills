@@ -26,19 +26,19 @@ format this document borrows.
 
 ## 0. Ledger
 
-**Status as of 2026-08-30: Task 3's first arm ran and returned a null — a manual window reload
-does not move the prefix. No mechanism is identified. But the arm left a `bridge-session` marker
-in the transcript, which reopens a free line of attack (Task 5) and falsifies a claim this plan
-had recorded as verified: `bridgeSessionId` does rotate within a transcript, in 19 of 99. The free
-half was not as spent as the 2026-08-29 status said.**
+**Status as of 2026-08-30: three nulls and no mechanism. A manual window reload does not move
+the prefix (Task 3, arm F/reload), and reconnects are not enriched before an event (Task 5, null
+at n=10). The free checks are now genuinely spent, so Task 4 — the logging proxy — is unparked and
+is the next thing that can answer the question. Two cheaper arms remain unrun and are worth doing
+first because they are hours cheaper than a proxy: E (permission mode) and F/host-restart.**
 
 | # | Task | Commit | Status | Proof that ran |
 |---|---|---|---|---|
 | 1 | Re-question the existing corpus | `cf4aae9`, `6229faa` | **DONE 2026-08-29** — steps 1-3; step 4 on hold | Step 1 expectation falsified; step 3 table below |
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
 | 3 | Reproduce on demand in a cheap session | `07bca1c`, this commit | **ARM F/RELOAD DONE 2026-08-30** — returned a null; arms E, F/host-restart, B not run | 5 predictions scored: 1 and 4 hit, 2 missed, 3 N/A; reload independently witnessed |
-| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit yet* | **Parked** — unparked only once Tasks 3 and 5 are both spent | — |
-| 5 | Do the rewrites sit on a client reconnect? | *no commit yet* | **NEXT** — free, opened by Task 3 | — |
+| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit yet* | **UNPARKED 2026-08-30** — the free checks are spent and none identified a mechanism | — |
+| 5 | Do the rewrites sit on a client reconnect? | this commit | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
 of the three bands. The bands did not survive re-baselining (§1), so there is nothing stable to
@@ -70,18 +70,19 @@ turns gives 114 events, 33 unexplained, self-check 13,591 exact / 171 broken (79
 2026-08-29's 367 / 13,963 the corpus grew and the counts did not, so the instrument is intact and
 the two surviving candidates are unchanged. Output in `.task3-probe/sweep-2026-08-30.txt`.
 
-**Next command — Task 5, which is free and did not exist yesterday.** Task 3's reload arm returned
-a null but left a `bridge-session` marker, and that marker is checkable against the whole corpus
-without buying a session. Do it before paying for arm E or arm F/host-restart:
+**Next command — Task 3's two unrun cheap arms, in a fresh scratch session, before Task 4.** Both
+are the same shape as the reload arm that already ran, so the predictions, the turn script and the
+reader are all reusable; only the trigger changes. Arm F/host-restart is `Developer: Restart
+Extension Host`; arm E is a permission-mode change, and leaving plan mode is the transition two of
+the three observed events share.
 
 ```sh
-# add the bridge-session positional signature to --step2, then:
-python scripts/sweep-cache-rewrites.py --step2 --min-create=0 > .task3-probe/step2-bridge.txt 2>&1
-# read the frequency table only; the per-record dump stays in task2-antecedents.txt
+# after the run, in the new session's transcript:
+python scripts/read-session-prefix.py ~/.claude/projects/<scratch-project>/<id>.jsonl
 ```
 
-The probe session `6597c649` is finished and can be closed; its transcript is the Task 3 evidence
-and should not be added to.
+Task 4 unparks if both miss. The probe session `6597c649` is finished, is the Task 3 evidence, and
+should not be added to.
 
 **Then Task 3, which is the only remaining path.** Its two candidates are E (permission mode,
 from Task 1 step 3) and F (extension host restart — window reload, extension restart, or an
@@ -530,6 +531,41 @@ control rate is above roughly half, this check has no power and the result is "n
 
 **Proof:** hit rate against same-session base rate, per turn-boundary, with the control rate
 stated even when the arm is a null.
+
+### Result, 2026-08-30 — a null on 10 of 33 events, and silent on the other 23
+
+**Instrument validated against a hand count first.** `session_turns` now carries a positional
+`bridges_before` per turn. On the probe session it returns 2, 0, 0, 0, 0, 0, 3 — matching the
+record listing counted by hand before the counter was written, including the reload cluster on
+turn 7. The headline sweep is unchanged by the edit: 114 events, 33 unexplained.
+
+| population | unexplained | control | per boundary |
+|---|---|---|---|
+| all host sessions | 3 / 33 | 436 / 3784 | 0.091 vs **0.115** |
+| sessions that can fire | 3 / 10 | 436 / 1436 | 0.300 vs **0.304** |
+
+**Both settings of the population boundary agree, and the restricted row is the one to read.**
+3 of 10 against an expected 3.0. Reconnects are no commoner before an unexplained event than
+before an ordinary turn.
+
+**The saturation risk pre-registered in Step 3 did not materialise** — the control rate is 0.304,
+well under the 0.5 at which the predicate would have separated nothing. So the probe had power in
+principle, and this is a null rather than a no-power.
+
+**But the probe is version-gated, and that is the finding with consequences.** `bridge-session`
+records exist only from **2.1.232** onward: 77 of 77 sessions at or above it carry at least one,
+3 of 197 below `[verified 2026-08-30, derived in `--step5` rather than asserted]`. So 23 of the 33
+events ran on a client that never emitted the record and are **structurally blind, not
+reconnect-free**. The tempting read — "23 events had no reconnect anywhere in their session" —
+would have been a finding, and it is wrong.
+
+**State the n beside the null: 10.** At a 0.304 base rate this excludes a large effect and nothing
+finer. It does not retire candidate F, and it should not be quoted as though it did.
+
+**This is the one question in §3's "wait for more data" bucket that genuinely gains power by
+waiting**, because every new session is above the gate — but only for events that arise in sessions
+uninvolved in this investigation, which is the same contamination §3 names. Not a recommendation to
+wait; a note that the arithmetic here differs from the general case.
 
 ---
 
