@@ -45,7 +45,7 @@ above base rate. Task 4 is unparked behind both; arm B still has no non-VS Code 
 | 3c | Task 3 arm F/quit-relaunch | `41e34cd` predictions, `ff2767a` result | **DONE 2026-08-30** — null | Session `06de8063`: turn 7 read 52,907 = 52,725 + 182, exact; resumed in place, same file and same `bridgeSessionId`; `bridges_before` `t1:2 … t7:3`. Predictions 1, 3, 4, 5 hit; 2 missed; 6 N/A |
 | 3d | Task 3 arm E (permission mode), on Haiku | `ff2767a` predictions, `8e072c6` result | **VOID 2026-08-30** for its two plan boundaries; one clean null beside them | Session `9e76ff00`: labels `acceptEdits→plan→default→acceptEdits`, so predictions 1, 3, 4 hit. Both rewrites carry `haiku/None → sonnet-5/high`, an already-explained cause. Boundary 6→7 mode-alone, read 54,230 = 52,472 + 1,758, exact |
 | 3e | Task 3 arm B (cli vs claude-vscode) | *no commit* | **Not started** — needs a non-VS Code entrypoint | — |
-| 3f | Task 3 arm E re-run, on the corpus model with effort pinned | *no commit* | **BLOCKED on Task 1 Step 5** — do not buy it until the free re-analysis says E is worth a session | — |
+| 3f | Task 3 arm E re-run, on a model whose plan mode is mode-alone | *no commit* | **BLOCKED on Task 1 Step 5** — do not buy it until the free re-analysis says E is worth a session. Sonnet is the intended model; run the two-turn pre-flight below before the full arm | — |
 | 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* | **UNPARKED 2026-08-30** — behind Task 1 Step 5 and arm 3f | — |
 | 5 | Do the rewrites sit on a client reconnect? | `fd87d13` | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
 
@@ -116,8 +116,17 @@ wc -l .task3-probe/arm-e-mode-effort-crosstab.txt 2>/dev/null ; ls .task3-probe/
 ```
 
 **Then, and only if Step 5 puts mode-alone boundaries above base rate, buy arm 3f** — arm E re-run
-on the model the corpus events ran on, with effort pinned. Do not re-run it on Haiku: entering plan
-mode there swaps in `claude-sonnet-5` at effort `high`, which is what voided 3d.
+with effort pinned, on a model whose plan mode does not swap the model out. Do not re-run it on
+Haiku: entering plan mode there swaps in `claude-sonnet-5` at effort `high`, which is what voided
+3d. Sonnet is the intended model and is cheaper than Opus, **but whether *its* plan mode is
+mode-alone is untested** — every corpus plan boundary is an Opus session, so there is no evidence
+either way and this must not be assumed.
+
+**Pre-flight for 3f, two turns rather than seven.** The fault that voided 3d was discoverable
+before the arm was spent, so spend two turns first: one ordinary turn, shift+tab into plan mode, one
+more turn. Then read the `model` and `effort` columns of `read-session-prefix.py`. **If either moves
+across that boundary, the model is unusable for this arm** — stop, and try the next one down rather
+than running the remaining five turns. Only if both hold is the full arm worth buying.
 
 **Reading a probe transcript, for whichever arm comes next:**
 
@@ -391,6 +400,28 @@ Four things this step must do, each of them a trap the earlier passes already pa
 `plan → X` subset above the rest. **Expected if E is the n=3 artifact it might be:** at or below
 base rate once the effort-carrying boundaries are removed, which retires the last candidate and
 unparks Task 4 unconditionally.
+
+**Pre-registered before the code was written, 2026-08-30.** Task 5's lesson is that a null and a
+no-power are indistinguishable after the fact, so the no-power conditions are named first:
+
+1. **Population and its blind spot.** `PREV_MIN` is 50,000, so no boundary in a session below that
+   prefix can register as an event at all. Report how many of the 69 clear it *before* reporting any
+   rate. **If fewer than 20 mode-alone boundaries clear `PREV_MIN`, this step has no power and the
+   answer is "no power", not "no effect"** — the same distinction Task 5 turned on.
+2. **The split is reported, never pooled.** Mode-alone boundaries against those also carrying an
+   effort, model or version change. The second group is void by construction — it tests an explained
+   cause, which is exactly what happened to arm 3d — and it is reported as a count, not as data.
+3. **Control: same-session boundaries with no mode change, also above `PREV_MIN`,** per turn
+   boundary. **If the control rate exceeds 0.5 the predicate separates nothing** and the result is
+   again no-power.
+4. **The `plan -> X` subset is expected to be underpowered and must not be read as a null.** The
+   scratch cross-tab found nine mode-alone plan boundaries corpus-wide, before any `PREV_MIN`
+   filter. Report its n beside its rate, and if the n is single-digit say so in place of a verdict.
+5. **Report both outcome definitions.** A rewrite event by the sweep's own criteria, and that subset
+   which classifies `UNEXPLAINED`. On a mode-alone boundary the two can differ only by TTL,
+   compaction or an aborted turn, so print those exclusions rather than letting them vanish.
+6. **Direction of causation is not resolvable here** and the write-up says so rather than implying
+   it. A mode change and a rewrite can both be downstream of the user starting something new.
 
 ---
 
