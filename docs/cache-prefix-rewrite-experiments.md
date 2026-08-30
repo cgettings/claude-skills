@@ -57,9 +57,10 @@ check contamination against. Unhold it if a denominator is ever established.
 
 **Environment state — not in this repo, and it goes with the machine.**
 
-- The corpus is `~/.claude/projects/*/*.jsonl`, **367 transcript files / ~13,970 turns and growing**. It is
-  live: this plan's own execution adds turns, so every count is only true on its date. Re-running
-  the sweep will not reproduce a figure exactly, and that is not a fault.
+- The corpus is `~/.claude/projects/*/*.jsonl`, **374 transcript files / 14,228 turns and growing**
+  `[measured 2026-08-30, the last run of the day; it was 367 / ~13,970 on 2026-08-29]`. It is live:
+  this plan's own execution adds turns, so every count is only true on its date. Re-running the
+  sweep will not reproduce a figure exactly, and that is not a fault.
 - **The corpus is now contaminated by this investigation and cannot be treated as independent.**
   Session `2e2d5ebe` on 2026-08-29 ran the sweep repeatedly, edited `~/.claude/CLAUDE.md` three
   times, and wrote to the memory store — three of the things the predicates test. Later runs must
@@ -97,8 +98,10 @@ check contamination against. Unhold it if a denominator is ever established.
 **Re-run of the state check, 2026-08-30: reproduces.** `--min-create=0` over 369 files / 14,037
 turns gives 114 events, 33 unexplained, self-check 13,591 exact / 171 broken (79:1). Against
 2026-08-29's 367 / 13,963 the corpus grew and the counts did not, so the instrument is intact.
-Output in `.task3-probe/sweep-2026-08-30.txt`. It was two surviving candidates on that date and is
-one now — F closed later the same day (§2).
+Output in `.task3-probe/sweep-2026-08-30.txt`. **Superseded by the last run of the same day** — over
+374 / 14,228 it reads 115 / 33, the one added event being arm 3d's own effort switch, correctly
+classified; see Task 1 Step 5's result. Two candidates survived when this paragraph was written and
+none does now.
 
 **Next command — Task 4, the logging proxy.** It is the only step left: every free question the
 corpus can answer has been asked, and neither surviving candidate came through. Its design, and the
