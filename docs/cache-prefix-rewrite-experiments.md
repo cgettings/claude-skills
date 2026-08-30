@@ -26,18 +26,21 @@ format this document borrows.
 
 ## 0. Ledger
 
-**Status as of 2026-08-30: three nulls and no mechanism. A manual window reload does not move
-the prefix (Task 3, arm F/reload), and reconnects are not enriched before an event (Task 5, null
-at n=10). The free checks are now genuinely spent, so Task 4 — the logging proxy — is unparked and
-is the next thing that can answer the question. Two cheaper arms remain unrun and are worth doing
-first because they are hours cheaper than a proxy: E (permission mode) and F/host-restart.**
+**Status as of 2026-08-30: four nulls and no mechanism. Tasks 1, 2 and 5 are done; Task 3 has run
+two of its four arms and both returned nulls. Candidate F is falsified in every member testable
+without a version bump. Arm F/quit-relaunch has predictions written and is the next thing to run;
+arm E is unrun; Task 4 is unparked behind them.**
 
 | # | Task | Commit | Status | Proof that ran |
 |---|---|---|---|---|
 | 1 | Re-question the existing corpus | `cf4aae9`, `6229faa` | **DONE 2026-08-29** — steps 1-3; step 4 on hold | Step 1 expectation falsified; step 3 table below |
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
-| 3 | Reproduce on demand in a cheap session | `07bca1c`, `d343ce6`, this commit | **ARM F/RELOAD DONE 2026-08-30** — null. Arm F/host-restart predictions written, run pending; arms E and B not run | 5 predictions scored: 1 and 4 hit, 2 missed, 3 N/A; reload independently witnessed |
-| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit yet* | **UNPARKED 2026-08-30** — the free checks are spent and none identified a mechanism | — |
+| 3a | Task 3 arm F/window-reload | `07bca1c`, `d343ce6` | **DONE 2026-08-30** — null | Session `6597c649`: turn 7 read 52,670 = 52,487 + 183, exact. Predictions 1, 4 hit; 2 missed; 3 N/A |
+| 3b | Task 3 arm F/host-restart | `d7cba60` predictions, *ledger commit follows* for the result | **DONE 2026-08-30** — null | Session `1b26f4d4`: turn 7 read 52,895 = 52,750 + 145, exact; `bridges_before` `t1:2 … t7:3`. All 4 predictions hit |
+| 3c | Task 3 arm F/quit-relaunch | *ledger commit follows* | **NEXT** — predictions written, run pending | — |
+| 3d | Task 3 arm E (permission mode) | *no commit* | **Not started** | — |
+| 3e | Task 3 arm B (cli vs claude-vscode) | *no commit* | **Not started** — needs a non-VS Code entrypoint | — |
+| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* | **UNPARKED 2026-08-30** — behind arms 3c and 3d, which are hours cheaper | — |
 | 5 | Do the rewrites sit on a client reconnect? | `fd87d13` | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
@@ -64,35 +67,57 @@ check contamination against. Unhold it if a denominator is ever established.
 - Commits on this machine are GPG-signed. `git commit` blocks on pinentry outside Claude Code, so
   give it a timeout above the 2-minute default `[2026-08-29: a signed commit blocked 2m, did not
   land, and was misreported as the approval gate]`.
+- **The probe sessions live in `~/.claude/projects/c--Users-Chris-Documents-Projects-rewrite-testing/`
+  and none of them may be added to.** Each is one arm's evidence; a further turn fuses two triggers
+  into one continuity sequence. Which is which: `6597c649` = arm F/window-reload, 7 turns, cold
+  start; `1b26f4d4` = arm F/host-restart, 7 turns, warm start; `157ef24e` = discarded, 1 turn,
+  contaminated, and now the control for the +284 measurement in Task 3. The scratch project
+  directory `~/Documents/Projects/rewrite-testing` is empty and must stay empty — a project
+  `CLAUDE.md` appearing there would change the prefix under the probe.
+- **Do not write to `~/.claude/CLAUDE.md` or `MEMORY.md` while a probe session is open.** Both are
+  always-loaded, so an edit lands inside the arm's measurement window. This happened on 2026-08-30:
+  a lessons pass edited the instructions file at 02:58:13Z, eight minutes into session `157ef24e`,
+  which was discarded for it. Hold any `distill-lessons` or `reconcile-records` pass until the open
+  arm is scored.
 
 **Re-run of the state check, 2026-08-30: reproduces.** `--min-create=0` over 369 files / 14,037
 turns gives 114 events, 33 unexplained, self-check 13,591 exact / 171 broken (79:1). Against
 2026-08-29's 367 / 13,963 the corpus grew and the counts did not, so the instrument is intact and
 the two surviving candidates are unchanged. Output in `.task3-probe/sweep-2026-08-30.txt`.
 
-**Next command — Task 3's two unrun cheap arms, in a fresh scratch session, before Task 4.** Both
-are the same shape as the reload arm that already ran, so the predictions, the turn script and the
-reader are all reusable; only the trigger changes. Arm F/host-restart is `Developer: Restart
-Extension Host`; arm E is a permission-mode change, and leaving plan mode is the transition two of
-the three observed events share. **Do not spend a session on an extension update** — §2 records why
-that member cannot produce an unexplained event. The version check the F arm needs already exists
-and already fired once: `read-session-prefix.py` prints `version` per turn, and Task 3's prediction
-4 read it. Its meaning is now sharper than when it was written — a trigger that moves the version
-string has tested an already-explained cause and says nothing about the 33, so that is a void arm
-rather than a confound to note.
+**Next command — score arm 3c (quit-relaunch) once it has run.** Its predictions are in Task 3 and
+were committed before the run; score against them rather than restating them. A human runs the
+turns, because no session can type into the one under test.
 
 ```sh
-# after the run, in the new session's transcript:
-python scripts/read-session-prefix.py ~/.claude/projects/<scratch-project>/<id>.jsonl
+cd ~/Documents/Projects/claude-skills
+# 1. find the new transcript: the one that is neither 6597c649, 1b26f4d4 nor 157ef24e
+ls -t ~/.claude/projects/c--Users-Chris-Documents-Projects-rewrite-testing/*.jsonl
+
+# 2. per-turn continuity -- predictions 1, 2 and 4 read off this table directly.
+#    Use THIS script, not the sweep: the sweep's PREV_MIN/CREATE_MIN floors are both 50,000 and
+#    the probe prefix is ~53,000, so a real rebuild would sit on the threshold.
+python scripts/read-session-prefix.py '<the new transcript, as a WINDOWS path>'
+
+# 3. prediction 5 -- the bridge cluster, which is what makes a null readable
+python -c "import importlib.util as u; sp=u.spec_from_file_location('sw','scripts/sweep-cache-rewrites.py'); m=u.module_from_spec(sp); sp.loader.exec_module(m); t,_=m.session_turns(r'<WINDOWS path>'); print(' '.join('t%d:%d'%(i,x['bridges_before']) for i,x in enumerate(t,1)))"
 ```
 
-Task 4 unparks if both miss. The probe session `6597c649` is finished, is the Task 3 evidence, and
-should not be added to.
+**Expected on a null** (predictions 1 and 2 both holding): seven turns, every continuity cell `OK`,
+`version` `2.1.251` throughout, bridge signature ending `t7:>=1`. **Expected on a hit:** turn 7
+reads `REWRITE`, and then read the offset against 908 and whether `cache_read` fell to 0 or to
+24,939 — prediction 6, and those are two different mechanisms.
 
-**Then Task 3, which is the only remaining path.** Its two candidates are E (permission mode,
-from Task 1 step 3) and F (extension host restart — window reload, extension restart, or an
-extension update followed by a reload; §2). Both are client-side, neither is visible in a
-transcript, and F is the one to run first because a single deliberate action tests it.
+**Hand Python a Windows path, never a `/c/...` one.** Git Bash's form reaches a Windows interpreter
+as a relative path and raises `FileNotFoundError` on a file that exists `[2026-08-30]`.
+
+**Then arm 3d (permission mode)** — same session shape, trigger = leaving plan mode, which is the
+transition two of the three observed events share. Write its predictions before running it, as
+3a-3c did. Task 4 is what remains after that.
+
+**Do not spend a session on an extension update.** §2 records why that member cannot produce an
+unexplained event: a trigger that moves the version string tests an already-explained cause, which
+voids an arm rather than confounding it.
 
 ---
 
@@ -497,6 +522,75 @@ turn 7:     still there?
 
 Read it with `python scripts/read-session-prefix.py <new transcript>`, which prints the version
 column prediction 3 needs; `bridges_before` for prediction 4 comes from `session_turns`.
+
+### Result, 2026-08-30 — arm F/host-restart returned a null, all four predictions hit
+
+Session `1b26f4d4`. Turns 2-6 exact (creates 228, 202, 127, 169, 145); turn 7 read 52,895 against
+52,750 + 145 expected, exact; same file, `2.1.251` throughout; and `bridges_before` reads
+`t1:2 … t7:3` — **byte-identical to the reload arm's signature**. Prediction 2 was written as a
+null and came back a null; predictions 1, 3 and 4 hit; 5 did not apply.
+
+**Prediction 4 is what makes this readable, and it worked as designed rather than by luck.** The
+restart produced the same reconnect signature as the window reload, so the trigger reached the same
+mechanism. This is "it fired and nothing happened", not "it never fired".
+
+**Two arms, one conclusion, and the mechanism argument predicted both.** Caching is keyed on the
+request bytes; neither a window reload nor a host restart changes the bytes the client will send
+next, and neither moved the prefix. Together with Task 5 — reconnects not enriched before an event
+— **F is falsified in every member that can be tested without a version bump.** Its update member
+is excluded by construction (§2). A VS Code application update is the only untested remnant, and
+arm F/quit-relaunch below is the closest thing to it that can be triggered on demand.
+
+**An incidental measurement, and it is clean: the always-loaded file's growth is +1.48 tokens per
+word.** Session `157ef24e` (02:50:28Z) was discarded as contaminated; it turned out to be the
+control arm for the thing that contaminated it. It and `1b26f4d4` (03:02:49Z) both start **warm at
+`cache_read` 24,939** — same cached block, same version, same project, 12 minutes apart — and
+straddle a `~/.claude/CLAUDE.md` edit at 02:58:13Z that added 192 words. First-turn
+`cache_creation`: **26,801 → 27,085, +284 tokens**. The two first prompts differ by three
+characters, so about one token of that is prompt. `MEMORY.md` was untouched and the memory files
+behind it are not loaded, so the instructions file is the only always-loaded change between them.
+This puts a measured token figure on a rule that until now cited byte sizes only.
+
+---
+
+### Predictions for arm F/quit-relaunch, written 2026-08-30 before the run
+
+**The trigger: quit every VS Code window, then reopen both.** Run the probe in a new session in the
+scratch directory.
+
+**This arm flips the direction of the prediction, and the reason is the point.** The two nulls so
+far both tested **reconnection with the conversation still in memory** — the process never died, so
+the client never had to rebuild anything. A full quit kills the process; on relaunch the client must
+reconstruct the conversation **from disk**. That is *resumption*, not reconnection, and it is the
+first arm with a documented prefix-divergence precedent behind it: `claude -p --resume` renders a
+different prefix than an interactive client (`claude-p-resume-prefix-divergence` memory,
+`claude-skills` store). It is also the closest on-demand approximation of the one F member left
+untested, a VS Code application update.
+
+1. **Baseline holds.** Turns 2-6 exact, creates order 10^2.
+2. **The first post-relaunch turn rewrites.** `cache_read` collapses — to 0, or to the ~24,939 warm
+   tool block — and `cache_creation` is roughly the whole prefix, 53,000-54,000. Stated as a hit
+   this time, against two consecutive nulls.
+3. **Validity, and this is the arm's largest risk: does it append to the same transcript?** A full
+   quit may not restore the session at all. **A new session file voids the arm** — `cache_read == 0`
+   on a first turn is expected by construction. But record which happened, because *"the relaunch
+   cannot resume in place"* is itself a result: a mechanism that cannot produce a mid-transcript
+   turn cannot explain any of the 33.
+4. **Version stays `2.1.251`.** A move voids the arm rather than confounding it (§2).
+5. **At least one `bridge-session` record on the post-relaunch turn.** Zero means the client did not
+   re-attach and the arm did not reach the mechanism the other two reached, which makes a null
+   uninformative rather than confirming.
+6. **If 2 hits, read two things before anything else:** the offset against 908 (§1), and whether
+   `cache_read` collapses to 0 or to 24,939. The second distinguishes *the whole prefix was
+   rebuilt* from *the conversation was rebuilt above a surviving tool block*, and those are
+   different mechanisms.
+
+```text
+turns 2-6:  ok / still there? / yes / fine / good
+--- quit every VS Code window, reopen both ---
+turn 7:     still there?
+```
+
 
 **Step 2 — establish a quiet baseline.** In a scratch directory, run five or six trivial turns with
 no tool use and confirm the prefix is stable — `cache_read[i] == crea[i-1] + read[i-1]` on every
