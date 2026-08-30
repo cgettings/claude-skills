@@ -25,12 +25,22 @@ Threshold caveat: CREATE_MIN is a floor on the *rebuild*, so this sees large reb
 A real compaction rewrite in session 2e2d5ebe on 2026-08-29 collapsed 232,740 -> 27,775 and
 rebuilt 46,219, and went unflagged. Read every count here as a lower bound, not a total.
 
-Usage:  python scripts/sweep-cache-rewrites.py [--all] [--step3]
-        --all    list every event, not only the unexplained ones
-        --step3  re-test the explanations ruled out on 2026-08-26, each against a control
-                 drawn from the same sessions and normalised by window duration
+Usage:  python scripts/sweep-cache-rewrites.py [flags]
+        --all            list every event, not only the unexplained ones
+        --sensitivity    event counts against a swept rebuild floor, before quoting any total
+        --min-create=N   rebuild floor for this run (default CREATE_MIN; counts are flat
+                         below 25,000, so 0 and 25,000 give the same answer)
+        --step2          what precedes each event, against the same-session base rate;
+                         writes the per-record dump to task2-antecedents.txt and prints
+                         only the frequency table
+        --step3          re-test the explanations ruled out on 2026-08-26
+
+        Both step flags normalise by window duration. They have to: every predicate asks
+        whether a timestamped signal fell inside a window, and event windows run longer
+        than ordinary ones, so raw counts show enrichment for signals that have none.
 """
 
+import bisect
 import collections
 import datetime
 import glob
@@ -201,6 +211,127 @@ def fired(kind, path, t_prev, t_cur, per_session, global_edits):
     return bool(inside) and (not before or any(v != before[-1] for v in inside))
 
 
+LEAD = 20   # records to include before the window: the trigger may precede the last clean turn
+
+
+def build_timelines(paths):
+    """Ordered (timestamp, record type, tool name) rows for the sessions that host events.
+
+    Restricted to host sessions on purpose -- the control windows are drawn from these same
+    sessions, so nothing outside them is ever queried, and walking all 367 transcripts to build
+    timelines that would go unread is the expensive way to get the same answer.
+    """
+    timelines = {}
+    for path in paths:
+        rows = []
+        for rec in records(path):
+            when = parse_ts(rec.get("timestamp"))
+            if when is None:
+                continue
+            rtype = str(rec.get("type") or "?")
+            content = (rec.get("message") or {}).get("content")
+            names = [b.get("name") or "?" for b in content
+                     if isinstance(b, dict) and b.get("type") == "tool_use"] \
+                if isinstance(content, list) else []
+            if names:
+                rows.extend((when, rtype, nm) for nm in names)
+            else:
+                rows.append((when, rtype, ""))
+        rows.sort(key=lambda r: r[0])
+        first_use = {}
+        for when, _, nm in rows:
+            if nm and nm not in first_use:
+                first_use[nm] = when
+        timelines[path] = (rows, [r[0] for r in rows], first_use)
+    return timelines
+
+
+def window_rows(timelines, path, t_prev, t_cur):
+    if path not in timelines or t_prev is None or t_cur is None:
+        return [], []
+    rows, times, _ = timelines[path]
+    lo = bisect.bisect_right(times, t_prev)
+    hi = bisect.bisect_right(times, t_cur)
+    return rows[max(0, lo - LEAD):lo], rows[lo:hi]
+
+
+def signature_hit(kind, timelines, path, t_prev, t_cur):
+    lead, inside = window_rows(timelines, path, t_prev, t_cur)
+    rows = lead + inside
+    if not rows:
+        return False
+    first_use = timelines[path][2]
+    if kind == "toolsearch":
+        return any(nm == "ToolSearch" for _, _, nm in rows)
+    if kind == "mcp":
+        return any(nm.startswith("mcp__") for _, _, nm in rows)
+    if kind == "mcp_first":
+        return any(nm.startswith("mcp__") and first_use.get(nm) == when for when, _, nm in rows)
+    if kind == "skill":
+        return any(nm == "Skill" for _, _, nm in rows)
+    if kind == "new_tool":
+        return any(nm and first_use.get(nm) == when for when, _, nm in rows)
+    return False
+
+
+def step2(unexplained, boundaries, out_path):
+    """Task 2: what immediately precedes each event, against the same-session base rate."""
+    hosts = sorted(set(e["path"] for e in unexplained))
+    timelines = build_timelines(hosts)
+
+    with open(out_path, "w", encoding="utf-8", newline="") as handle:
+        for idx, e in enumerate(unexplained):
+            lead, inside = window_rows(timelines, e["path"], e["t_prev"], e["t"])
+            handle.write("# EV%02d %s  %s  read=%d crea=%d  lead=%d window=%d\n"
+                         % (idx, e["when"], os.path.basename(e["path"])[:8],
+                            e["read"], e["crea"], len(lead), len(inside)))
+            for tag, rows in (("lead", lead), ("win", inside)):
+                for when, rtype, nm in rows:
+                    handle.write("EV%02d %s %-4s %-10s %s\n"
+                                 % (idx, when.isoformat()[:19], tag, rtype, nm))
+
+    def seconds(a, b):
+        return (b - a).total_seconds() if (a and b) else 0.0
+
+    ev_secs = sum(seconds(e["t_prev"], e["t"]) for e in unexplained)
+    ct_secs = sum(seconds(a, b) for _, a, b in boundaries)
+    print()
+    print("=== Task 2: what precedes each event (window + %d preceding records) ===" % LEAD)
+    print("dump written to %s -- %d events, %d control windows, same sessions"
+          % (out_path, len(unexplained), len(boundaries)))
+    print()
+    print("%-16s %-14s %-16s %-12s %-12s %s"
+          % ("signature", "unexplained", "control", "ev/hour", "ctrl/hour", "verdict"))
+    named = []
+    for kind, label in (("toolsearch", "ToolSearch"), ("mcp", "any MCP tool"),
+                        ("mcp_first", "first MCP use"), ("skill", "Skill enter/exit"),
+                        ("new_tool", "first use of tool")):
+        hits = sum(1 for e in unexplained
+                   if signature_hit(kind, timelines, e["path"], e["t_prev"], e["t"]))
+        ctrl = sum(1 for path, a, b in boundaries
+                   if signature_hit(kind, timelines, path, a, b))
+        ev_rate = hits / (ev_secs / 3600.0) if ev_secs else 0.0
+        ct_rate = ctrl / (ct_secs / 3600.0) if ct_secs else 0.0
+        if ctrl == 0 and hits == 0:
+            verdict = "DEAD PROBE -- fires nowhere, proves nothing"
+        elif hits == 0:
+            verdict = "absent before every event"
+        elif ct_rate and ev_rate / ct_rate >= 2.0:
+            verdict = "ENRICHED %.1fx" % (ev_rate / ct_rate)
+            named.append(label)
+        else:
+            verdict = "at base rate -- no signal"
+        print("%-16s %-14s %-16s %-12.2f %-12.2f %s"
+              % (label, "%d / %d" % (hits, len(unexplained)),
+                 "%d / %d" % (ctrl, len(boundaries)), ev_rate, ct_rate, verdict))
+    print()
+    if named:
+        print("Task 2 names: %s. Confirm in Task 3 before believing it." % ", ".join(named))
+    else:
+        print("Task 2 RETURNED A NULL: no signature clears its base rate. Recorded as a result,")
+        print("not as a task left unrun -- candidate B is what remains, and it needs Task 3.")
+
+
 def step3(unexplained, boundaries, per_session, global_edits):
     """Re-test the ruled-out explanations at n=31, each beside a control that it can fire at all."""
     print()
@@ -217,10 +348,6 @@ def step3(unexplained, boundaries, per_session, global_edits):
     # Control only on boundaries from the sessions that actually contain an event. An event window
     # sits in a busy session by construction, and every signal here clusters in busy sessions, so
     # a control drawn from all 367 transcripts would credit that clustering to the predicate.
-    host_sessions = set(e["path"] for e in unexplained)
-    event_windows = set((e["path"], e["t_prev"], e["t"]) for e in unexplained)
-    boundaries = [b for b in boundaries if b[0] in host_sessions and b not in event_windows]
-
     ev_secs = sum(seconds(e["t_prev"], e["t"]) for e in unexplained)
     ct_secs = sum(seconds(a, b) for _, a, b in boundaries)
     print("window exposure: unexplained %.1f h over %d windows, control %.1f h over %d windows"
@@ -253,8 +380,22 @@ def step3(unexplained, boundaries, per_session, global_edits):
 
 
 def main():
-    show_all = "--all" in sys.argv[1:]
-    run_step3 = "--step3" in sys.argv[1:]
+    argv = sys.argv[1:]
+    show_all = "--all" in argv
+    run_step3 = "--step3" in argv
+    sensitivity = "--sensitivity" in argv
+    run_step2 = "--step2" in argv
+    min_create = CREATE_MIN
+    for arg in argv:
+        if arg.startswith("--min-create="):
+            min_create = int(arg.split("=", 1)[1])
+    unknown = [a for a in argv if not a.startswith("--") or (
+        a not in ("--all", "--step3", "--sensitivity", "--step2")
+        and not a.startswith("--min-create="))]
+    if unknown:
+        # A tool whose bare invocation is the useful one treats an unrecognised argument exactly
+        # like no argument, so an unknown flag would silently run the default sweep instead.
+        sys.exit("unknown argument(s): %s" % " ".join(unknown))
     events = []
     boundaries = []
     stats = collections.Counter()
@@ -282,6 +423,31 @@ def main():
         if r > 0 and r < version_floor.get(key, 1 << 30):
             version_floor[key] = r
 
+    # Sensitivity of the headline counts to the rebuild floor. CREATE_MIN is not a property of the
+    # phenomenon, it is a choice, and it demonstrably hides real rewrites -- session 2e2d5ebe's own
+    # compaction rebuilt 46,219. Sweep it before quoting any total, so a lower bound is not read as
+    # a count. Cheap: the sessions are already parsed, so this only re-walks them in memory.
+    if sensitivity:
+        print("event counts against the rebuild floor (PREV_MIN and COLLAPSE held fixed):")
+        print("   %-12s %-10s %-14s %s" % ("min_create", "events", "unexplained", "share unexplained"))
+        for floor in (50000, 25000, 10000, 5000, 2000, 1000, 0):
+            n_all = n_unexp = 0
+            for path, turns, compactions in sessions:
+                for i in range(1, len(turns)):
+                    prev, cur = turns[i - 1], turns[i]
+                    if not (prev["total"] > PREV_MIN
+                            and cur["read"] < COLLAPSE * prev["total"]
+                            and cur["crea"] > floor):
+                        continue
+                    n_all += 1
+                    gap = ((cur["t"] - prev["t"]).total_seconds()
+                           if (cur["t"] and prev["t"]) else None)
+                    if classify(prev, cur, gap, compactions) == ["UNEXPLAINED"]:
+                        n_unexp += 1
+            print("   %-12d %-10d %-14d %.0f%%"
+                  % (floor, n_all, n_unexp, 100.0 * n_unexp / n_all if n_all else 0))
+        print()
+
     for path, turns, compactions in sessions:
         proj = os.path.basename(os.path.dirname(path))
         start_floor = turns[0]["read"]   # the already-warm tools/system block at session start
@@ -292,7 +458,7 @@ def main():
             boundaries.append((path, prev["t"], cur["t"]))
             if not (prev["total"] > PREV_MIN
                     and cur["read"] < COLLAPSE * prev["total"]
-                    and cur["crea"] > CREATE_MIN):
+                    and cur["crea"] > min_create):
                 continue
             gap = (cur["t"] - prev["t"]).total_seconds() if (cur["t"] and prev["t"]) else None
             events.append({
@@ -371,9 +537,16 @@ def main():
               % (key[0], key[1][-38:], rows[0]["vfloor"], len(rows),
                  offsets[-1] - offsets[0], " ".join(str(o) for o in offsets)))
 
+    if run_step2 or run_step3:
+        host_sessions = set(e["path"] for e in unexplained)
+        event_windows = set((e["path"], e["t_prev"], e["t"]) for e in unexplained)
+        controls = [b for b in boundaries
+                    if b[0] in host_sessions and b not in event_windows]
+    if run_step2:
+        step2(unexplained, controls, "task2-antecedents.txt")
     if run_step3:
         per_session, global_edits = collect_signals()
-        step3(unexplained, boundaries, per_session, global_edits)
+        step3(unexplained, controls, per_session, global_edits)
 
 
 if __name__ == "__main__":
