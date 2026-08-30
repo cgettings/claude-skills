@@ -34,7 +34,7 @@ mechanism is identified. Everything that survives needs Task 3, which is now che
 |---|---|---|---|---|
 | 1 | Re-question the existing corpus | `cf4aae9`, `6229faa` | **DONE 2026-08-29** — steps 1-3; step 4 on hold | Step 1 expectation falsified; step 3 table below |
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
-| 3 | Reproduce on demand in a cheap session | *no commit yet* | **IN PROGRESS 2026-08-30** — step 1 done, arm F; steps 2-4 pending an operator | Step 1 predictions below, written before turn 2 of session `6597c649` |
+| 3 | Reproduce on demand in a cheap session | `07bca1c` | **IN PROGRESS 2026-08-30** — step 1 done, arm F; steps 2-4 pending an operator | Step 1 predictions below, committed before turn 2 of session `6597c649`; `read-session-prefix.py` controlled on a held-out session |
 | 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit yet* | **Parked** — unparked only if Task 3 fails to identify the block | — |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
