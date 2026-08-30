@@ -36,9 +36,9 @@ first because they are hours cheaper than a proxy: E (permission mode) and F/hos
 |---|---|---|---|---|
 | 1 | Re-question the existing corpus | `cf4aae9`, `6229faa` | **DONE 2026-08-29** — steps 1-3; step 4 on hold | Step 1 expectation falsified; step 3 table below |
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
-| 3 | Reproduce on demand in a cheap session | `07bca1c`, this commit | **ARM F/RELOAD DONE 2026-08-30** — returned a null; arms E, F/host-restart, B not run | 5 predictions scored: 1 and 4 hit, 2 missed, 3 N/A; reload independently witnessed |
+| 3 | Reproduce on demand in a cheap session | `07bca1c`, `d343ce6` | **ARM F/RELOAD DONE 2026-08-30** — returned a null; arms E, F/host-restart, B not run | 5 predictions scored: 1 and 4 hit, 2 missed, 3 N/A; reload independently witnessed |
 | 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit yet* | **UNPARKED 2026-08-30** — the free checks are spent and none identified a mechanism | — |
-| 5 | Do the rewrites sit on a client reconnect? | this commit | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
+| 5 | Do the rewrites sit on a client reconnect? | `fd87d13` | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
 of the three bands. The bands did not survive re-baselining (§1), so there is nothing stable to
