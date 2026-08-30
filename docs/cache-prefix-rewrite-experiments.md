@@ -38,8 +38,9 @@ changes read `model_changed`, 29 of 30 TTL events read `previous_message_not_fou
 **Three consequences, in order of how much they change.** **Candidate A is reopened and is the
 commonest cause in the residual set** — it was rejected on a `ToolSearch` call-frequency proxy while
 the direct field said `tools_changed`; D is reopened with it. **`messages_changed` is a class §2
-never contained**, and the undetected compaction family (§1.5, open item 1) is its leading
-explanation. **Task 4 is retired**: it existed to recover from request bytes a fact the server
+never contained**, and **Task 7 has now retired its leading explanation**: the undetected
+compaction family (§1.5, open item 1) is real but marks nothing the classifier misses, and all
+nine prefixes grew rather than shrank, which no compaction does. **Task 4 is retired**: it existed to recover from request bytes a fact the server
 states in a field.
 
 Tasks 1, 2, 3 and 5 stand as run, but read their nulls narrowly — each tested a *trigger* predicate
@@ -59,8 +60,8 @@ not in the critical path.
 | 3f | Task 3 arm E re-run, on a model whose plan mode is mode-alone | *no commit* | **NOT WORTH BUYING 2026-08-30** — Step 5 put E's signal down to gap composition. Unblock only if a mode-linked block turns up; Task 4, which was that route, is retired, so the live route is the 5 `system_changed` events in Task 6. The two-turn pre-flight below still applies if it ever runs | — |
 | 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* — never built | **RETIRED 2026-08-30** — superseded by Task 6. It existed to recover injected block identity from request bytes; `cache_miss_reason` states it directly, retroactively, corpus-wide | — |
 | 5 | Do the rewrites sit on a client reconnect? | `fd87d13` | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
-| 6 | Join the server's `cache_miss_reason` onto the events | see the commit that adds `scripts/join-cache-miss-reason.py` | **DONE 2026-08-30** — 27 of 33 labelled | `scripts/join-cache-miss-reason.py --min-create=0`: 376 files, 14,344 turns, 116 events, 33 unexplained. Instrument validated on the explained set (16/16 effort to `unavailable`, 3/3 model to `model_changed`) |
-| 7 | Audit the compaction classifier against the client's real compaction family | *no commit* | **NOT STARTED** — the leading explanation for `messages_changed` | — |
+| 6 | Join the server's `cache_miss_reason` onto the events | `b1d62da` | **DONE 2026-08-30** — 27 of 33 labelled | `scripts/join-cache-miss-reason.py --min-create=0`: 376 files, 14,344 turns, 116 events, 33 unexplained. Instrument validated on the explained set (16/16 effort to `unavailable`, 3/3 model to `model_changed`) |
+| 7 | Audit the compaction classifier against the client's real compaction family | see the commit that adds `scripts/audit-compaction-markers.py` | **DONE 2026-08-30** — compaction is not the explanation | Two arms. Markers: the classifier is blind to `SessionStart:compact` (15/12 sessions) and queued `/compact` (11/8), and both are redundant with the two it sees — 0 of 9 events have any `compact`-bearing record in the boundary window; positive control 15 boundaries classify as `compaction`. Arithmetic: all 9 prefixes **grew**, +1,219 to +6,990 against session medians 821–1,313, 0 of 9 shrank |
 | 8 | The 6 events carrying no diagnostics | *no commit* | **NOT STARTED** — genuinely open; the only members of the original 33 still causeless | — |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
@@ -115,28 +116,41 @@ Output in `.task3-probe/sweep-2026-08-30.txt`. **Superseded by the last run of t
 classified; see Task 1 Step 5's result. Two candidates survived when this paragraph was written and
 none does now.
 
-**Next command — Task 7, the compaction-classifier audit.** `messages_changed` is 9 of the 33 and
-§2 holds no candidate for it. The classifier keys on `isCompactSummary` or a `system` subtype
-containing `compact`, which corpus-wide is 15 records, against a client instrumenting at least
-twelve distinct compaction events (§1.5). If a microcompact writes neither marker it reaches the
-residual set as unexplained. **Do not build the proxy** — Task 4 is retired and §1.5 says why.
+**Next command — the first-user-message diff, which is Task 7's own successor, then Task 8.**
+Task 7 excluded compaction and left one untested reading in its place: the nine `messages_changed`
+events rewrite everything below the tool-definitions breakpoint while the prefix *grows* by more
+than an ordinary turn, which is the shape of an insertion near the head of the messages array. I1
+holds the records to check it and it costs nothing. Task 8's 6 unlabelled events are still
+genuinely open and untouched. **Do not build the proxy** — Task 4 is retired and §1.5 says why.
 
 ```sh
 cd ~/Documents/Projects/claude-skills
 
 # the finding this hand-off rests on: coverage first, then the distribution.
 # 33 unexplained is stable; the EVENT total drifts upward as the live corpus grows
-# (115 on the morning of 2026-08-30, 116 that evening) -- the drift is not a fault.
+# (115 and 116 on 2026-08-30, 116 again at Task 7) -- the drift is not a fault.
 python scripts/join-cache-miss-reason.py --min-create=0 | head -22
 
-# Task 7 starts here: do the 9 messages_changed events carry a compaction marker the
-# classifier missed? Each line names its transcript and timestamp.
+# Task 7, to re-derive it. Prints its own positive control (expect: 15 boundaries
+# classify as `compaction`) and the arithmetic arm (expect: 0 of 9 shrank).
+python scripts/audit-compaction-markers.py > .task3-probe/task7-run.txt 2>&1 ; \
+  tail -20 .task3-probe/task7-run.txt
+
+# the nine events, each line naming its transcript and timestamp -- the input to
+# the next step, which is to diff their first user message's attachment records
 grep messages_changed .task3-probe/cache-miss-reason-join.txt | grep UNEXPLAINED
 
 # the older state, if a Step 5 figure needs re-deriving
 python scripts/sweep-cache-rewrites.py --min-create=0 --step6 > .task3-probe/step5-rerun.txt 2>&1 ; \
   sed -n '/rewrite events:/p;/Task 1 Step 5/,$p' .task3-probe/step5-rerun.txt
 ```
+
+**Three new scripts are untracked until the Task 7 commit lands**: `audit-compaction-markers.py`
+(the audit), `-values.py` (distinct values on the blind paths) and `-coverage.py` (whether the blind
+markers mark anything new). Each takes no arguments or one `--reason=LABEL`, and each rejects an
+unrecognised argument rather than treating it as none. Their outputs land in `.task3-probe/` as
+`task7-run.txt`, `task7-values.txt`, `task7-coverage.txt` and `compaction-marker-audit.txt`, which
+is machine-local evidence and not to be committed.
 
 **Arm 3f is not worth buying on current evidence** and its row says so. If Task 4 ever turns up a
 block that moves with permission mode, the arm becomes worth running again — and if it does, two
@@ -315,13 +329,17 @@ server-supplied miss reason has already been witnessed once on this machine: the
 
 **Open items, each with the command that settles it.**
 
-1. **Does the sweep's compaction classifier see a microcompact or a partial compact?** It keys on
+1. **SETTLED 2026-08-30 by Task 7 — the classifier's blind spot is real and marks nothing, and
+   the 9 `messages_changed` events are not compactions.** The original item is kept below
+   because its reasoning still holds; only its conclusion moved. **Does the sweep's compaction
+   classifier see a microcompact or a partial compact?** It keys on
    `isCompactSummary is True` or a `system` record whose `subtype` contains `compact`
    (`sweep-cache-rewrites.py`, `session_turns`). Corpus-wide there are only **15 `compact_boundary`
-   subtypes and 14 `isCompactSummary` records** — against a binary that instruments at least twelve
+   subtypes and 15 `isCompactSummary` records**
+   `[re-measured 2026-08-30 over 377 files; it was 15 and 14 on 376]` — against a binary that instruments at least twelve
    distinct compaction events. If a microcompact writes neither, it rewrites the prefix and reaches
-   the residual set as unexplained. **This is a live alternative explanation for the 33 and it is
-   free to test.** Note it also predicts the Step 5 gap result: a *time-based* microcompact is
+   the residual set as unexplained. **This was the leading alternative explanation for the 33,
+   and it was free to test; Task 7 ran it and it is not supported.** Note it also predicts the Step 5 gap result: a *time-based* microcompact is
    driven by idle duration, so the 487 s median idle that Step 5 divided out as composition would be
    the mechanism rather than a confound.
 2. **The `--debug` category list.** The filter is free-form and the identifiers are minified, so the
@@ -1303,6 +1321,115 @@ history without writing a compact boundary, 5 asking what changes the system blo
 **Read every earlier null narrowly from here.** Tasks 1, 2, 3 and 5 tested *trigger* predicates
 against a set assumed causeless. It never was. A null from those tasks says the predicate did not
 fire before these events; it does not say the events lacked a cause, and it never did.
+
+---
+
+## Task 7: Audit the compaction classifier against the client's real compaction family
+
+**The question.** 9 of the 33 read `messages_changed`. §1.5 open item 1 names the leading
+explanation: the sweep's classifier keys on `isCompactSummary is True` or a `system` record whose
+`subtype` contains `compact`, and the binary instruments at least twelve distinct compaction events.
+A compaction writing neither marker rewrites the prefix and lands in the residual set unexplained.
+
+**Method, and why it is shaped this way.** §1.5's own lesson is that a grep run once per member of
+a set already chosen cannot surface a member nobody named. So step 1 runs in the enumeration
+direction: inventory every marker the corpus actually holds, then ask which ones the classifier
+sees — not the reverse.
+
+1. Enumerate every record shape carrying `compact` anywhere in a key or a string value,
+   corpus-wide, through `records()`. Report the distinct shapes and their counts.
+2. Score each shape against the classifier's two predicates. Anything unscored is a blind spot.
+3. **Positive control**, without which step 4's null is unreadable: confirm the classifier fires --
+   at least one boundary in the corpus must classify as `compaction`.
+4. Join: for each of the 9 events, inventory every record in the window between the two turns and
+   ask whether any unrecognised marker sits there.
+
+### Predictions for Task 7, written 2026-08-30 before the probe was written
+
+1. Step 1 finds at least one `compact`-bearing shape beyond the two the classifier keys on.
+2. Step 3's positive control fires: at least one boundary classifies as `compaction`.
+3. Under the compaction hypothesis, at least one of the 9 carries an unrecognised marker in its
+   window. Under the alternative, zero do.
+
+**The no-power condition, pre-registered.** A compaction that writes *no* transcript record is
+invisible to I1 by construction, so a zero at step 4 does not discriminate on its own. The arm that
+does is arithmetic on the turn totals, and it needs its own limit stated: a compaction removes
+content, so the event's `total` should fall below the previous turn's. **If the event totals instead
+sit inside the same-session per-turn growth distribution, nothing was removed** -- and the test can
+only exclude removals larger than ordinary turn growth. A microcompact trimming less than that is
+undetectable here and the result must say so.
+
+**One observation is already in hand and is recorded as an observation, not a prediction.** The
+nine join lines print `read`, `crea` and `prev_total`. Summing `read + crea` against `prev_total`
+on each gives a value *larger* on all nine -- 93,647 vs 91,950 at the smallest, 371,525 vs 370,244
+at the largest. That is the shape of a prefix that grew, not one that was trimmed. It was read off
+the join output before the probe was written, and the base rate that makes it a result rather than
+an anecdote has not yet been measured.
+
+### Result, 2026-08-30 — compaction is not what the 9 `messages_changed` events are
+
+**Two independent arms, both negative, and the marker arm alone could not have carried it.**
+`scripts/audit-compaction-markers.py`, `-values.py` and `-coverage.py`, over 377 files and
+84,702 records.
+
+**Arm 1 — markers. The classifier has a blind spot and it marks nothing.** Enumeration finds
+three `compact`-bearing *key* paths corpus-wide (`$.compactMetadata`, its
+`preCompactDiscoveredTools` child, and `$.isCompactSummary`) and the classifier sees all three.
+1,025 further records carry `compact` only inside a string, and of those exactly two shapes are
+structural rather than prose: an `attachment` whose `hookName` is **`SessionStart:compact`**
+(15 records / 12 sessions) and a `queue-operation` whose content is **`/compact`** (11 / 8).
+Both are blind to the classifier — and both are redundant. The hook is exactly co-extensive
+with the two visible markers: 15 records over the same 12 sessions, and the per-session counts
+agree shape for shape on every one of them — nine sessions at 1:1:1 and three at 2:2:2. `/compact` adds one session, `8a12352c`, which holds two queued
+`/compact` operations and no compaction record of any shape — a command typed, not a
+compaction observed. **The blind spot marks zero additional compactions in this corpus.**
+
+**The positive control fires**: 15 boundaries classify as `compaction`, over 12 sessions. So the
+step-4 null is readable, and it is total — **0 of 9** events have *any* `compact`-bearing
+record in the boundary window, visible or blind, structural or prose. One of the nine sessions
+(`4b6a0b14`) did compact and the classifier caught it — at the 01:35:29 boundary, against an
+event at 03:21:47 `[verified 2026-08-30]`.
+
+**Prediction 1 hits in the letter and misses in the substance** — blind shapes exist, and they
+mark nothing new. Prediction 2 hit. Prediction 3 returned the alternative's zero.
+
+**Arm 2 — arithmetic, which is what actually carries the result.** The pre-registered no-power
+condition applies in full: a compaction writing no transcript record is invisible to I1 by
+construction, so arm 1 cannot exclude one. Arm 2 does not depend on markers. **All nine prefixes
+grew**, by +1,219 to +6,990 tokens, against same-session median per-turn growth of 821 to 1,313
+— every event is above its own session's median and six of the nine are above its q3. **0 of 9
+shrank.** A compaction removes content; nothing was removed.
+
+**The limit this arm has, stated because net delta is the only observable.** It excludes a
+removal accompanied by ordinary growth. It cannot exclude a large removal masked by a
+simultaneously large insertion.
+
+**The telemetry check, recorded so it is not run twice: it settles nothing.** I2's spill parses
+to 187 records / 3 sessions / 35 distinct `event_name` values, the positive control fires (all
+three names §1.5 quotes are present), and no compaction-family name appears. That is not
+evidence — §1.5 already establishes I2 as a biased remnant of *failed uploads*, the three
+sessions are dominated by startup events, and nothing says any of them compacted. Two parsing
+notes for whoever reads these files next: they are multi-document, so `json.load` raises
+`Extra data` and a naive reader returns a clean, false zero; and the name lives at
+`event_data.event_name`, not at any top-level key.
+
+### What the nine look like instead — an observation, not a tested result
+
+Cache retention at the nine collapses to **22,572–30,319 tokens against prefixes of
+91,950–370,244**, i.e. 7.0%–32.7% surviving. That floor is not a fraction of the conversation:
+on the seven of nine whose session opened warm it tracks that session's own first-turn read
+(18,801–24,723, the already-warm tool-definition block) plus a consistent 3,771–5,596 — the
+other two opened cold and read 0, so they carry no comparison. Across the nine the floor rises
+with the calendar rather than with the prefix: 22,572 on 9 August, ~30,300 on 26 August. So the rewrite begins at or just
+below the tool-definitions breakpoint and everything after it is rebuilt, while the total
+simultaneously grows by more than an ordinary turn.
+
+**Insertion near the head of the messages array is what those two facts jointly suggest**, and
+the first user message is where the always-loaded files are injected. **Untested, and it must
+not be promoted until it is.** The check is free and I1 holds the records: diff the first user
+message's `attachment` records across each of the nine boundaries — §1.5 lists ten subtypes
+that carry injected content, and `deferred_tools_delta`, `mcp_instructions_delta`,
+`agent_listing_delta` and `skill_listing` all record arrivals rather than steady state.
 
 ---
 
