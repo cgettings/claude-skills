@@ -54,6 +54,10 @@ check contamination against. Unhold it if a denominator is ever established.
   13,952 turns over 266 sessions, against 3 turns of `cli`, 5 of `sdk-ts`, 11 of `claude-desktop`
   `[verified 2026-08-29]`. Any entrypoint comparison drawn from this corpus has no power, and a
   zero in the small arms means nothing.
+- **Three paths are untracked on this branch only, and `git add -A` would commit them.**
+  `.task3-probe/`, `scripts/__pycache__/` and `scripts/plugin update scratch.md` are ignored on
+  `feature-durable-memory-model`, whose `.gitignore` carries the rules; this branch's does not
+  `[verified 2026-08-29: git show feature-durable-memory-model:.gitignore]`. Stage by path here.
 - Commits on this machine are GPG-signed. `git commit` blocks on pinentry outside Claude Code, so
   give it a timeout above the 2-minute default `[2026-08-29: a signed commit blocked 2m, did not
   land, and was misreported as the approval gate]`.
