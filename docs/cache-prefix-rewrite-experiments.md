@@ -26,27 +26,29 @@ format this document borrows.
 
 ## 0. Ledger
 
-**Status as of 2026-08-30: no mechanism, F closed, and E half-tested by an arm that was void for the
-half that mattered.** Tasks 1, 2 and 5 are done; Task 3 has run four arms. The three F arms all
-returned nulls and closed the candidate — reconnection and resumption both. Arm E ran on Haiku,
-where entering plan mode swaps the model and effort, so its two plan boundaries tested an
-already-explained cause; its one mode-alone boundary returned a clean null. **The next step is free
-and it is not a session: Task 1 Step 5 re-tests E over all 69 mode-change boundaries in the corpus
-instead of the 3 the lead rests on.** Buy the Opus re-run of arm E (3f) only if that comes back
-above base rate. Task 4 is unparked behind both; arm B still has no non-VS Code entrypoint.
+**Status as of 2026-08-30: every free question is now answered, both candidates are down, and Task 4
+is the only thing left.** Tasks 1, 2 and 5 are done. Task 3 ran four arms: the three F arms all
+returned nulls and closed that candidate, reconnection and resumption both. Arm E ran on Haiku,
+where entering plan mode swaps the model and effort, so its plan boundaries tested an
+already-explained cause — void, not a null. Task 1 Step 5 then asked the corpus directly, over 58
+mode-alone boundaries rather than the 3 the lead rested on: **pooled it reads 15x, and that is
+composition — mode changes sit at a median 487 s of idle against 13 s at a control boundary, and
+within gap bands nothing readable survives.** E is not supported, arm 3f is not worth buying, and
+**Task 4 (the logging proxy) is unparked unconditionally and is the next thing to do.** Arm B still
+has no non-VS Code entrypoint and is not in the critical path.
 
 | # | Task | Commit | Status | Proof that ran |
 |---|---|---|---|---|
 | 1 | Re-question the existing corpus | `cf4aae9`, `6229faa` | **DONE 2026-08-29** — steps 1-3; step 4 on hold | Step 1 expectation falsified; step 3 table below |
-| 1.5 | Task 1 Step 5 — re-test E over all 69 mode-change boundaries | *no commit* | **NEXT** — free, and it gates arm 3f | — |
+| 1.5 | Task 1 Step 5 — re-test E over every mode-change boundary | *ledger commit follows* | **DONE 2026-08-30** — E not supported | 58 mode-alone boundaries; pooled 8/58 vs control 55/6,130, but median gap 487 s vs 13 s and no gap band with a readable n survives. Both pre-registered no-power conditions cleared |
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
 | 3a | Task 3 arm F/window-reload | `07bca1c`, `d343ce6` | **DONE 2026-08-30** — null | Session `6597c649`: turn 7 read 52,670 = 52,487 + 183, exact. Predictions 1, 4 hit; 2 missed; 3 N/A |
 | 3b | Task 3 arm F/host-restart | `d7cba60` predictions, `41e34cd` result | **DONE 2026-08-30** — null | Session `1b26f4d4`: turn 7 read 52,895 = 52,750 + 145, exact; `bridges_before` `t1:2 … t7:3`. All 4 predictions hit |
 | 3c | Task 3 arm F/quit-relaunch | `41e34cd` predictions, `ff2767a` result | **DONE 2026-08-30** — null | Session `06de8063`: turn 7 read 52,907 = 52,725 + 182, exact; resumed in place, same file and same `bridgeSessionId`; `bridges_before` `t1:2 … t7:3`. Predictions 1, 3, 4, 5 hit; 2 missed; 6 N/A |
 | 3d | Task 3 arm E (permission mode), on Haiku | `ff2767a` predictions, `8e072c6` result | **VOID 2026-08-30** for its two plan boundaries; one clean null beside them | Session `9e76ff00`: labels `acceptEdits→plan→default→acceptEdits`, so predictions 1, 3, 4 hit. Both rewrites carry `haiku/None → sonnet-5/high`, an already-explained cause. Boundary 6→7 mode-alone, read 54,230 = 52,472 + 1,758, exact |
 | 3e | Task 3 arm B (cli vs claude-vscode) | *no commit* | **Not started** — needs a non-VS Code entrypoint | — |
-| 3f | Task 3 arm E re-run, on a model whose plan mode is mode-alone | *no commit* | **BLOCKED on Task 1 Step 5** — do not buy it until the free re-analysis says E is worth a session. Sonnet is the intended model; run the two-turn pre-flight below before the full arm | — |
-| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* | **UNPARKED 2026-08-30** — behind Task 1 Step 5 and arm 3f | — |
+| 3f | Task 3 arm E re-run, on a model whose plan mode is mode-alone | *no commit* | **NOT WORTH BUYING 2026-08-30** — Step 5 put E's signal down to gap composition. Unblock only if Task 4 turns up a mode-linked block; the two-turn pre-flight below still applies if it ever runs | — |
+| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* | **NEXT 2026-08-30** — unparked unconditionally; every free check is spent and no candidate survives | — |
 | 5 | Do the rewrites sit on a client reconnect? | `fd87d13` | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
@@ -98,35 +100,35 @@ turns gives 114 events, 33 unexplained, self-check 13,591 exact / 171 broken (79
 Output in `.task3-probe/sweep-2026-08-30.txt`. It was two surviving candidates on that date and is
 one now — F closed later the same day (§2).
 
-**Next command — Task 1 Step 5, and it buys nothing.** Re-test candidate E over all 69 mode-change
-boundaries rather than the 3 that reached the residual set. Its four required moves are in Task 1
-Step 5; the two that a fresh session will otherwise get wrong are *use the sweep's own classifier
-rather than a threshold*, and *split mode-alone boundaries from effort-carrying ones before counting
-anything*. Write the expected observations down first, as every arm here has.
+**Next command — Task 4, the logging proxy.** It is the only step left: every free question the
+corpus can answer has been asked, and neither surviving candidate came through. Its design, and the
+two constraints that each cost a run to rediscover, are in Task 4 below. **Re-read its "capture a
+null-edit pair first" constraint before writing any of it** — without that control every observed
+difference between two request bodies is unattributable.
 
 ```sh
 cd ~/Documents/Projects/claude-skills
 
-# extend the sweep, do not write a second instrument; --step5 is the model for the new flag
-grep -n 'def main\|--step5\|add_argument' scripts/sweep-cache-rewrites.py | head -20
+# reproduce the state this hand-off rests on: 115 events / 33 unexplained, and the Step 5 tables
+python scripts/sweep-cache-rewrites.py --min-create=0 --step6 > .task3-probe/step5-rerun.txt 2>&1 ; \
+  sed -n '/rewrite events:/p;/Task 1 Step 5/,$p' .task3-probe/step5-rerun.txt
 
-# the 69-row scratch cross-tab that opened this step, if it still exists -- untracked, machine-local,
-# and superseded by the flag above. `(no file)` here is expected, not a problem; do not rebuild it
-wc -l .task3-probe/arm-e-mode-effort-crosstab.txt 2>/dev/null ; ls .task3-probe/ 2>/dev/null
+# the design Task 4 reuses, on a branch this one does not carry
+git show feature-durable-memory-model:docs/durable-memory-model.md | sed -n '/Task 9/,/^## /p'
 ```
 
-**Then, and only if Step 5 puts mode-alone boundaries above base rate, buy arm 3f** — arm E re-run
-with effort pinned, on a model whose plan mode does not swap the model out. Do not re-run it on
-Haiku: entering plan mode there swaps in `claude-sonnet-5` at effort `high`, which is what voided
-3d. Sonnet is the intended model and is cheaper than Opus, **but whether *its* plan mode is
-mode-alone is untested** — every corpus plan boundary is an Opus session, so there is no evidence
-either way and this must not be assumed.
+**Arm 3f is not worth buying on current evidence** and its row says so. If Task 4 ever turns up a
+block that moves with permission mode, the arm becomes worth running again — and if it does, two
+things carry over. Do not run it on Haiku: entering plan mode there swaps in `claude-sonnet-5` at
+effort `high`, which is what voided 3d. Sonnet is the cheaper candidate, **but whether *its* plan
+mode is mode-alone is untested** — every corpus plan boundary is an Opus session, so there is no
+evidence either way and it must not be assumed.
 
-**Pre-flight for 3f, two turns rather than seven.** The fault that voided 3d was discoverable
-before the arm was spent, so spend two turns first: one ordinary turn, shift+tab into plan mode, one
-more turn. Then read the `model` and `effort` columns of `read-session-prefix.py`. **If either moves
-across that boundary, the model is unusable for this arm** — stop, and try the next one down rather
-than running the remaining five turns. Only if both hold is the full arm worth buying.
+**Pre-flight for 3f if it is ever unblocked: two turns, not seven.** The fault that voided 3d was
+discoverable before the arm was spent. One ordinary turn, shift+tab into plan mode, one more turn,
+then read the `model` and `effort` columns of `read-session-prefix.py`. **If either moves across
+that boundary the model is unusable for this arm** — stop there rather than spending the remaining
+five turns.
 
 **Reading a probe transcript, for whichever arm comes next:**
 
@@ -237,8 +239,13 @@ Its arm ran the same day and was void for the two plan-mode boundaries — on Ha
 mode swaps in `claude-sonnet-5` at effort `high`, which is an already-explained cause — while its
 one mode-alone boundary returned a clean null. What the arm did produce is a better population: the
 lead rests on n=3 only because the predicate looked at boundaries that had already survived the
-classifier, and the corpus holds **69 mode-change boundaries**. Task 1 Step 5 asks the larger
-question for free, and it gates any further session on E.
+classifier, and the corpus holds 74 mode-change boundaries. **Task 1 Step 5 asked the larger
+question on 2026-08-30 and E did not survive it.** Over 58 mode-alone boundaries the pooled rate is
+15x control — and mode changes sit at a median 487 s of idle against 13 s at a control boundary, so
+the populations differ in the one variable that drives rewrites on its own. Stratified by gap, no
+band with a readable denominator shows an effect, and the three unexplained events are the same
+three the 8.1x rested on, all at 26-35 minutes idle. **Not supported, and not falsified** — the
+bands where it could still hide have single-digit denominators.
 
 **F. The extension host restarts, re-registering the IDE connection and changing the tool block.**
 Proposed 2026-08-29. A *family*, not one event — a manual window reload, an extension restart, an
@@ -422,6 +429,64 @@ no-power are indistinguishable after the fact, so the no-power conditions are na
    compaction or an aborted turn, so print those exclusions rather than letting them vanish.
 6. **Direction of causation is not resolvable here** and the write-up says so rather than implying
    it. A mode change and a rewrite can both be downstream of the user starting something new.
+
+### Result, 2026-08-30 — E is not supported once the gap is controlled, and the pooled figure saying otherwise is composition
+
+Run as `python scripts/sweep-cache-rewrites.py --min-create=0 --step6`, output saved to
+`.task3-probe/step5-run-2026-08-30.txt`. The headline sweep is unchanged by the edit — 115 events,
+33 unexplained, against 114 / 33 earlier the same day; the one added event is arm 3d's own effort
+switch, correctly classified rather than landing in the residual set.
+
+**Both pre-registered no-power conditions cleared**, so this is a readable result and not a
+no-power: 58 mode-alone boundaries against the pre-registered floor of 20, and a control rate of
+0.009 against the ceiling of 0.5. Population: **74 mode-change boundaries over 170 labelled
+sessions**, 71 above `PREV_MIN`, of which 58 are mode-alone and 13 also move effort, model or
+version — that second group tests an explained cause and is counted, never pooled.
+
+**Pooled, E looks stronger than the lead that motivated the step.**
+
+| population | rewrite events | of those, UNEXPLAINED |
+|---|---|---|
+| mode-alone changes | 8 / 58 = 0.138 | 3 / 58 = 0.052 |
+| of those, `plan → X` or `X → plan` | 3 / 9 | 2 / 9 |
+| control, no mode change, firing sessions | 55 / 6,130 = 0.009 | 15 / 6,130 = 0.002 |
+
+That is roughly 15x on events and 21x on unexplained, on a denominator of 58 rather than 3.
+
+**It does not survive the first thing that should have been checked.** A permission-mode change is
+overwhelmingly a *resumption* event — median gap **487 s** at a mode-alone change against **13 s** at
+a control boundary. Idle time drives rewrites on its own through the TTL, so the two populations
+were never comparable and the ratio above is measuring when people change modes, not what changing
+mode does.
+
+| gap band (s) | mode-alone change | no mode change |
+|---|---|---|
+| 0-60 | 0 / 5 | 15 / 5,511 = 0.003 |
+| 60-300 | 0 / 18 | 8 / 401 = 0.020 |
+| 300-1800 | 3 / 28 = 0.107 | 14 / 174 = 0.080 |
+| 1800-3600 | 2 / 4 | 2 / 27 = 0.074 |
+| 3600+ | 3 / 3 | 16 / 17 = 0.941 |
+
+**Within band, nothing readable survives.** The two bands holding the largest mode-change
+denominators return zero — 0 of 5 under a minute and 0 of 18 between one and five minutes, both
+*below* control. The 300-1800 band is 0.107 against 0.080 on a numerator of three. The 1800-3600
+band is two events on four boundaries and 3600+ saturates on both sides at the TTL. The pooled 15x
+is composition: mode changes concentrate in the long-gap bands, where the base rate is high anyway.
+
+**The three unexplained events are the same three the 8.1x rested on.** `plan→auto` (`033b909f`),
+`auto→acceptEdits` (`88bc769a`), `plan→acceptEdits` (`f8b4f730`) — the identical transition set. This
+step added no new event; what it added is a denominator and a control, which is the whole of its
+contribution. Their gaps are **2,129 s, 2,099 s and 1,591 s** — 26 to 35 minutes of idle, inside the
+window where the classifier has no TTL rule to catch them and the user has plainly been away. Three
+of the eight mode-alone events carry `TTL-1h` outright, one a compaction and one an aborted turn,
+which is the same story told in the classifier's own vocabulary.
+
+**What this licenses and what it does not.** E is **not supported**; it is not falsified. The bands
+where an effect could still hide are exactly the ones with single-digit denominators, and the
+stratification treats the gap as a confounder — which assumes the pause precedes the mode change
+rather than following from it. That is the reasonable reading for someone stepping away and coming
+back, and it is not established. **The consequence for spending is unambiguous even so: arm 3f is
+not worth a session on this evidence, and Task 4 is unparked unconditionally.**
 
 ---
 
@@ -921,8 +986,10 @@ over the new transcript.
 
 ## Task 4: The logging proxy
 
-**Parked.** Unpark only if Tasks 1-3 identify no block. It is parked rather than pending because
-its cost is build time, and Tasks 1-2 may make it unnecessary for free.
+**Unparked 2026-08-30, and it is now the next step.** The unpark condition was "Tasks 1-3 identify
+no block", and they have not: A, C and D fell to Task 2; F fell across three Task 3 arms and Task 5;
+E fell to Task 1 Step 5. Every free question the corpus can answer has been asked. What remains is
+the instrument that reads the bytes.
 
 **Files:**
 - a new local stub server, path to be chosen when the task starts

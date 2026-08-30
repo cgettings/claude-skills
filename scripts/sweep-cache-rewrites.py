@@ -55,6 +55,11 @@ ROOT = os.path.expanduser("~/.claude/projects")
 DECODER = json.JSONDecoder()
 
 # A rewrite worth flagging: a real prefix existed, it collapsed, and it was rebuilt at cost.
+# Gap bands for Step 6's stratified table. The boundaries are the ones the classifier already
+# treats as meaningful -- 300s is the 5m-TTL test and 3600s the 1h -- plus a split of the long
+# middle, so a band is not both large and unreadable. Chosen before the table was read.
+GAP_BANDS = [(0, 60), (60, 300), (300, 1800), (1800, 3600), (3600, 10 ** 9)]
+
 PREV_MIN = 50000
 COLLAPSE = 0.5
 CREATE_MIN = 50000
@@ -94,12 +99,19 @@ def session_turns(path):
     """Deduplicated assistant turns for one transcript, plus its compaction timestamps."""
     turns, seen, compactions = [], set(), []
     bridges = 0   # bridge-session records seen since the last counted turn; see below
+    # permissionMode rides on user records, one per turn, not on the assistant record -- so the
+    # mode in force for a turn is the last one seen before it, tracked positionally like bridges.
+    # It is None until the first labelled record, which is why Step 6 skips boundaries with a None
+    # on either side rather than reading None as a distinct mode.
+    mode = None
     for rec in records(path):
         # bridge-session records carry no timestamp, so build_timelines drops them and no
         # timestamp-window predicate can ever see one. They are counted here, positionally,
         # against the turn sequence itself -- which is the only alignment available.
         if rec.get("type") == "bridge-session":
             bridges += 1
+        if rec.get("permissionMode"):
+            mode = str(rec["permissionMode"])
         if rec.get("isCompactSummary") is True or (
             rec.get("type") == "system" and "compact" in str(rec.get("subtype", "")).lower()
         ):
@@ -124,6 +136,7 @@ def session_turns(path):
             continue
         turns.append({
             "bridges_before": bridges,
+            "mode": mode,
             "t": parse_ts(rec.get("timestamp")),
             "effort": rec.get("effort"),
             "model": msg.get("model"),
@@ -447,6 +460,166 @@ def step5(unexplained, boundaries, bridge_at, bridge_totals, session_version):
         print("sample the check excludes a large effect only; it does not retire candidate F.")
 
 
+def step6(sessions, min_create, out_path):
+    """Task 1 Step 5: re-test candidate E over every permission-mode-change boundary.
+
+    The 8.1x figure in section 2 rests on n=3 because that predicate only ever looked at
+    boundaries which had already survived the classifier. This asks the corpus directly.
+
+    Everything here was pre-registered in docs/cache-prefix-rewrite-experiments.md before the
+    function existed, both no-power conditions included. Two traps it is built around:
+      * PREV_MIN floors the prefix, so a mode change in a small session cannot register as an
+        event at all. That is a structural blind, not a null -- the same shape as Task 5's
+        version gate -- so the detectable population is reported before any rate is.
+      * a boundary that also moves effort, model or version tests an already-explained cause.
+        Pooling those with mode-alone boundaries is precisely what voided arm 3d, so they are
+        counted and reported apart, never merged.
+    """
+    print()
+    print("=== Task 1 Step 5: do permission-mode changes sit on a rewrite? ===")
+
+    rows = []
+    for path, turns, compactions in sessions:
+        for i in range(1, len(turns)):
+            prev, cur = turns[i - 1], turns[i]
+            # None is "no label seen yet", not a mode. Reading it as one would manufacture a
+            # transition on the first labelled turn of every session.
+            if prev["mode"] is None or cur["mode"] is None:
+                continue
+            gap = ((cur["t"] - prev["t"]).total_seconds()
+                   if (cur["t"] and prev["t"]) else None)
+            causes = classify(prev, cur, gap, compactions)
+            is_event = (prev["total"] > PREV_MIN
+                        and cur["read"] < COLLAPSE * prev["total"]
+                        and cur["crea"] > min_create)
+            rows.append({
+                "path": path,
+                "when": cur["t"].isoformat()[:19] if cur["t"] else "?",
+                "changed": prev["mode"] != cur["mode"],
+                "transition": "%s->%s" % (prev["mode"], cur["mode"]),
+                "detectable": prev["total"] > PREV_MIN,
+                "confounded": (prev["effort"] != cur["effort"]
+                               or prev["model"] != cur["model"]
+                               or prev["version"] != cur["version"]),
+                "gap": gap,
+                "event": is_event,
+                "unexplained": is_event and causes == ["UNEXPLAINED"],
+                "causes": causes,
+                "plan": "plan" in (prev["mode"], cur["mode"]),
+            })
+
+    changed = [r for r in rows if r["changed"]]
+    if not changed:
+        print("DEAD PROBE -- no mode-change boundary found at all. No result.")
+        return
+    detect = [r for r in changed if r["detectable"]]
+    alone = [r for r in detect if not r["confounded"]]
+    carry = [r for r in detect if r["confounded"]]
+
+    print("labelled boundaries: %d over %d sessions"
+          % (len(rows), len(set(r["path"] for r in rows))))
+    print("mode-change boundaries: %d" % len(changed))
+    print("   detectable (prev_total > PREV_MIN=%d): %d" % (PREV_MIN, len(detect)))
+    print("   below the floor -- structurally blind, NOT evidence of no effect: %d"
+          % (len(changed) - len(detect)))
+    print("   of the detectable: %d mode-alone, %d also moving effort/model/version"
+          % (len(alone), len(carry)))
+    if carry:
+        print("   the %d confounded ones test an already-explained cause and are not data:" % len(carry))
+        for t, n in collections.Counter(r["transition"] for r in carry).most_common():
+            print("      %-26s %d" % (t, n))
+
+    # Control, at both settings of the population boundary. Task 5 showed the two agreeing; a
+    # structure that appears at only one of them is a free parameter, not a finding.
+    firing = set(r["path"] for r in changed)
+    ctrl_all = [r for r in rows if not r["changed"] and r["detectable"]]
+    ctrl_fire = [r for r in ctrl_all if r["path"] in firing]
+
+    def rate(group, key):
+        n = len(group)
+        k = sum(1 for r in group if r[key])
+        return k, n, (float(k) / n if n else 0.0)
+
+    print()
+    print("%-38s %-18s %s" % ("population", "rewrite events", "of those, UNEXPLAINED"))
+    for label, group in (("mode-alone changes", alone),
+                         ("  of those, plan -> X or X -> plan", [r for r in alone if r["plan"]]),
+                         ("control: no mode change, all sessions", ctrl_all),
+                         ("control: no mode change, firing sessions", ctrl_fire)):
+        k, n, r_ = rate(group, "event")
+        uk, _, ur = rate(group, "unexplained")
+        print("%-38s %3d / %-5d %-6.3f %3d / %-5d %.3f" % (label, k, n, r_, uk, n, ur))
+
+    # Both pre-registered no-power conditions, checked in the order they were written.
+    _, _, ctrl_rate = rate(ctrl_fire, "event")
+    verdict = []
+    if len(alone) < 20:
+        verdict.append("NO POWER: %d mode-alone boundaries clear PREV_MIN, under the "
+                       "pre-registered 20. Read this as no power, not no effect." % len(alone))
+    if ctrl_rate > 0.5:
+        verdict.append("NO POWER: control rate %.3f exceeds the pre-registered 0.5, so the "
+                       "predicate is true of most boundaries and separates nothing." % ctrl_rate)
+    plan_alone = [r for r in alone if r["plan"]]
+    if len(plan_alone) < 10:
+        verdict.append("plan subset n=%d is single-digit and was pre-registered as expected to "
+                       "be underpowered -- report the n, not a verdict." % len(plan_alone))
+    print()
+    for line in (verdict or ["Both no-power conditions clear: the comparison above is readable."]):
+        print("   %s" % line)
+
+    # Why an event on a mode-alone boundary failed to be UNEXPLAINED. Printed rather than
+    # silently differenced, so the gap between the two rate columns is accounted.
+    excl = collections.Counter()
+    for r in alone:
+        if r["event"] and not r["unexplained"]:
+            excl[",".join(r["causes"])] += 1
+    if excl:
+        print()
+        print("   mode-alone events carrying another cause (the gap between the two columns):")
+        for cause, n in excl.most_common():
+            print("      %-30s %d" % (cause, n))
+
+    # The pooled rates above are not comparable, and this is what shows it. A mode change is
+    # overwhelmingly a resumption event -- the user comes back after a pause and changes mode --
+    # so the two populations sit at different idle times, and idle time drives rewrites on its own
+    # through the TTL. Stratify before reading any ratio. Added after the pooled table returned a
+    # 15x that survives none of the bands with a readable n.
+    gaps_change = sorted(r["gap"] for r in alone if r["gap"] is not None)
+    gaps_ctrl = sorted(r["gap"] for r in ctrl_fire if r["gap"] is not None)
+    if gaps_change and gaps_ctrl:
+        print()
+        print("   median gap: %.0fs at a mode-alone change, %.0fs at a control boundary"
+              % (gaps_change[len(gaps_change) // 2], gaps_ctrl[len(gaps_ctrl) // 2]))
+    print()
+    print("rewrite-event rate WITHIN gap band -- the comparison the pooled table cannot make")
+    print("%-16s %-24s %s" % ("gap band (s)", "mode-alone change", "no mode change"))
+    for lo, hi in GAP_BANDS:
+        cell = {}
+        for label, group in (("chg", alone), ("ctl", ctrl_fire)):
+            rows_in = [r for r in group if r["gap"] is not None and lo <= r["gap"] < hi]
+            k = sum(1 for r in rows_in if r["event"])
+            cell[label] = ("%d/%-6d %.3f" % (k, len(rows_in), float(k) / len(rows_in))
+                           if rows_in else "n=0")
+        print("%-16s %-24s %s"
+              % ("%d-%d" % (lo, hi) if hi < 10 ** 9 else "%d+" % lo, cell["chg"], cell["ctl"]))
+    print("   A band whose denominator is single-digit states an n, not a rate.")
+
+    print()
+    print("   Direction of causation is not resolvable here: a mode change and a rewrite can "
+          "both be downstream of the user starting something new. The stratification above "
+          "treats the gap as a confounder, which assumes the pause precedes the mode change "
+          "rather than following from it.")
+
+    with open(out_path, "w", encoding="utf-8", newline="") as fh:
+        for r in sorted(changed, key=lambda x: x["when"]):
+            fh.write("%s %s %-26s detectable=%s confounded=%s event=%s causes=%s %s\n"
+                     % (os.path.basename(r["path"])[:8], r["when"], r["transition"],
+                        r["detectable"], r["confounded"], r["event"],
+                        ",".join(r["causes"]), r["path"]))
+    print()
+    print("   per-boundary detail written to %s (%d rows), not printed" % (out_path, len(changed)))
+
+
 def step3(unexplained, boundaries, per_session, global_edits):
     """Re-test the ruled-out explanations at n=31, each beside a control that it can fire at all."""
     print()
@@ -501,12 +674,13 @@ def main():
     sensitivity = "--sensitivity" in argv
     run_step2 = "--step2" in argv
     run_step5 = "--step5" in argv
+    run_step6 = "--step6" in argv
     min_create = CREATE_MIN
     for arg in argv:
         if arg.startswith("--min-create="):
             min_create = int(arg.split("=", 1)[1])
     unknown = [a for a in argv if not a.startswith("--") or (
-        a not in ("--all", "--step3", "--sensitivity", "--step2", "--step5")
+        a not in ("--all", "--step3", "--sensitivity", "--step2", "--step5", "--step6")
         and not a.startswith("--min-create="))]
     if unknown:
         # A tool whose bare invocation is the useful one treats an unrecognised argument exactly
@@ -676,6 +850,11 @@ def main():
         step3(unexplained, controls, per_session, global_edits)
     if run_step5:
         step5(unexplained, controls, bridge_at, bridge_totals, session_version)
+    if run_step6:
+        # Builds its own populations from the parsed sessions rather than from the residual set,
+        # which is the whole point: the n=3 came from looking only at boundaries that had already
+        # survived the classifier.
+        step6(sessions, min_create, "task1-step5-mode-boundaries.txt")
 
 
 if __name__ == "__main__":
