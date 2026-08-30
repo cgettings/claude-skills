@@ -34,7 +34,7 @@ mechanism is identified. Everything that survives needs Task 3, which is now che
 |---|---|---|---|---|
 | 1 | Re-question the existing corpus | `cf4aae9`, `6229faa` | **DONE 2026-08-29** — steps 1-3; step 4 on hold | Step 1 expectation falsified; step 3 table below |
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
-| 3 | Reproduce on demand in a cheap session | *no commit yet* | **Not started** — unblocked, two named candidates | — |
+| 3 | Reproduce on demand in a cheap session | *no commit yet* | **IN PROGRESS 2026-08-30** — step 1 done, arm F; steps 2-4 pending an operator | Step 1 predictions below, written before turn 2 of session `6597c649` |
 | 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit yet* | **Parked** — unparked only if Task 3 fails to identify the block | — |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
@@ -62,13 +62,19 @@ check contamination against. Unhold it if a denominator is ever established.
   give it a timeout above the 2-minute default `[2026-08-29: a signed commit blocked 2m, did not
   land, and was misreported as the approval gate]`.
 
-**Next command — reproduce the current state before adding to it. Costs nothing:**
+**Re-run of the state check, 2026-08-30: reproduces.** `--min-create=0` over 369 files / 14,037
+turns gives 114 events, 33 unexplained, self-check 13,591 exact / 171 broken (79:1). Against
+2026-08-29's 367 / 13,963 the corpus grew and the counts did not, so the instrument is intact and
+the two surviving candidates are unchanged. Output in `.task3-probe/sweep-2026-08-30.txt`.
+
+**Next command — Task 3 steps 2 and 3, and they need a human at the keyboard.** The session under
+test is `6597c649` in a Haiku window on `~/Documents/Projects/rewrite-testing`; no session but that
+one can send its turns. Run the turn script in Task 3 Step 1, then read it:
 
 ```sh
-python scripts/sweep-cache-rewrites.py --step2 --step3 --min-create=0 > sweep-now.txt 2>&1
-sed -n '/rewrite events/,/^$/p;/Task 2/,$p' sweep-now.txt
-# expect ~114 events, ~33 unexplained, self-check >= 20:1 (counts drift; the corpus is live)
-# expect Task 2 to still return a null and Task 3's two candidates to still be the only ones left
+python scripts/sweep-cache-rewrites.py --min-create=0 > .task3-probe/sweep-after.txt 2>&1
+# then the per-turn read, which is what Steps 2 and 4 actually check — the sweep's
+# PREV_MIN/CREATE_MIN floors are tuned for large sessions and this prefix is 51,743
 ```
 
 **Then Task 3, which is the only remaining path.** Its two candidates are E (permission mode,
@@ -303,7 +309,19 @@ experiment costs cents, and the signal is cleaner for having less in front of it
 
 **Files:**
 - a scratch directory outside every repo, so no project `CLAUDE.md` loads and the prefix stays small
-- `scripts/sweep-cache-rewrites.py` — read the resulting transcript with the same instrument
+- `scripts/sweep-cache-rewrites.py` — the corpus-wide instrument, for the before/after state check
+- `scripts/read-session-prefix.py` — added 2026-08-30, and it is the one Steps 2 and 4 read. The
+  sweep cannot answer Task 3: its `PREV_MIN`/`CREATE_MIN` floors are both 50,000 and this probe
+  session runs a 51,743-token prefix on purpose, so a real rebuild sits on the threshold and the
+  floor, not the data, decides the answer. This prints every turn with no floor and states the
+  continuity identity per pair. It imports the sweep's parser rather than reimplementing it, so
+  the three traps in that docstring still apply. **Positive control, both branches, on a
+  held-out session** `[2026-08-30: on `047c3934` it reports 14 rewrites / 1 gap / 432 clean over
+  448 turns — 447 pairs, accounted exactly — and reproduces the sweep's first unexplained event
+  at 2026-07-28T03:26:28 to the token: collapse 18,700, rebuild 140,126]`. It also separates a
+  collapse from a `read` that *exceeds* the accounted prefix, which is a turn missing from the
+  sequence and not a rewrite — reading one of those as a hit is the false positive a small probe
+  session is most exposed to.
 
 **Interfaces:** consumes the candidate named by Task 2. Produces either a reproduction, which ends
 the investigation, or a failure to reproduce, which unparks Task 4.
@@ -311,6 +329,51 @@ the investigation, or a failure to reproduce, which unparks Task 4.
 **Step 1 — write the expected observations down before running anything.** Numbered predictions:
 which turn should rewrite, roughly what `cache_creation` should appear, and what the offset should
 be. A run that surprises you is diagnosable only against predictions made in advance.
+
+**Predictions, written 2026-08-30 before turn 2 of session `6597c649` in
+`~/.claude/projects/c--Users-Chris-Documents-Projects-rewrite-testing/`. Arm: F, manual VS Code
+window reload.** Turn 1 is already on disk and is the reference point: `cache_creation` 51,743,
+`cache_read` 0, model `claude-haiku-4-5-20251001`, version `2.1.251`, one trivial no-tool turn.
+The scratch directory is empty and holds no project `CLAUDE.md`, so the 51,743 is the global file
+plus tool definitions and nothing project-specific moves under it.
+
+1. **The baseline does not rewrite.** Over turns 2-6, `cache_read[i] == crea[i-1] + read[i-1]`
+   holds exactly on all five pairs, and each `cache_creation[i]` is order 10^2-10^3 — one user
+   turn plus one reply. Nothing in the baseline clears the sweep's 25,000 rebuild floor.
+2. **The reload turn rewrites.** `cache_read` collapses to 0 or to a small floor, and
+   `cache_creation` is roughly the whole accumulated prefix, 52,000-55,000.
+3. **The offset is zero or +908.** Rebuild size minus the prior accumulated prefix total lands at
+   one of those two; 908 is the only constant that survived all three denominators (§1). A
+   *negative* offset falsifies more than this arm: it means the rewrite drops content rather than
+   inserting a fixed block, which is the premise §1 rests on.
+4. **The reload continues the session** — it appends to `6597c649….jsonl` and `version` stays
+   `2.1.251`. This is the arm's validity check, not a result. A new session file means the reload
+   started a fresh session, where `cache_read == 0` on turn 1 is expected by construction and says
+   nothing about F; a changed `version` confounds the run with the known version-bump
+   explanation. Either one voids the arm — redo it, do not interpret it.
+5. **A miss on 2 is a result with a successor, not a dead end.** If the post-reload turn continues
+   the prefix cleanly, F's on-demand member is falsified and the other two F members are the next
+   arms rather than variants of a settled mechanism. Record the miss before moving to E.
+
+**The F family has a second on-demand member, and it is the sharper one.** `Developer: Restart
+Extension Host` restarts the host without reloading the webview, so running it after the window
+reload separates *the extension host restarted* from *the whole window reloaded*. It is a second
+arm, not a substitute: run the window reload first as the plan says, then this one to narrow
+whichever half did the work.
+
+**Turn script for the operator — this session cannot type into the one under test.** Send each as
+a plain typed turn in the Haiku window; do not send them from another agent, since an injected
+message is not the same prefix content as a typed one.
+
+```text
+turn 2:  ok
+turn 3:  still there?
+turn 4:  yes
+turn 5:  fine
+turn 6:  good
+--- reload the VS Code window here (Developer: Reload Window) ---
+turn 7:  still there?
+```
 
 **Step 2 — establish a quiet baseline.** In a scratch directory, run five or six trivial turns with
 no tool use and confirm the prefix is stable — `cache_read[i] == crea[i-1] + read[i-1]` on every
