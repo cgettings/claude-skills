@@ -26,22 +26,27 @@ format this document borrows.
 
 ## 0. Ledger
 
-**Status as of 2026-08-30: five nulls and no mechanism. Tasks 1, 2 and 5 are done; Task 3 has run
-three of its five arms and all three returned nulls. Candidate F is falsified in every member
-testable without a version bump — reconnection and resumption both. Arm E (permission mode) is
-the last surviving lead; its predictions are written below and it is the next thing to run. Task 4
-is unparked behind it, and arm B still has no non-VS Code entrypoint.**
+**Status as of 2026-08-30: no mechanism, F closed, and E half-tested by an arm that was void for the
+half that mattered.** Tasks 1, 2 and 5 are done; Task 3 has run four arms. The three F arms all
+returned nulls and closed the candidate — reconnection and resumption both. Arm E ran on Haiku,
+where entering plan mode swaps the model and effort, so its two plan boundaries tested an
+already-explained cause; its one mode-alone boundary returned a clean null. **The next step is free
+and it is not a session: Task 1 Step 5 re-tests E over all 69 mode-change boundaries in the corpus
+instead of the 3 the lead rests on.** Buy the Opus re-run of arm E (3f) only if that comes back
+above base rate. Task 4 is unparked behind both; arm B still has no non-VS Code entrypoint.
 
 | # | Task | Commit | Status | Proof that ran |
 |---|---|---|---|---|
 | 1 | Re-question the existing corpus | `cf4aae9`, `6229faa` | **DONE 2026-08-29** — steps 1-3; step 4 on hold | Step 1 expectation falsified; step 3 table below |
+| 1.5 | Task 1 Step 5 — re-test E over all 69 mode-change boundaries | *no commit* | **NEXT** — free, and it gates arm 3f | — |
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
 | 3a | Task 3 arm F/window-reload | `07bca1c`, `d343ce6` | **DONE 2026-08-30** — null | Session `6597c649`: turn 7 read 52,670 = 52,487 + 183, exact. Predictions 1, 4 hit; 2 missed; 3 N/A |
 | 3b | Task 3 arm F/host-restart | `d7cba60` predictions, `41e34cd` result | **DONE 2026-08-30** — null | Session `1b26f4d4`: turn 7 read 52,895 = 52,750 + 145, exact; `bridges_before` `t1:2 … t7:3`. All 4 predictions hit |
 | 3c | Task 3 arm F/quit-relaunch | `41e34cd` predictions, `ff2767a` result | **DONE 2026-08-30** — null | Session `06de8063`: turn 7 read 52,907 = 52,725 + 182, exact; resumed in place, same file and same `bridgeSessionId`; `bridges_before` `t1:2 … t7:3`. Predictions 1, 3, 4, 5 hit; 2 missed; 6 N/A |
-| 3d | Task 3 arm E (permission mode) | `ff2767a` predictions | **IN PROGRESS 2026-08-30** — predictions committed before the run; turns running | — |
+| 3d | Task 3 arm E (permission mode), on Haiku | `ff2767a` predictions, *ledger commit follows* for the result | **VOID 2026-08-30** for its two plan boundaries; one clean null beside them | Session `9e76ff00`: labels `acceptEdits→plan→default→acceptEdits`, so predictions 1, 3, 4 hit. Both rewrites carry `haiku/None → sonnet-5/high`, an already-explained cause. Boundary 6→7 mode-alone, read 54,230 = 52,472 + 1,758, exact |
 | 3e | Task 3 arm B (cli vs claude-vscode) | *no commit* | **Not started** — needs a non-VS Code entrypoint | — |
-| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* | **UNPARKED 2026-08-30** — behind arm 3d, which is hours cheaper | — |
+| 3f | Task 3 arm E re-run, on the corpus model with effort pinned | *no commit* | **BLOCKED on Task 1 Step 5** — do not buy it until the free re-analysis says E is worth a session | — |
+| 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* | **UNPARKED 2026-08-30** — behind Task 1 Step 5 and arm 3f | — |
 | 5 | Do the rewrites sit on a client reconnect? | `fd87d13` | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
@@ -64,7 +69,11 @@ check contamination against. Unhold it if a denominator is ever established.
 - **Three paths are untracked on this branch only, and `git add -A` would commit them.**
   `.task3-probe/`, `scripts/__pycache__/` and `scripts/plugin update scratch.md` are ignored on
   `feature-durable-memory-model`, whose `.gitignore` carries the rules; this branch's does not
-  `[verified 2026-08-29: git show feature-durable-memory-model:.gitignore]`. Stage by path here.
+  `[verified 2026-08-30: git check-ignore exits 1 on .task3-probe/ here]`. Stage by path here.
+  `.task3-probe/` holds eight files `[verified 2026-08-30: `ls -1`]`, including
+  `sweep-2026-08-30.txt`, the 69-row `arm-e-mode-effort-crosstab.txt` behind the arm E result, and a
+  `CLAUDE.md.live-backup` this plan did not create. All of it is machine-local evidence rather than
+  input — nothing here should be blocked by its absence, and none of it should be committed.
 - Commits on this machine are GPG-signed. `git commit` blocks on pinentry outside Claude Code, so
   give it a timeout above the 2-minute default `[2026-08-29: a signed commit blocked 2m, did not
   land, and was misreported as the approval gate]`.
@@ -72,8 +81,9 @@ check contamination against. Unhold it if a denominator is ever established.
   and none of them may be added to.** Each is one arm's evidence; a further turn fuses two triggers
   into one continuity sequence. Which is which: `6597c649` = arm F/window-reload, 7 turns, cold
   start; `1b26f4d4` = arm F/host-restart, 7 turns, warm start; `06de8063` = arm F/quit-relaunch,
-  7 turns, warm start; `157ef24e` = discarded, 1 turn, contaminated, and now the control for the
-  first-turn growth measurement in Task 3. The scratch project
+  7 turns, warm start; `9e76ff00` = arm E on Haiku, 7 turns, void for its plan boundaries and
+  carrying an unanswered `AskUserQuestion` at turn 5; `157ef24e` = discarded, 1 turn, contaminated,
+  and now the control for the first-turn growth measurement in Task 3. The scratch project
   directory `~/Documents/Projects/rewrite-testing` is empty and must stay empty — a project
   `CLAUDE.md` appearing there would change the prefix under the probe.
 - **Do not write to `~/.claude/CLAUDE.md` or `MEMORY.md` while a probe session is open.** Both are
@@ -88,40 +98,54 @@ turns gives 114 events, 33 unexplained, self-check 13,591 exact / 171 broken (79
 Output in `.task3-probe/sweep-2026-08-30.txt`. It was two surviving candidates on that date and is
 one now — F closed later the same day (§2).
 
-**Next command — score arm 3d (permission mode) once it has run.** Its predictions are in Task 3
-and were committed before the run; score against them rather than restating them. A human runs the
-turns, because no session can type into the one under test. **Arm 3d reads its triggers at three
-boundaries, not one, so read the continuity table per pair rather than looking only at turn 7.**
+**Next command — Task 1 Step 5, and it buys nothing.** Re-test candidate E over all 69 mode-change
+boundaries rather than the 3 that reached the residual set. Its four required moves are in Task 1
+Step 5; the two that a fresh session will otherwise get wrong are *use the sweep's own classifier
+rather than a threshold*, and *split mode-alone boundaries from effort-carrying ones before counting
+anything*. Write the expected observations down first, as every arm here has.
 
 ```sh
 cd ~/Documents/Projects/claude-skills
-# 1. find the new transcript: the one that is none of 6597c649, 1b26f4d4, 06de8063, 157ef24e
+
+# extend the sweep, do not write a second instrument; --step5 is the model for the new flag
+grep -n 'def main\|--step5\|add_argument' scripts/sweep-cache-rewrites.py | head -20
+
+# the 69-row scratch cross-tab that opened this step, if it still exists -- untracked, machine-local,
+# and superseded by the flag above. `(no file)` here is expected, not a problem; do not rebuild it
+wc -l .task3-probe/arm-e-mode-effort-crosstab.txt 2>/dev/null ; ls .task3-probe/ 2>/dev/null
+```
+
+**Then, and only if Step 5 puts mode-alone boundaries above base rate, buy arm 3f** — arm E re-run
+on the model the corpus events ran on, with effort pinned. Do not re-run it on Haiku: entering plan
+mode there swaps in `claude-sonnet-5` at effort `high`, which is what voided 3d.
+
+**Reading a probe transcript, for whichever arm comes next:**
+
+```sh
+# 1. find the new transcript: none of 6597c649, 1b26f4d4, 06de8063, 9e76ff00, 157ef24e
 ls -t ~/.claude/projects/c--Users-Chris-Documents-Projects-rewrite-testing/*.jsonl
 
-# 2. per-turn continuity -- predictions 1, 2 and 4 read off this table directly.
+# 2. per-turn continuity, and it prints the model and effort columns that caught 3d's fault.
 #    Use THIS script, not the sweep: the sweep's PREV_MIN/CREATE_MIN floors are both 50,000 and
 #    the probe prefix is ~53,000, so a real rebuild would sit on the threshold.
 python scripts/read-session-prefix.py '<the new transcript, as a WINDOWS path>'
 
-# 3. prediction 3 -- the per-turn permissionMode label, which is what makes a null readable.
+# 3. the per-turn permissionMode label, which is what makes a null readable.
 #    Positive control: this returns 7 `acceptEdits` lines on 06de8063 [verified 2026-08-30].
 python -c "import json,sys; [print('rec %3d  %s' % (i, r.get('permissionMode'))) for i,r in enumerate(json.loads(l) for l in open(sys.argv[1],encoding='utf-8') if l.strip()) if isinstance(r,dict) and r.get('permissionMode')]" '<WINDOWS path>'
 
-# 4. the bridge cluster -- not a prediction for arm E, but free, and it is how the three F arms
-#    established that their trigger fired at all
+# 4. the bridge cluster -- how the three F arms established that their trigger fired at all
 python -c "import importlib.util as u; sp=u.spec_from_file_location('sw','scripts/sweep-cache-rewrites.py'); m=u.module_from_spec(sp); sp.loader.exec_module(m); t,_=m.session_turns(r'<WINDOWS path>'); print(' '.join('t%d:%d'%(i,x['bridges_before']) for i,x in enumerate(t,1)))"
 ```
 
-**Expected on a null** (prediction 2 missing): seven turns, every continuity cell `OK`, `version`
-`2.1.251` throughout, and the mode label changing at turns 4, 6 and 7 — the label is what makes the
-null readable, so check it before recording anything. **Expected on a hit:** one of turns 4, 6 or 7
-reads `REWRITE`; then read which transition it was, the offset against 908, and whether `cache_read`
-fell to 0 or to 24,939 — prediction 5, and the last two are different mechanisms.
+**Read the cause column before reading the result.** A `REWRITE` cell naming an effort, model,
+version or TTL cause is an already-explained event and voids that boundary rather than confirming
+the arm — which is the whole of what happened to 3d, and it is invisible if you read only the
+continuity column.
 
 **Hand Python a Windows path, never a `/c/...` one.** Git Bash's form reaches a Windows interpreter
 as a relative path and raises `FileNotFoundError` on a file that exists `[2026-08-30]`.
 
-**Then Task 4**, unless arm E hits or its predictions 3/6 send you to an `ExitPlanMode` arm first.
 Arm B (3e) stays blocked on a non-VS Code entrypoint and is not in the critical path.
 
 **Do not spend a session on an extension update.** §2 records why that member cannot produce an
@@ -199,8 +223,13 @@ unexplained set. **Permission mode sits at 8.1x on n=3** — `plan→auto`, `aut
 could have produced. Treat it as a lead, not a finding: one of the three is a `cache_read == 0`
 event, the control was refined after seeing the data, `permissionMode` appears on only ~1,357
 records, and direction of causation is untested. Two of three involve leaving plan mode, which is
-a mechanism rather than a bare correlation. **This is the last surviving lead as of 2026-08-30, and
-its arm has predictions written** — see "Predictions for arm E" in Task 3.
+a mechanism rather than a bare correlation. **This is the last surviving lead as of 2026-08-30.**
+Its arm ran the same day and was void for the two plan-mode boundaries — on Haiku, entering plan
+mode swaps in `claude-sonnet-5` at effort `high`, which is an already-explained cause — while its
+one mode-alone boundary returned a clean null. What the arm did produce is a better population: the
+lead rests on n=3 only because the predicate looked at boundaries that had already survived the
+classifier, and the corpus holds **69 mode-change boundaries**. Task 1 Step 5 asks the larger
+question for free, and it gates any further session on E.
 
 **F. The extension host restarts, re-registering the IDE connection and changing the tool block.**
 Proposed 2026-08-29. A *family*, not one event — a manual window reload, an extension restart, an
@@ -337,6 +366,32 @@ events into the 908 band but did not rescue the rest, and two events turned out 
 below base rate, permission mode at 8.1x on n=3. Step 4 on hold. No claim about mechanism is
 licensed by this task — it only narrows.
 
+**Step 5 — re-test candidate E over every mode-change boundary, not over the three that reached the
+residual set. Added 2026-08-30 by the arm E run, costs nothing, and it should run before any further
+session is bought.** The 8.1x rests on n=3 because the predicate only ever looked at boundaries that
+had already survived the classifier. Asked directly, the corpus holds **69 permission-mode-change
+boundaries across 276 sessions** `[verified 2026-08-30]`, which is a population large enough to
+settle E either way for free.
+
+Four things this step must do, each of them a trap the earlier passes already paid for:
+
+1. **Use the sweep's own classifier, not a hand-rolled threshold.** The scratch cross-tab that found
+   the 69 used `read < 0.5 x expected` and disagrees with `read-session-prefix.py` on a boundary
+   both of them saw. Reuse `session_turns` and the real cause assignment; do not re-implement.
+2. **Separate mode-alone boundaries from the rest before counting anything.** A boundary carrying an
+   effort or model change tests an explained cause, and pooling the two is exactly what made the
+   arm E session unreadable. The split is an exact field read and costs nothing.
+3. **Report against a same-session base rate, per turn-boundary** — the control that made Task 2 and
+   Task 5 sound. A raw rate over 69 boundaries is not a result.
+4. **State the direction problem rather than resolving it by assertion.** A mode change and a
+   rewrite can both be downstream of the user starting something new. Nothing in the corpus
+   separates those, and the write-up should say so.
+
+**Expected if E is real:** mode-alone boundaries rewrite above the same-session base rate, and the
+`plan → X` subset above the rest. **Expected if E is the n=3 artifact it might be:** at or below
+base rate once the effort-carrying boundaries are removed, which retires the last candidate and
+unparks Task 4 unconditionally.
+
 ---
 
 ## Task 2: Find what immediately precedes each event
@@ -393,6 +448,12 @@ without emitting a `tool_use` — see candidate F. The 829-line dump stayed in
 the only one left to run — Step 3's ordering below is kept as written at the time.** Run F first — one deliberate action tests it,
 and no amount of further analysis will. The question is about request structure and is
 model-independent, so this runs on `claude-haiku-4-5`, not on Opus.
+
+**Corrected 2026-08-30: the model-independence claim holds for F and is false for E.** All three F
+arms ran clean on Haiku. Arm E did not, because this client substitutes `claude-sonnet-5` at effort
+`high` when a Haiku session enters plan mode — which converts a mode-alone trigger into an effort
+switch, one of the five already-explained causes, and voids the arm. Any arm whose trigger touches
+plan mode must run on the model the corpus events ran on, with effort pinned. See the arm E result.
 
 **Do not run this in a long session.** The measurement is a prefix rewrite, and triggering one in a
 large context is what it costs: session `2e2d5ebe` reached 154,482 tokens on 2026-08-29, where a
@@ -727,11 +788,70 @@ turn 7:  still there?
 
 Predictions 1, 2 and 4 read off `python scripts/read-session-prefix.py '<WINDOWS path>'`. Prediction
 3 reads off this, which prints one line per labelled record and returned 7 `acceptEdits` lines on
-`06de8063` as its positive control `[verified 2026-08-30]`:
+`06de8063` as its positive control `[verified 2026-08-30]`, and which is also how the run below was
+found to have moved a second variable:
 
 ```sh
 python -c "import json,sys; [print('rec %3d  %s' % (i, r.get('permissionMode'))) for i,r in enumerate(json.loads(l) for l in open(sys.argv[1],encoding='utf-8') if l.strip()) if isinstance(r,dict) and r.get('permissionMode')]" '<WINDOWS path>'
 ```
+
+### Result, 2026-08-30 — arm E is void for plan mode, and returns one clean null beside it
+
+Session `9e76ff00`, 7 turns. All three cycles landed: `acceptEdits → plan → default → acceptEdits`,
+with the label changing on turns 4, 6 and 7 exactly as the script intended.
+
+| # | Prediction | Outcome |
+|---|---|---|
+| 1 | Baseline holds, turns 2-3 exact, creates order 10^2 | **HIT** — 267, 182 |
+| 2 | At least one transition boundary rewrites | **HIT on the counter, void on interpretation** — two of three rewrote, and both carry an effort *and* model switch |
+| 3 | Validity: the labels change at turns 4, 6, 7 | **HIT** — the arm reached the client state the corpus predicate is defined on |
+| 4 | Same session file, `version` `2.1.251` | **HIT** — throughout |
+| 5 | If 2 hits, read which transition, the offset, the collapse floor | Read below; the answer is a cache lineage, not a new mechanism |
+| 6 | A miss on 2 names the `ExitPlanMode` successor | Superseded — the design fault below has to be fixed before that arm means anything |
+
+**The probe was run on the one model where plan mode is not mode-alone.** Entering plan mode
+swapped `claude-haiku-4-5-20251001` / effort `None` for `claude-sonnet-5` / effort `high`, and
+leaving it swapped back. Effort switch is one of the five causes the classifier removes before an
+event can reach the residual set, so by §2's own rule — written for the extension-update member — a
+trigger that moves an already-explained cause **voids that arm rather than confounding it**.
+Boundaries 3→4 and 5→6 say nothing about the 33.
+
+**This is a fault in Task 3's model choice and it is corrected in place.** Task 3 states the
+question "is about request structure and is model-independent, so this runs on `claude-haiku-4-5`,
+not on Opus". That holds for F, and it is false for E: this client substitutes a planning model when
+the session model is Haiku. The corpus settles it — of the ten plan-involving boundaries outside
+this probe, **nine carry identical model and effort on both sides and the tenth carries an effort
+change with the same model; no corpus session swaps the model at a plan boundary, and both probe
+boundaries do** `[verified 2026-08-30, per-boundary rows in
+`.task3-probe/arm-e-mode-effort-crosstab.txt`]`. The events E rests on are mode-alone. The probe's
+were not, so it was not measuring them.
+
+**One boundary in the arm is clean, and it is a real result.** Turn 6 → 7 is `default → acceptEdits`
+with the same model, the same effort and nothing else moving, and continuity held exactly: read
+54,230 against 52,472 + 1,758. That is a null for candidate E's non-plan member at n=1, closest
+corpus analogue `auto → acceptEdits`. It is the only part of this session that tests E at all.
+
+**The two rewrites are a textbook effort-lineage switch, and the return leg measures the claim.**
+Turn 4 built a 71,787-token `claude-sonnet-5` / `high` prefix from `cache_read` 0. Turn 6 returned to
+`haiku` / `None` and read **52,472** — exactly where that lineage stopped at turn 3 (52,290 + 182) —
+paying 1,758 to re-add the excursion's two turns. Both halves of `effort-switch-cache-lineages`
+(`claude-skills` store) in one seven-turn session: the cold switch rebuilds from the floor, the
+return costs only the delta.
+
+**A second explained cause is stacked on the 5→6 boundary.** At turn 5 the model called
+`AskUserQuestion` and the operator interrupted it rather than answering (records 55-57). An aborted
+turn immediately prior is also a classified cause, so that boundary carried two of them. It changes
+no verdict, and it leaves two things to fix: the turn script needs a line telling the operator what
+to do if the model calls a tool, and this interrupt shape produces no zero-usage assistant record,
+which is what the sweep's `abort_after` detector keys on — so the sweep would not have flagged it.
+
+**What the cross-tab does and does not offer.** It found **69 permission-mode-change boundaries
+across 276 sessions**, two of them this probe's, against the n=3 the 8.1x lead rests on. That is a
+far larger population for a free re-analysis, and Task 1 Step 5 below is written to use it. It is
+not itself that analysis: its outcome column is a crude `read < 0.5 x expected` predicate with no
+TTL or compaction exclusion and no base rate, and it disagrees with `read-session-prefix.py` on this
+session's own 5→6 boundary. The model and effort columns are exact field reads and are what the
+paragraphs above rest on; the rewrite counts in that file are not to be quoted.
 
 ---
 
