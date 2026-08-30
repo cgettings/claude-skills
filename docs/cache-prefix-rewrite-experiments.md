@@ -74,7 +74,12 @@ the two surviving candidates are unchanged. Output in `.task3-probe/sweep-2026-0
 are the same shape as the reload arm that already ran, so the predictions, the turn script and the
 reader are all reusable; only the trigger changes. Arm F/host-restart is `Developer: Restart
 Extension Host`; arm E is a permission-mode change, and leaving plan mode is the transition two of
-the three observed events share.
+the three observed events share. **Do not spend a session on an extension update** — §2 records why
+that member cannot produce an unexplained event. The version check the F arm needs already exists
+and already fired once: `read-session-prefix.py` prints `version` per turn, and Task 3's prediction
+4 read it. Its meaning is now sharper than when it was written — a trigger that moves the version
+string has tested an already-explained cause and says nothing about the 33, so that is a void arm
+rather than a confound to note.
 
 ```sh
 # after the run, in the new session's transcript:
@@ -166,6 +171,24 @@ a mechanism rather than a bare correlation.
 Proposed 2026-08-29. A *family*, not one event — a manual window reload, an extension restart, an
 extension updating and then reloading, or a VS Code update. They share the mechanism that matters:
 the client re-registers its tools, and the tool block sits above every cache breakpoint.
+
+**One member is excluded by construction and should not be bought a session, added 2026-08-30.**
+`classify()` appends a `version X->Y` cause on any change, so a **Claude Code extension update
+cannot be behind any of the 33**: it is an explained cause before it can reach the residual set.
+14 of the 114 events are version-classified and **0 of the 33 are** `[verified 2026-08-30, and the
+field is populated on both sides of all 13,802 boundaries, so the test fires rather than comparing
+two nulls; 34 boundaries carry a change]`. This is the same structure Task 1 Step 3 records for
+TTL and effort switch — zero by construction is not evidence — and the family's member list did
+not say so. **What survives is the version-silent half:** a VS Code application update, or a host
+restart that leaves the Claude Code version string untouched. That is what `Developer: Restart
+Extension Host` tests on demand.
+
+**A side observation from the same check, and it is the only direct evidence that this machine
+replaces hosts mid-session at all.** Four of the version transitions are *downgrades*
+(`2.1.224->2.1.220`). A version going backwards is a client being replaced rather than upgraded —
+two clients at different versions writing one transcript. Those events sit outside the residual
+set, so this is not evidence *for* F as an explanation of the 33; it establishes only that the
+family's premise — that a host swap happens here — is real rather than assumed.
 
 **Its on-demand member is now falsified, and the reason it looked untestable was a wrong
 reading of the transcript.** Task 3 ran a manual window reload mid-session on 2026-08-30 and the
