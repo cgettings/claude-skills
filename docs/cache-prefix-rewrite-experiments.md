@@ -17,7 +17,7 @@ analysis pulls inline is re-read at cache rates on every later turn of that sess
 same charge this investigation is about. The dumps are large: Task 2 emits a 20-record lead-in for
 each surviving event: **829 lines for 33 events** `[measured 2026-08-29]`. The answers are small:
 counts with denominators. So
-each step below names the file it writes and the aggregate it prints, all such files are gitignored,
+each step below names the file it writes and the aggregate it prints, those files land in `.task3-probe/`, which is gitignored,
 and the dump is opened only when an aggregate is surprising — with `grep` or `sed -n`, never whole.
 
 Sibling document: `docs/durable-memory-model.md`, on branch `feature-durable-memory-model`, not on
@@ -43,6 +43,11 @@ compaction family (§1.5, open item 1) is real but marks nothing the classifier 
 nine prefixes grew rather than shrank, which no compaction does. **Task 4 is retired**: it existed to recover from request bytes a fact the server
 states in a field.
 
+**The free routes to `messages_changed` are now exhausted.** Task 7 excluded compaction and Task 7b
+showed the transcript cannot reach what replaces it: the injected-block subtypes are too rare for a
+9-window probe to resolve at any effect size. What is left for that class is an instrument that sees
+the request, which is the retired proxy, or nothing.
+
 Tasks 1, 2, 3 and 5 stand as run, but read their nulls narrowly — each tested a *trigger* predicate
 against a residual set that was never causeless. Arm B still has no non-VS Code entrypoint and is
 not in the critical path.
@@ -62,6 +67,7 @@ not in the critical path.
 | 5 | Do the rewrites sit on a client reconnect? | `fd87d13` | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
 | 6 | Join the server's `cache_miss_reason` onto the events | `b1d62da` | **DONE 2026-08-30** — 27 of 33 labelled | `scripts/join-cache-miss-reason.py --min-create=0`: 376 files, 14,344 turns, 116 events, 33 unexplained. Instrument validated on the explained set (16/16 effort to `unavailable`, 3/3 model to `model_changed`) |
 | 7 | Audit the compaction classifier against the client's real compaction family | `5e6e3d9` scripts, `ded2f92` write-up | **DONE 2026-08-30** — compaction is not the explanation | Two arms. Markers: the classifier is blind to `SessionStart:compact` (15/12 sessions) and queued `/compact` (11/8), and both are redundant with the two it sees — 0 of 9 events have any `compact`-bearing record in the boundary window; positive control 15 boundaries classify as `compaction`. Arithmetic: all 9 prefixes **grew**, +1,219 to +6,990 against session medians 821–1,313, 0 of 9 shrank |
+| 7b | What arrives at the 9 `messages_changed` boundaries | *see* `git log -- scripts/audit-boundary-arrivals.py` | **DONE 2026-08-30** — null on the common shapes, **no power** on the named ones | Pooled, `queue-operation` 9/9 vs 60/1,253 (20.9x) and `system` 8/9 vs 53 (21.0x) — both are window duration: event median gap 292 s against a control median of 13 s, and stratified the ratio decays 22.5x → 3.73x → 1.55x → 1.46x. The six named attachment subtypes expect 0.007–0.043 hits in 9 windows, under 1 even at tenfold, so their zero says nothing |
 | 8 | The 6 events carrying no diagnostics | *no commit* | **NOT STARTED** — genuinely open; the only members of the original 33 still causeless | — |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
@@ -116,12 +122,12 @@ Output in `.task3-probe/sweep-2026-08-30.txt`. **Superseded by the last run of t
 classified; see Task 1 Step 5's result. Two candidates survived when this paragraph was written and
 none does now.
 
-**Next command — the first-user-message diff, which is Task 7's own successor, then Task 8.**
-Task 7 excluded compaction and left one untested reading in its place: the nine `messages_changed`
-events rewrite everything below the tool-definitions breakpoint while the prefix *grows* by more
-than an ordinary turn, which is the shape of an insertion near the head of the messages array. I1
-holds the records to check it and it costs nothing. Task 8's 6 unlabelled events are still
-genuinely open and untouched. **Do not build the proxy** — Task 4 is retired and §1.5 says why.
+**Next command — Task 8, the 6 events carrying no `cache_miss_reason`.** They are the only
+members of the original 33 still causeless, and they are now the only class with a free question
+left: Task 7b closed the `messages_changed` route by showing the transcript cannot resolve it.
+**Stratify every rate by gap before reading it** — that is what turned Task 7b's two 21x hits
+into a null, and it is the third time on this plan that an unstratified window rate has
+misreported. **Do not build the proxy** — Task 4 is retired and §1.5 says why.
 
 ```sh
 cd ~/Documents/Projects/claude-skills
@@ -136,6 +142,12 @@ python scripts/join-cache-miss-reason.py --min-create=0 | head -22
 python scripts/audit-compaction-markers.py > .task3-probe/task7-run.txt 2>&1 ; \
   tail -20 .task3-probe/task7-run.txt
 
+# Task 7b, and its control arm. Run the gap one whenever you read the pooled one:
+# pooled says 20.9x, stratified says 1.55x on n=5, and the second is the answer.
+python scripts/audit-boundary-arrivals.py > .task3-probe/task7b-run.txt 2>&1 ; \
+  python scripts/audit-boundary-arrivals-gap.py > .task3-probe/task7b-gap.txt 2>&1 ; \
+  tail -30 .task3-probe/task7b-gap.txt
+
 # the nine events, each line naming its transcript and timestamp -- the input to
 # the next step, which is to diff their first user message's attachment records
 grep messages_changed .task3-probe/cache-miss-reason-join.txt | grep UNEXPLAINED
@@ -145,12 +157,13 @@ python scripts/sweep-cache-rewrites.py --min-create=0 --step6 > .task3-probe/ste
   sed -n '/rewrite events:/p;/Task 1 Step 5/,$p' .task3-probe/step5-rerun.txt
 ```
 
-**Three new scripts are untracked until the Task 7 commit lands**: `audit-compaction-markers.py`
-(the audit), `-values.py` (distinct values on the blind paths) and `-coverage.py` (whether the blind
-markers mark anything new). Each takes no arguments or one `--reason=LABEL`, and each rejects an
-unrecognised argument rather than treating it as none. Their outputs land in `.task3-probe/` as
-`task7-run.txt`, `task7-values.txt`, `task7-coverage.txt` and `compaction-marker-audit.txt`, which
-is machine-local evidence and not to be committed.
+**Five scripts carry Tasks 7 and 7b**: `audit-compaction-markers.py` (the audit), `-values.py`
+(distinct values on the blind paths), `-coverage.py` (whether the blind markers mark anything
+new), `audit-boundary-arrivals.py` (what arrives at the 9) and `-gap.py` (its duration control).
+Each takes no arguments or one `--reason=LABEL`, and each rejects an unrecognised argument rather
+than treating it as none — so each is re-runnable against `tools_changed` or `system_changed`,
+which is the cheapest way to ask the same questions of the other two classes. Their outputs land
+in `.task3-probe/`, which is machine-local evidence and not to be committed.
 
 **Arm 3f is not worth buying on current evidence** and its row says so. If Task 4 ever turns up a
 block that moves with permission mode, the arm becomes worth running again — and if it does, two
@@ -1437,6 +1450,85 @@ not be promoted until it is.** The check is free and I1 holds the records: diff 
 message's `attachment` records across each of the nine boundaries — §1.5 lists ten subtypes
 that carry injected content, and `deferred_tools_delta`, `mcp_instructions_delta`,
 `agent_listing_delta` and `skill_listing` all record arrivals rather than steady state.
+
+---
+
+## Task 7b: What arrives at the 9 `messages_changed` boundaries
+
+**Task 7's successor, and free.** Task 7 excluded compaction and left one reading in its place: the
+nine rewrite everything below the tool-definitions breakpoint while the prefix *grows* by more than
+an ordinary turn, which is the shape of an insertion rather than a removal. I1 records injected
+content as `attachment` records — §1.5 lists ten subtypes that carry it — so the question is
+answerable from disk.
+
+**Why this is not a re-run of Task 2.** Task 2 asked what precedes an event and returned a null, but
+it ran before the server labels existed and pooled all 33. The 9 are a homogeneous set selected on
+the server's own account of *which block moved*, and stratifying a null by a cause discovered
+afterwards is a different question from the one that returned it.
+
+**One mechanical constraint shapes the prediction, and it is worth stating before the numbers.** An
+attachment appended to the current turn lands at the *end* of the messages array, and appending
+does not invalidate a prefix. For `messages_changed` to fire above the breakpoint, an *earlier*
+message must have changed — so the subtype to look for is one whose content is re-rendered from
+disk on each request, not one that merely arrives. §1.5 records that `nested_memory` carries
+`contentDiffersFromDisk` alongside both `content` and `rawContent`, which is exactly that shape.
+
+**Method.** For each of the 9, inventory every record type and `attachment` subtype in the boundary
+window `(prev.t, cur.t]`, scored as presence-per-window rather than record count so one burst cannot
+carry a subtype. Control: every other boundary in those same 9 sessions, same measure. Report each
+subtype as event-windows/9 against control-windows/N.
+
+### Predictions for Task 7b, written 2026-08-30 before the probe was written
+
+1. `output_style` and `total_tokens_reminder` appear in nearly every window in **both** arms — they
+   are 8,848 and 6,174 records corpus-wide. They are pre-registered as **no-power**: a subtype
+   present in ≥8 of 9 event windows *and* ≥50% of control windows separates nothing, whatever its
+   ratio, and must be reported as no-power rather than as a hit.
+2. If the insertion reading is right, at least one subtype that is re-rendered rather than appended
+   is enriched at the 9 against control.
+3. Under the alternative, every subtype sits at its same-session base rate.
+
+**A second no-power condition, on n.** With 9 events a subtype appearing in fewer than 3 event
+windows has no readable rate; report it as underpowered, not as absent. This is the condition that
+decides whether a null here is worth anything at all.
+
+### Result, 2026-08-30 — a null on the common shapes, and no power at all on the named ones
+
+**Read the second half first: this probe does not test the insertion reading.** The subtypes the
+hypothesis named are far too rare for 9 windows to see. Against a same-session control of 1,253
+boundaries, `deferred_tools_delta` appears in 2, `mcp_instructions_delta` in 1,
+`agent_listing_delta` in 1, `skill_listing` in 6, `hook_additional_context` in 3 and `nested_memory`
+in none. **Expected hits in 9 windows: 0.007 to 0.043 — and still below 1 if the effect were
+tenfold.** Six of the seven named subtypes cannot produce a countable hit at any effect size this
+design could resolve. Their zero at the 9 events is a no-power, and prediction 2 fails without
+saying anything. `[computed 2026-08-30 from the control rates above]`
+
+**The first half is a real null, and it took a control arm to get there.** Pooled, two shapes looked
+overwhelming: `queue-operation` at 9 of 9 event windows against 60 of 1,253 controls (20.9x), and
+`system` at 8 of 9 against 53 (21.0x). **Both are window duration.** The event windows run 45–904 s
+with a median of 292; a control boundary in these same sessions has a median gap of **13 s**, and
+1,053 of the 1,253 sit under 30 s. Stratified by gap, the ratio decays monotonically —
+`queue-operation` 22.5x, 3.73x, 1.55x, 1.46x as the band widens — and in the 180–600 s band where
+five of the nine events actually live it is 5/5 against 22/34, which is 1.55x and carries a
+one-in-nine chance of arising from the base rate alone. The long-gap control rate tells the same
+story from the other side: users type ahead during long turns, 65% and 68% of the time.
+
+The `system` records are all one subtype, `stop_hook_summary` — 8 of the 9 events, and the only
+other subtypes anywhere in the control set are a single `compact_boundary` and a single
+`local_command`. `attachment/total_tokens_reminder` sits at 0.82–1.08x in every band, exactly as
+pre-registered.
+
+**What this does and does not retire.** It retires *a common injected block arriving at these
+boundaries and not at others* — that would have shown up, and nothing did. It leaves the insertion
+reading untouched, because the instrument cannot reach it. **The free routes to that reading are now
+exhausted**, and the honest statement is that this transcript cannot distinguish an insertion at the
+head of the messages array from any other change to it. Say so rather than recording a null.
+
+**This arm's own lesson, and it is the third time on this plan.** The pre-registration named a
+no-power condition on *n* and missed the one that actually bit — unequal window durations, which had
+already cost this investigation a finding at Task 1 Step 5. A rate over a window is a rate per unit
+time or it is a statement about the window. The check is one line of stratification and it should be
+in every predicate this plan writes from here.
 
 ---
 

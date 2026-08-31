@@ -9,3 +9,5 @@ sweep-low.txt
 sweep-step2.txt
 sweep-now.txt
 task1-step5-mode-boundaries.txt
+.task3-probe/
+__pycache__/
