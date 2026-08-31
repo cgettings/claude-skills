@@ -3,3 +3,12 @@
 scripts/plugin update scratch.md
 .task3-probe/
 __pycache__/
+sweep-all.txt
+task1-residual.json
+task2-antecedents.txt
+sweep-step3.txt
+sweep-sens.txt
+sweep-low.txt
+sweep-step2.txt
+sweep-now.txt
+task1-step5-mode-boundaries.txt
