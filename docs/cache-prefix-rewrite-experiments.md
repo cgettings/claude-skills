@@ -73,7 +73,7 @@ not in the critical path.
 | 5 | Do the rewrites sit on a client reconnect? | `fd87d13` | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
 | 6 | Join the server's `cache_miss_reason` onto the events | `b1d62da` | **DONE 2026-08-30** — 27 of 33 labelled | `scripts/join-cache-miss-reason.py --min-create=0`: 376 files, 14,344 turns, 116 events, 33 unexplained. Instrument validated on the explained set (16/16 effort to `unavailable`, 3/3 model to `model_changed`) |
 | 7 | Audit the compaction classifier against the client's real compaction family | `5e6e3d9` scripts, `ded2f92` write-up | **DONE 2026-08-30** — compaction is not the explanation | Two arms. Markers: the classifier is blind to `SessionStart:compact` (15/12 sessions) and queued `/compact` (11/8), and both are redundant with the two it sees — 0 of 9 events have any `compact`-bearing record in the boundary window; positive control 15 boundaries classify as `compaction`. Arithmetic: all 9 prefixes **grew**, +1,219 to +6,990 against session medians 821–1,313, 0 of 9 shrank |
-| 7b | What arrives at the 9 `messages_changed` boundaries | *see* `git log -- scripts/audit-boundary-arrivals.py` | **DONE 2026-08-30** — null on the common shapes, **no power** on the named ones | Pooled, `queue-operation` 9/9 vs 60/1,253 (20.9x) and `system` 8/9 vs 53 (21.0x) — both are window duration: event median gap 292 s against a control median of 13 s, and stratified the ratio decays 22.5x → 3.73x → 1.55x → 1.46x. The six named attachment subtypes expect 0.007–0.043 hits in 9 windows, under 1 even at tenfold, so their zero says nothing |
+| 7b | What arrives at the 9 `messages_changed` boundaries | `a8478d7` | **DONE 2026-08-30** — null on the common shapes, **no power** on the named ones | Pooled, `queue-operation` 9/9 vs 60/1,253 (20.9x) and `system` 8/9 vs 53 (21.0x) — both are window duration: event median gap 292 s against a control median of 13 s, and stratified the ratio decays 22.5x → 3.73x → 1.55x → 1.46x. The six named attachment subtypes expect 0.007–0.043 hits in 9 windows, under 1 even at tenfold, so their zero says nothing |
 | 8 | The 6 events carrying no diagnostics | *no commit* | **NOT STARTED** — genuinely open; the only members of the original 33 still causeless | — |
 | 9a | Is there a key that joins the debug log to the transcript? | *no commit* — verified ad hoc, script owed | **DONE 2026-08-30** — the join is exact | 23 of 24 `req_` ids shared between `~/.claude/debug/fac8c194….txt` and its own transcript's `requestId`; the 1-and-1 residual is the live edge, both files being appended to mid-check. The debug log's `x-client-request-id` is a *different*, client-side UUID and does **not** join |
 | 9b | Positive control: does a rewrite with a known cause leave any debug-log signature? | *no commit* | **NOT STARTED** — the gate on this whole family | Force an effort switch (server cause `unavailable`) inside a debug-logged session, then read that boundary through the 9a join. If a rewrite whose cause is already known leaves no signature, the log cannot see rewrites at all and 9c–9d are dead before they are written |
@@ -1545,6 +1545,10 @@ in every predicate this plan writes from here.
 ---
 
 ## Task 9: The client debug log, and what it can actually be asked
+
+*Name collision, and this store has had one before: the sibling `docs/durable-memory-model.md`
+has its own §5 Task 9, which is the proxy design. Both references to it in this file name the
+document explicitly; an unqualified "Task 9" here always means the debug log.*
 
 **New instrument as of 2026-08-30.** Claude Code now writes a per-session debug log to
 `~/.claude/debug/<session-id>.txt`, with `~/.claude/debug/latest` symlinked to the running
