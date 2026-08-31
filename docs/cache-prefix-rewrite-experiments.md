@@ -1606,9 +1606,27 @@ did not do until after its null.
 
 Three unknowns, none of them derivable from the repo, each capable of voiding a capture:
 
-1. **How debug logging was enabled, and whether it persists.** If it is per-invocation, any session
-   that hits a rewrite without it is lost, and the rates above are optimistic by whatever fraction
-   of sessions carry the flag.
+1. **SETTLED 2026-08-30 - persistent, and it covers 97.4% of the corpus's session population.**
+   The extension passes `--debug --debug-to-stderr`, and the second flag suppresses the on-disk log
+   outright. Measured against native binary 2.1.251: `--debug` alone writes a 41,519-byte file,
+   `--debug --debug-to-stderr` writes none, and adding an explicit `--debug-file` does not override
+   it - stderr wins, so no appended flag can undo it. The flag therefore has to be removed before
+   the binary sees it, which `~/.claude/scripts/claude-debug-wrapper.c` does: a shim substituted
+   via VS Code's `claudeCode.claudeProcessWrapper` setting, which strips the token and appends
+   `--debug` defensively. It covers exactly the `entrypoint=claude-vscode` sessions, which are
+   **375 of 385 corpus-wide (97.4%)** `[measured 2026-08-30 over every transcript under
+   ~/.claude/projects]`; the other 10 are `cli`, `sdk-ts` and `claude-desktop`. The power table
+   above needs no adjustment for coverage. The tradeoff is that debug lines no longer reach the
+   VS Code Output panel.
+
+   **It introduces one failure mode the power table assumes away.** If an extension update changes
+   the flags the wrapper matches on, logging stops and `~/.claude/debug/` simply stays empty, which
+   is indistinguishable from a session that had no rewrite. **Before reading any null from 9b, 9c
+   or 9d, confirm that session's own log exists and is non-trivial** - a missing log is a broken
+   instrument, not an absent event. Note also that a rebuilt wrapper is picked up only by new
+   sessions: Windows blocks overwriting a running .exe, so the swap is a rename and live sessions
+   keep the old image.
+
 2. **Whether the log rotates or truncates.** A capped log silently drops the oldest lines, which on
    a long session is exactly the boundary being hunted. Check a long session's log against its own
    first turn before trusting a window.
