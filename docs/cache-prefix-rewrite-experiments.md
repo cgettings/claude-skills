@@ -48,6 +48,12 @@ showed the transcript cannot reach what replaces it: the injected-block subtypes
 9-window probe to resolve at any effect size. What is left for that class is an instrument that sees
 the request, which is the retired proxy, or nothing.
 
+**A new instrument arrived the same day: a per-session client debug log on disk (Task 9).** It does
+not read the prefix and does not revive Task 4, but it joins to the transcript exactly on
+`requestId` and it names the client-side tool, skill, MCP and permission changes that are the
+plausible mechanism behind `tools_changed` and `system_changed` -- 18 of the 33. It is not
+retroactive, so it can only explain events from here on.
+
 Tasks 1, 2, 3 and 5 stand as run, but read their nulls narrowly — each tested a *trigger* predicate
 against a residual set that was never causeless. Arm B still has no non-VS Code entrypoint and is
 not in the critical path.
@@ -69,6 +75,11 @@ not in the critical path.
 | 7 | Audit the compaction classifier against the client's real compaction family | `5e6e3d9` scripts, `ded2f92` write-up | **DONE 2026-08-30** — compaction is not the explanation | Two arms. Markers: the classifier is blind to `SessionStart:compact` (15/12 sessions) and queued `/compact` (11/8), and both are redundant with the two it sees — 0 of 9 events have any `compact`-bearing record in the boundary window; positive control 15 boundaries classify as `compaction`. Arithmetic: all 9 prefixes **grew**, +1,219 to +6,990 against session medians 821–1,313, 0 of 9 shrank |
 | 7b | What arrives at the 9 `messages_changed` boundaries | *see* `git log -- scripts/audit-boundary-arrivals.py` | **DONE 2026-08-30** — null on the common shapes, **no power** on the named ones | Pooled, `queue-operation` 9/9 vs 60/1,253 (20.9x) and `system` 8/9 vs 53 (21.0x) — both are window duration: event median gap 292 s against a control median of 13 s, and stratified the ratio decays 22.5x → 3.73x → 1.55x → 1.46x. The six named attachment subtypes expect 0.007–0.043 hits in 9 windows, under 1 even at tenfold, so their zero says nothing |
 | 8 | The 6 events carrying no diagnostics | *no commit* | **NOT STARTED** — genuinely open; the only members of the original 33 still causeless | — |
+| 9a | Is there a key that joins the debug log to the transcript? | *no commit* — verified ad hoc, script owed | **DONE 2026-08-30** — the join is exact | 23 of 24 `req_` ids shared between `~/.claude/debug/fac8c194….txt` and its own transcript's `requestId`; the 1-and-1 residual is the live edge, both files being appended to mid-check. The debug log's `x-client-request-id` is a *different*, client-side UUID and does **not** join |
+| 9b | Positive control: does a rewrite with a known cause leave any debug-log signature? | *no commit* | **NOT STARTED** — the gate on this whole family | Force an effort switch (server cause `unavailable`) inside a debug-logged session, then read that boundary through the 9a join. If a rewrite whose cause is already known leaves no signature, the log cannot see rewrites at all and 9c–9d are dead before they are written |
+| 9c | `tools_changed` (13 of 33) against the log's tool-loading lines | *no commit* | **BLOCKED on 9b** | Candidate lines exist and are frequent: `Dynamic tool loading:`, `Loaded N skills`, `MCP server "…":`, `Using marketplace snapshot`. Prediction to pre-register: present in the boundary window at `tools_changed` events and not at controls — **stratified by gap**, which is the condition that turned Task 7b's 20.9x into 1.55x |
+| 9d | `system_changed` (5 of 33) against permission and hook lines | *no commit* | **BLOCKED on 9b** | Candidates: `Applying permission update:` and the `Hooks:` family. Same stratified design as 9c, at a fifth of the n — see the power table in Task 9 before reading any null here |
+| 9e | Do the non-main-loop calls share the prefix? | *no commit* | **PARKED — no free instrument** | The log shows a session makes ~40 `/v1/messages` calls of which only ~23 are `source=sdk`; the rest are `side_query` and one-offs (`generate_session_title`, `growthbook`, `payload`). The whole existing corpus has only ever seen the sdk turns. Unparks only if some instrument can show whether a side query shares the cached prefix — the debug log carries no bodies and no token counts, so it cannot |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
 of the three bands. The bands did not survive re-baselining (§1), so there is nothing stable to
@@ -122,12 +133,13 @@ Output in `.task3-probe/sweep-2026-08-30.txt`. **Superseded by the last run of t
 classified; see Task 1 Step 5's result. Two candidates survived when this paragraph was written and
 none does now.
 
-**Next command — Task 8, the 6 events carrying no `cache_miss_reason`.** They are the only
-members of the original 33 still causeless, and they are now the only class with a free question
-left: Task 7b closed the `messages_changed` route by showing the transcript cannot resolve it.
-**Stratify every rate by gap before reading it** — that is what turned Task 7b's two 21x hits
-into a null, and it is the third time on this plan that an unstratified window rate has
-misreported. **Do not build the proxy** — Task 4 is retired and §1.5 says why.
+**Next command -- Task 9b, the positive control on the new debug log.** It gates 9c and 9d, which
+between them cover 18 of the 33, and it costs one forced effort switch inside a debug-logged
+session. Task 8's 6 events stay genuinely open but are the rarest class in the corpus (62.7
+sessions per expected event) and have no instrument the others lack. **Stratify every rate by gap
+before reading it** -- that is what turned Task 7b's two 21x hits into a null, and it is the third
+time on this plan that an unstratified window rate has misreported. **Do not build the proxy** --
+Task 4 is retired, the debug log carries no request bodies, and §1.5 says why.
 
 ```sh
 cd ~/Documents/Projects/claude-skills
@@ -1529,6 +1541,76 @@ no-power condition on *n* and missed the one that actually bit — unequal windo
 already cost this investigation a finding at Task 1 Step 5. A rate over a window is a rate per unit
 time or it is a statement about the window. The check is one line of stratification and it should be
 in every predicate this plan writes from here.
+
+---
+
+## Task 9: The client debug log, and what it can actually be asked
+
+**New instrument as of 2026-08-30.** Claude Code now writes a per-session debug log to
+`~/.claude/debug/<session-id>.txt`, with `~/.claude/debug/latest` symlinked to the running
+session's. Nine exist, all dated 2026-08-30, ~93 KB for one working session.
+
+**It is not the retired proxy, and Task 4 stays retired.** The log carries no request bodies, no
+token counts, no cache-control or breakpoint markers, and no injected-block content. Swept for
+`cache_creation`, `cache_read`, `cache_miss_reason`, `ephemeral`, `breakpoint`, `system-reminder`,
+`input_tokens` and `effort`, every count is **0** `[verified 2026-08-30]`. Nothing here reads the
+prefix. What it holds is client-side operational state: API dispatch, stream timing, tool and skill
+loading, MCP, hooks, permission updates.
+
+**Read the sweep method before trusting any count from this file.** The log echoes tool inputs
+verbatim on `[auto-mode] new action being classified` lines, so a keyword search finds *its own
+probe*. The first run of the sweep above returned exactly 1 for eight different cache terms; all
+eight hits were the grep command that was looking for them, and the true count was 0. Any sweep of
+a debug log must exclude the self-echo lines first, and a count of 1 on a term you just typed is
+the tell. This is a live instance of the null-from-an-unvalidated-instrument rule, caught only
+because eight unrelated terms returning the same suspicious 1 does not happen by chance.
+
+### The join, which is the reason this is worth anything
+
+The transcript's `requestId` (`req_011Cea…`, server-side) appears in the debug log, so the two
+join exactly rather than by nearest timestamp: **23 of 24 ids shared** on this session, the
+1-and-1 residual being the live edge with both files still being appended to. Timestamps agree in
+format and clock (both UTC `…Z`), so the join is checkable two ways.
+
+Note the near-miss: the log's own `x-client-request-id` is a client-generated UUID that appears
+nowhere in the transcript. Joining on that field returns nothing and would read as "the log does
+not join", which is the wrong conclusion from the right-looking query.
+
+### The corpus is not retroactive, and this is the binding constraint
+
+Every one of the 33 residual events comes from a session with no debug log, and no debug log can
+be made for a session that has ended. **The log can only ever explain a future event.** So the
+question is how long it takes to catch one, and the base rates answer it directly — 376 sessions
+carrying 116 events:
+
+| Class | n of 376 | Sessions per expected event |
+|---|---|---|
+| Any rewrite | 116 | 3.2 |
+| Unexplained (the 33) | 33 | 11.4 |
+| `tools_changed` | 13 | 28.9 |
+| `messages_changed` | 9 | 41.8 |
+| No diagnostics (Task 8) | 6 | 62.7 |
+| `system_changed` | 5 | 75.2 |
+
+**Pre-registered, before any of this runs:** at 9 debug-logged sessions the expected number of
+unexplained events captured is **0.8**. Passive collection is not a strategy for the rare classes —
+`system_changed` needs on the order of 75 logged sessions for one event. Either force a trigger, or
+accept that 9c and 9d are months of ambient collection. Writing this table now is the thing Task 7b
+did not do until after its null.
+
+### What has to be settled before 9b runs
+
+Three unknowns, none of them derivable from the repo, each capable of voiding a capture:
+
+1. **How debug logging was enabled, and whether it persists.** If it is per-invocation, any session
+   that hits a rewrite without it is lost, and the rates above are optimistic by whatever fraction
+   of sessions carry the flag.
+2. **Whether the log rotates or truncates.** A capped log silently drops the oldest lines, which on
+   a long session is exactly the boundary being hunted. Check a long session's log against its own
+   first turn before trusting a window.
+3. **Whether `source=side_query` calls appear in the transcript at all.** If they do not — and the
+   count gap of ~40 log requests against ~23 sdk turns says they do not — then every per-session
+   rate this investigation has computed is a rate per *sdk turn*, not per API call.
 
 ---
 
