@@ -25,9 +25,13 @@ conflate two axes. Task 7 landed the same day, taking `distill-lessons` and `ref
 landed the same day — the 19 pointers are written paths and the verifier moved with them, which
 revised the pilot's yield to −29.7% / 4,384 B saved. Task 13 landed the same day, closing the loop
 from use — both skills at 2.1.0, and `~/.claude/misses.md` now carries both the miss log and the
-per-pass series. **The main line is complete.** What remains is Task 14, which cannot start until
-several passes have been recorded, and Tasks 5-6, which were taken off the main line and are picked
-up only on the basis §5 Task 5 states.
+per-pass series. **The main line is complete, and the pilot split is applied**: the live global
+`CLAUDE.md` went 64,019 → **59,635 B**, the first bytes this plan has removed from an always-loaded
+file rather than proposed removing. Task 5's old gate was found degenerate and circular and is
+replaced by a pre-registered **≥ 40 recorded occasions with zero *trimmed past recognition*
+entries**, countable because `misses.md` now has an `opps` denominator. What remains is watching:
+Task 14 needs several passes before its series says anything, Task 5's roll needs 40 occasions, and
+Task 6 waits on the team.
 Task 14 is promoted from tidy-up to the task the plan now turns on.
 
 **The ceiling is unreachable by any mechanism in this plan, and that is a 2026-09-01 finding rather
@@ -52,7 +56,9 @@ honoured at user scope, so §4's global routing lane is real rather than assumed
 but its **numbers are a 2026-08-25 baseline, not current** — the live global `CLAUDE.md` has since
 grown from 49,553 B to **62,370 B**, and nothing has re-measured its token share. Task 3's split was
 **re-cut a third time on 2026-09-01** against a section that had drifted to 14,749 B and still proved
-lossless — 22 bullets, 14,749 -> 10,042 B (-31.9%), 19 lesson files — but it is **not applied**.
+lossless — 22 bullets, 14,749 -> 10,365 B (-29.7% after Task 12's written paths), 19 lesson files —
+and it is **APPLIED to the live file as of 2026-09-01**, taking the global `CLAUDE.md` from 64,019
+to **59,635 B**. That is the first byte this plan has actually removed from an always-loaded file.
 Step 5 has now run **three times** and none of the three licensed a verdict: a ceiling null on
 2026-08-29, a query screen on 2026-09-01 whose survivors were retracted the same day as a
 two-repeat artefact, and a three-arm run that voided two of its three queries on its own
@@ -82,7 +88,7 @@ a lock**, and unblocks that task.
 | 2 | Record the real baseline | `0f82133` — no code commit; the result **is** §1 below | **DONE 2026-08-25** | differential token measurement, 11 `claude -p` runs, each arm controlled by the same hook log. Method, and the two arms it voided, in §1 |
 | 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` + `08239e7` re-cuts, and the **2026-09-01 re-cut** — no hash cited, because this row moved in it; find it with `git log --follow docs/task-3-section-before.md`, end state 22 bullets, 14,749 -> 10,042 B, 19 lesson files | **Steps 1-4 DONE (re-cut 2026-09-01). Step 5 CLOSED WITHOUT A VERDICT, 2026-09-01, by decision — not by result.** Three runs, none licensing an answer; **no fourth run will be commissioned**, so the run-order confound is now a permanent limitation of this record rather than a defect to fix. The split is still NOT applied, and Tasks 5-6 are **no longer gated on it**. A session reading this row should not re-run the judge | Steps 1-4: split built and proved lossless, most recently by the **2026-09-01 re-cut**: 22 bullets, **14,749 -> 10,042 B (-31.9%)**, all 19 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection, check 4 re-injected on 2026-08-28, and checks 2 and 4 re-injected on 2026-09-01 against the re-indexed bullet list. Guard fired twice, passed clean on 2026-08-29, and **fired a third time on 2026-09-01**. Step 5, three runs, all `RESTORED OK` (sha verified), 0 unresolved judge holes: **2026-08-29** 30 responses, 30/30 on all three arms including the deleted one, `A≈B≈C`, licenses nothing; **2026-09-01 screen** 22 responses, 3 of 8 candidates looked discriminating and were **retracted the same day** (a 0/2 screen fires 56% against a true rate of 0.25); **2026-09-01 three-arm** 18 responses, **2 of 3 queries VOID** on the replication gate, third's B cell 1/2. Pooled post-hoc A 12/12, B 2/6, C 2/12, A-vs-B `p = 0.0049` — but **arm is aliased with run order in all three**, and the judge behind every one of these numbers **failed its own audit** (`c3e4aa0`): a complete Opus re-judge of the three-arm run returns 14/18 (77.8%), 0 holes, below the 90% gate, with disagreement arm-correlated (A 6/6, B 4/6, C 4/6). Full results and the decision in the step-5 note in §5 Task 3 |
 | 4 | Route the file-triggered content | — | **STEP 1 DONE 2026-09-01; STEP 2 NOT DONE AND SHOULD NOT BE.** The classification came back **0 of 11 bullets file-triggered**, so there is nothing to move at global scope and moving anyway would make the rules fire less often. **Closed at global scope**; the same classification is now Task 6's first step against the project file | Labelled sweep over all 11 bullets of §Language & platform conventions (9,414 B), each classified by naming the glob open at its moment of need. 0 move; 2 hold a file-triggered half worth ~600 B that only exists after an edit. Swept the other 129 lines for file-triggered content the section-level table missed: 5 extension mentions, all citations inside momentary rules, each read individually; control returns 11 hits inside the target section. Table and consequences in §5 Task 4, "Step 1 result" |
-| 5 | Roll the split across the rest of global CLAUDE.md | — | **Ungated 2026-09-01, and off the main line.** Optional; §5 Task 5 states the only basis on which it gets picked up | — |
+| 5 | Roll the split across the rest of global CLAUDE.md | pilot applied — see the `~/.claude` commit | **PILOT APPLIED 2026-09-01; the roll is gated on evidence that can now accrue.** The old gate was degenerate (an empty log passed it vacuously) *and* circular (only split rules can produce the entry it waited for), so it is replaced by a pre-registered **≥ 40 recorded occasions with zero *trimmed past recognition* entries**. The `opps` denominator column exists to make that countable | Live global `CLAUDE.md` **64,019 → 59,635 B (−4,384)**. Applied only after proving the live section byte-identical to the before-fixture (not merely 14,749 B — a length is not an identity), with a control confirming the comparison could detect a difference. Three proofs after: new section identical to the after-fixture; everything **outside** it byte-identical across 49,270 B, control non-zero; all **19 live pointers resolve 1:1**, counts printed so a broken extractor cannot pass as a clean diff |
 | 6 | Same for the project CLAUDE.md | — | **Ungated 2026-09-01, deliberately sequenced last.** Needs the team's agreement, and wants a working global example to show them first | — |
 | 7 | Make the routing rule enforceable at write time | see the commit taking `distill-lessons` and `refile-rules` to **2.0.0** | **DONE 2026-09-01.** Two-axis routing, the audience gate, the write-time recognition/evidence split and Task 9's read-before-write protocol are in `distill-lessons` §4; the fourth permitted edit shape is in `refile-rules` §5 | Both skills written **environment-agnostically** — no machine paths, since these ship as plugins. **Major bumps, not minor:** `refile-rules` §5's default is *"a move preserves text byte for byte"*, and the fourth shape licenses an edit that default forbade, whose failure is silent; `distill-lessons` §4 replaced the routing procedure rather than extending it, so the old three-destination reading now returns a wrong answer on the evidence axis, not an incomplete one. `sh scripts/check-versions.sh` passes at 2.0.0/2.0.0. Manifests changed by exactly one line each, so no JSON round-trip reformatting. No CR bytes on any of the four files. Descriptions deliberately untouched: `git diff` on the frontmatter shows only the two `version:` lines, so the trigger evals test input this change did not alter |
 | 8 | Make the ceiling check mechanical | see the commit that adds `scripts/check-memory-budget.sh` | **DONE 2026-08-29** | `scripts/check-memory-budget.sh` + `test-check-memory-budget.sh`, **11-arm fault injection, all pass**, including a negative control that redirects `HOME` so exit 0 is reachable. Injection caught a real bug: the store-name fold missed `.`, so **every worktree read "no project store"** while ten arms passed. First sweep: **all 9 live directories over budget**, worst 147,391 B always loaded. Ceiling shown unreachable by §3b alone — see §5 Task 8 |
@@ -114,14 +120,22 @@ nor the repo's `.claude/rules/` exists again, so nothing extra loads into any se
 **A second piece of live environment state, added 2026-08-25 by Task 3.** `~/.claude/lessons/`
 now exists and holds **19 files / 27,534 B** — the evidence moved out of the pilot section, each
 containing its original bullet verbatim. Nothing loads them; they are read only when a rule's
-`[[pointer]]` is followed. **The split itself is still not applied** — the live section holds the full
+pointer is followed. **The split was applied to the live file on 2026-09-01**; before that date the live section held the full
 text, not the split text, because the firing test that would license applying it has not returned a
 usable answer. `~/.claude/CLAUDE.md` is no longer untouched, though: on 2026-09-01 the parked
 lessons bullet was applied to it (see below), and the pre-edit file is at
 `~/.claude/CLAUDE.md.bak-recut-20260901`. Derive that rather than trusting this line, because the probe below copies each arm over that
 file and restores it afterwards: the guard command returns 14,749 while the section is unsplit and
 10,365 once it is not `[the after-figure moved from 10,042 on 2026-09-01, when Task 12 converted the
-19 pointers to written paths: +323 B]`. To undo the lessons directory: `rm -rf ~/.claude/lessons/`.
+19 pointers to written paths: +323 B]`.
+
+**The split is APPLIED as of 2026-09-01, so that guard now reads 10,365 and the state it reports has
+flipped.** The live global file is **59,635 B**, down from 64,019. `scripts/measure-rule-firing.py`
+refuses to run unless it finds the *unsplit* section and will therefore no longer start — that is
+correct and costs nothing, since step 5 is closed and no further run is commissioned. To revert the
+split, `git -C ~/.claude revert` the commit that applied it; the lessons directory is unaffected
+either way, and `rm -rf ~/.claude/lessons/` would now break 19 live pointers rather than tidying up
+an unused directory.
 
 **One thing owed, and it is not a step in this document.** The `keep-ledger` 1.3.1 release that
 this work's lessons pass produced is **settled**: `efd2637` merged to `main` as PR #8 on
@@ -1223,11 +1237,33 @@ Task 13's miss log to be read against.
 **Ungated 2026-09-01, and off the main line.** Per section, same procedure: two classes, proved two
 ways, per `refile-rules` §6.
 
-**The only basis on which this gets picked up.** Not "the plan says so" — that gate is gone with
-step 5. Pick it up when Task 4 has landed and the budget check still reports over, *and* Task 13's
-miss log holds no entries of the form *in context, but trimmed past recognition*. The second
-condition is the one that matters: it is the same question step 5 failed to answer, asked of real
-misses instead of judged responses, and it costs nothing to wait for.
+**The only basis on which this gets picked up.** ~~Task 4 landed, budget still over, and no
+*trimmed past recognition* entries in the miss log.~~ **That gate was degenerate and is replaced,
+2026-09-01.** An empty log satisfies "no entries of that form" **vacuously**, so it could not
+distinguish *the split is safe* from *nothing has been observed yet* — and the empty case was the
+one we were in. Worse, it was circular: the log only records misses of rules that were **split**, so
+with nothing split no such entry could ever appear. The gate could never resolve.
+
+**The replacement, and it is deliberately weaker about safety than the old one pretended to be.**
+The miss series is good evidence of **harm** and poor evidence of **safety**, because harm carries
+its own within-case control — *trimmed past recognition* means the vocabulary that would have
+matched is in the evidence file, checkable against text `verify-split.py` check [4] proves is
+verbatim — while safety is a null against a denominator nothing was counting. So:
+
+1. **Apply the pilot section only** and let it run. **Done 2026-09-01**; see the note in §5 Task 3.
+2. **Count the denominator.** `~/.claude/misses.md` gained an `opps` column: occasions per pass where
+   a rule from a split section applied, fired or not. Zero misses over 40 occasions is a result;
+   zero over 3 is silence.
+3. **Roll further when the log shows ≥ 40 recorded occasions with zero *trimmed past recognition*
+   entries** — pre-registered here rather than chosen once the numbers are in.
+
+**What 40 does and does not buy, stated before the data arrives.** If the trim drops firing from
+100% to 80%, 40 occasions expect ~8 misses and a zero is strong. If it drops to 95%, 40 expect ~2
+and a zero is weak. **This gate discriminates large harm, not small.** A clean run at 40 licenses
+rolling on, and does not license claiming the trim is free.
+
+**Any confirmed *trimmed past recognition* entry stops the roll and repairs that bullet** — restore
+the specifics to the loaded line — rather than counting against the total.
 
 **Prove each section, not the roll.** `scripts/verify-split.py` proves that every relocated original
 survives verbatim, and that property is what makes the single-file model reconstitutable. Run it
