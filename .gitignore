@@ -12,3 +12,4 @@ task1-step5-mode-boundaries.txt
 .task3-probe/
 __pycache__/
 scripts/plugin update scratch.md
+*.exe
