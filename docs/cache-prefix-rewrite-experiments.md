@@ -63,12 +63,12 @@ not in the critical path.
 | 1 | Re-question the existing corpus | `cf4aae9`, `6229faa` | **DONE 2026-08-29** — steps 1-3; step 4 on hold | Step 1 expectation falsified; step 3 table below |
 | 1.5 | Task 1 Step 5 — re-test E over every mode-change boundary | `be911f6` | **DONE 2026-08-30** — E not supported | 58 mode-alone boundaries; pooled 8/58 vs control 55/6,130, but median gap 487 s vs 13 s and no gap band with a readable n survives. Both pre-registered no-power conditions cleared |
 | 2 | Find what immediately precedes each event | `6229faa` | **DONE 2026-08-29** — returned a null | 5 signatures, all at or below same-session base rate, every probe firing somewhere |
-| 3a | Task 3 arm F/window-reload | `07bca1c`, `d343ce6` | **DONE 2026-08-30** — null | Session `6597c649`: turn 7 read 52,670 = 52,487 + 183, exact. Predictions 1, 4 hit; 2 missed; 3 N/A |
+| 3a | Task 3 arm F/window-reload | `07bca1c`, `d343ce6` | **DONE 2026-08-30** — null; **narrowed 2026-08-31** to reloads that hold the permission mode fixed | Session `6597c649`: turn 7 read 52,670 = 52,487 + 183, exact. Predictions 1, 4 hit; 2 missed; 3 N/A. The arm ran at `acceptEdits` on all 7 turns, so it never had a mode to lose. Session `d3567442` re-initialised out of `auto` into `acceptEdits` at 21:46:06Z and took a `system_changed` rewrite 7 s later — reload plus a mode change does rewrite, at n=1. See Task 9's 9b result |
 | 3b | Task 3 arm F/host-restart | `d7cba60` predictions, `41e34cd` result | **DONE 2026-08-30** — null | Session `1b26f4d4`: turn 7 read 52,895 = 52,750 + 145, exact; `bridges_before` `t1:2 … t7:3`. All 4 predictions hit |
 | 3c | Task 3 arm F/quit-relaunch | `41e34cd` predictions, `ff2767a` result | **DONE 2026-08-30** — null | Session `06de8063`: turn 7 read 52,907 = 52,725 + 182, exact; resumed in place, same file and same `bridgeSessionId`; `bridges_before` `t1:2 … t7:3`. Predictions 1, 3, 4, 5 hit; 2 missed; 6 N/A |
 | 3d | Task 3 arm E (permission mode), on Haiku | `ff2767a` predictions, `8e072c6` result | **VOID 2026-08-30** for its two plan boundaries; one clean null beside them | Session `9e76ff00`: labels `acceptEdits→plan→default→acceptEdits`, so predictions 1, 3, 4 hit. Both rewrites carry `haiku/None → sonnet-5/high`, an already-explained cause. Boundary 6→7 mode-alone, read 54,230 = 52,472 + 1,758, exact |
 | 3e | Task 3 arm B (cli vs claude-vscode) | *no commit* | **Not started** — needs a non-VS Code entrypoint | — |
-| 3f | Task 3 arm E re-run, on a model whose plan mode is mode-alone | *no commit* | **NOT WORTH BUYING 2026-08-30** — Step 5 put E's signal down to gap composition. Unblock only if a mode-linked block turns up; Task 4, which was that route, is retired, so the live route is the 5 `system_changed` events in Task 6. The two-turn pre-flight below still applies if it ever runs | — |
+| 3f | Task 3 arm E re-run, on a model whose plan mode is mode-alone | *no commit* | **NOT WORTH BUYING 2026-08-30** — Step 5 put E's signal down to gap composition. Unblock only if a mode-linked block turns up; Task 4, which was that route, is retired, so the live route is the 5 `system_changed` events in Task 6. The two-turn pre-flight below still applies if it ever runs | **The unblock condition is arguably met as of 2026-08-31 and is not being called met.** `d3567442`'s `system_changed` sits 7 s after `auto → acceptEdits`, which is a mode-linked block by inference — the log never dumps the system prompt, so "the auto-mode block left the prompt" is read off the mode field plus the server's label, and something unlogged could have moved instead. Buying the arm also costs more than it did: see Task 9 §1 on why no session on this machine can *start* in auto while the wrapper is configured |
 | 4 | Logging proxy on `ANTHROPIC_BASE_URL` | *no commit* — never built | **RETIRED 2026-08-30** — superseded by Task 6. It existed to recover injected block identity from request bytes; `cache_miss_reason` states it directly, retroactively, corpus-wide | — |
 | 5 | Do the rewrites sit on a client reconnect? | `fd87d13` | **DONE 2026-08-30** — null at n=10; version-gated at 2.1.232, so blind on 23 of 33 events | 3/10 against a 0.304 base rate; counter validated against a hand count |
 | 6 | Join the server's `cache_miss_reason` onto the events | `b1d62da` | **DONE 2026-08-30** — 27 of 33 labelled | `scripts/join-cache-miss-reason.py --min-create=0`: 376 files, 14,344 turns, 116 events, 33 unexplained. Instrument validated on the explained set (16/16 effort to `unavailable`, 3/3 model to `model_changed`) |
@@ -76,9 +76,9 @@ not in the critical path.
 | 7b | What arrives at the 9 `messages_changed` boundaries | `a8478d7` | **DONE 2026-08-30** — null on the common shapes, **no power** on the named ones | Pooled, `queue-operation` 9/9 vs 60/1,253 (20.9x) and `system` 8/9 vs 53 (21.0x) — both are window duration: event median gap 292 s against a control median of 13 s, and stratified the ratio decays 22.5x → 3.73x → 1.55x → 1.46x. The six named attachment subtypes expect 0.007–0.043 hits in 9 windows, under 1 even at tenfold, so their zero says nothing |
 | 8 | The 6 events carrying no diagnostics | *no commit* | **NOT STARTED** — genuinely open; the only members of the original 33 still causeless | — |
 | 9a | Is there a key that joins the debug log to the transcript? | *no commit* — verified ad hoc, script owed | **DONE 2026-08-30** — the join is exact | 23 of 24 `req_` ids shared between `~/.claude/debug/fac8c194….txt` and its own transcript's `requestId`; the 1-and-1 residual is the live edge, both files being appended to mid-check. The debug log's `x-client-request-id` is a *different*, client-side UUID and does **not** join |
-| 9b | Positive control: does a rewrite with a known cause leave any debug-log signature? | *no commit* | **NOT STARTED** — the gate on this whole family | Force an effort switch (server cause `unavailable`) inside a debug-logged session, then read that boundary through the 9a join. If a rewrite whose cause is already known leaves no signature, the log cannot see rewrites at all and 9c–9d are dead before they are written |
-| 9c | `tools_changed` (13 of 33) against the log's tool-loading lines | *no commit* | **BLOCKED on 9b** | Candidate lines exist and are frequent: `Dynamic tool loading:`, `Loaded N skills`, `MCP server "…":`, `Using marketplace snapshot`. Prediction to pre-register: present in the boundary window at `tools_changed` events and not at controls — **stratified by gap**, which is the condition that turned Task 7b's 20.9x into 1.55x |
-| 9d | `system_changed` (5 of 33) against permission and hook lines | *no commit* | **BLOCKED on 9b** | Candidates: `Applying permission update:` and the `Hooks:` family. Same stratified design as 9c, at a fifth of the n — see the power table in Task 9 before reading any null here |
+| 9b | Positive control: does a rewrite with a known cause leave any debug-log signature? | *no commit* | **DONE 2026-08-31** — the log sees one of the two classes, and the design as written would have measured its own blind spot | Answered off a session already on disk rather than a bought trigger. `d3567442` (EH-dataportal) carries both: `system_changed` at 21:46:13Z with a full teardown/re-init signature, `messages_changed` at 20:52:05Z with nothing distinguishing it from an ordinary turn. **Do not run the forced effort switch** — the log records no effort, reasoning or thinking field anywhere, so its null would have been the instrument's blind spot read as the answer. Result under Task 9 |
+| 9c | `tools_changed` (13 of 33) against the log's tool-loading lines | *no commit* | **UNBLOCKED 2026-08-31 — and the lead candidate is weaker than when it was written** | `Dynamic tool loading:` moved 48 → 47 in `d3567442`, at the `system_changed` boundary and not at a `tools_changed` one — the opposite of 9c's pre-registered prediction, at n=1. It tracks the re-init and nothing else: the mode returned to `auto` and the pool stayed at 47, and the MCP set was constant across both inits, so the drop has no identified cause. The other candidates are untested and one is now known-constant: `Loaded 5 unique skills` was identical all 12 times in that log, including across the re-init. Keep the **gap-stratified** design, which is the condition that turned Task 7b's 20.9x into 1.55x |
+| 9d | `system_changed` (5 of 33) against permission and hook lines | *no commit* | **UNBLOCKED 2026-08-31 — swap the primary candidate** | `Applying permission update:` aligns with neither event in `d3567442`: the nearest to the 21:46:13Z `system_changed` is 21:47:36Z, **83 s after it**. The line that did carry the information is `[session-notices] … mode=`, which tracks the transcript's per-turn `permissionMode` label. Same stratified design as 9c, at a fifth of the n — see the power table in Task 9 before reading any null here |
 | 9e | Do the non-main-loop calls share the prefix? | *no commit* | **PARKED — no free instrument** | The log shows a session makes ~40 `/v1/messages` calls of which only ~23 are `source=sdk`; the rest are `side_query` and one-offs (`generate_session_title`, `growthbook`, `payload`). The whole existing corpus has only ever seen the sdk turns. Unparks only if some instrument can show whether a side query shares the cached prefix — the debug log carries no bodies and no token counts, so it cannot |
 
 **Task 1 step 4 is on hold, not done.** It asks whether the explained events carry an offset in one
@@ -133,10 +133,18 @@ Output in `.task3-probe/sweep-2026-08-30.txt`. **Superseded by the last run of t
 classified; see Task 1 Step 5's result. Two candidates survived when this paragraph was written and
 none does now.
 
-**Next command -- Task 9b, the positive control on the new debug log.** It gates 9c and 9d, which
-between them cover 18 of the 33, and it costs one forced effort switch inside a debug-logged
-session. Task 8's 6 events stay genuinely open but are the rarest class in the corpus (62.7
-sessions per expected event) and have no instrument the others lack. **Stratify every rate by gap
+**Next command -- ambient collection for 9c and 9d. 9b is answered and must not be bought.** The
+gate came free from `d3567442`, a session already on disk (Task 9's 9b result): the log leaves a
+legible signature at a `system_changed` boundary and none at a `messages_changed` one, so the
+family is alive but half-blind. **Do not run 9b as it was written** -- a forced effort switch
+probes a field this log never records, and its null would have read as "the log cannot see
+rewrites". What 9c and 9d need now is *events inside debug-logged sessions*, and that is ambient
+collection at 28.9 and 75.2 sessions per event -- so the standing step is to re-run Task 6's join
+restricted to sessions that have a `~/.claude/debug/<id>.txt`, and read the boundary window of
+whatever it returns. **Confirm that session's own log exists and is non-trivial before reading any
+null from it**; a missing log is a broken instrument, not an absent event. Task 8's 6 events stay
+genuinely open but are the rarest class in the corpus (62.7 sessions per expected event) and have
+no instrument the others lack. **Stratify every rate by gap
 before reading it** -- that is what turned Task 7b's two 21x hits into a null, and it is the third
 time on this plan that an unstratified window rate has misreported. **Do not build the proxy** --
 Task 4 is retired, the debug log carries no request bodies, and §1.5 says why.
@@ -859,6 +867,13 @@ them.
 **Recommended next, and it is free: Task 5 below, before buying another arm.** The reload left a
 disk-visible marker, which is the thing this investigation has been short of.
 
+**Narrowed 2026-08-31, and the narrowing is not a retraction.** This arm ran at `acceptEdits` on
+all 7 turns, so it tested a reload that held the permission mode fixed. A reload that *moves* the
+mode does rewrite: `d3567442` re-initialised out of `auto` at 21:46:06Z and took a `system_changed`
+rewrite 7 s later — see Task 9's 9b result for the full window. So the null here reads "process
+replacement alone does not rewrite the prefix", which is also what 3b and 3c returned, and not
+"a reload cannot rewrite the prefix".
+
 ### Predictions for arm F/host-restart, written 2026-08-30 before the run
 
 **Run it in a NEW session, not in `6597c649`** — that transcript is the reload arm's evidence and
@@ -1569,6 +1584,14 @@ a debug log must exclude the self-echo lines first, and a count of 1 on a term y
 the tell. This is a live instance of the null-from-an-unvalidated-instrument rule, caught only
 because eight unrelated terms returning the same suspicious 1 does not happen by chance.
 
+**The echo is gated on auto mode, which is why a log can look clean and not be.** Those lines are
+emitted by the auto-mode action classifier, so they appear only while the session is in auto. In
+`d3567442` there are 14 of them, spanning 20:45:20Z to 21:56:56Z, and **zero** in the
+`acceptEdits` window from 21:46:06Z to 21:47:45Z `[verified 2026-08-31]`. So "this log does not
+echo tool inputs" is a claim about which mode the session happened to be in, never about the log
+format — check for `new action being classified` in the specific file before trusting a count from
+it, rather than generalising from another session.
+
 ### The join, which is the reason this is worth anything
 
 The transcript's `requestId` (`req_011Cea…`, server-side) appears in the debug log, so the two
@@ -1612,8 +1635,13 @@ Three unknowns, none of them derivable from the repo, each capable of voiding a 
    `--debug --debug-to-stderr` writes none, and adding an explicit `--debug-file` does not override
    it - stderr wins, so no appended flag can undo it. The flag therefore has to be removed before
    the binary sees it, which `~/.claude/scripts/claude-debug-wrapper.c` does: a shim substituted
-   via VS Code's `claudeCode.claudeProcessWrapper` setting, which strips the token and appends
-   `--debug` defensively. It covers exactly the `entrypoint=claude-vscode` sessions, which are
+   via VS Code's `claudeCode.claudeProcessWrapper` setting, which strips the token. **It used to
+   append `--debug` unconditionally as well, and that broke every `claude plugin …` call the
+   extension makes** - the subcommand trees reject the flag and exit before doing anything
+   (`claude plugin list --debug` -> exit 1, `error: unknown option '--debug'`; without it, exit 0
+   `[verified 2026-08-31]`). Rebuilt 2026-08-31 to gate the append on `--debug-to-stderr` being
+   present, which is true of the session launch and of nothing else. It covers exactly the
+   `entrypoint=claude-vscode` sessions, which are
    **375 of 385 corpus-wide (97.4%)** `[measured 2026-08-30 over every transcript under
    ~/.claude/projects]`; the other 10 are `cli`, `sdk-ts` and `claude-desktop`. The power table
    above needs no adjustment for coverage. The tradeoff is that debug lines no longer reach the
@@ -1627,12 +1655,105 @@ Three unknowns, none of them derivable from the repo, each capable of voiding a 
    sessions: Windows blocks overwriting a running .exe, so the swap is a rename and live sessions
    keep the old image.
 
+   **The wrapper costs auto permission mode, and that is a confound this investigation now carries
+   on every VS Code session.** Merely *configuring* `claudeCode.claudeProcessWrapper` is enough:
+   the extension passes `resolvePermissionModeInCli: !y$("claudeProcessWrapper")` and the SDK reads
+   that as `mode ?? (resolveInCli ? undefined : "default")`, so with a wrapper set the extension
+   always names a mode on the command line and the CLI's own `permissions.defaultMode` never gets
+   to resolve. `auto` is not in `claudeCode.initialPermissionMode`'s enum
+   (`default | manual | acceptEdits | plan | bypassPermissions`), so no setting can name it either
+   — clearing that setting yields `default`, not `auto`. The extension also skips its one-time
+   `clearPersistedPermissionModeForAutoDefault` migration when a wrapper is configured.
+   `[read from extension.js 2.1.251, 2026-08-31; the live process line confirms it —
+   `--permission-mode acceptEdits` against `"defaultMode": "auto"` in ~/.claude/settings.json]`
+   The consequence for this plan: **no debug-logged session on this machine can start in auto**,
+   auto can only be entered mid-session, and every re-init drops back out of it — which is what
+   9b's `system_changed` event turned out to be.
+
 2. **Whether the log rotates or truncates.** A capped log silently drops the oldest lines, which on
    a long session is exactly the boundary being hunted. Check a long session's log against its own
    first turn before trusting a window.
 3. **Whether `source=side_query` calls appear in the transcript at all.** If they do not — and the
    count gap of ~40 log requests against ~23 sdk turns says they do not — then every per-session
    rate this investigation has computed is a rate per *sdk turn*, not per API call.
+
+### Result, 2026-08-31 — 9b answered off a session already on disk, and the bought version is retired
+
+**The design as written would have probed the log's blind spot.** 9b proposed forcing an effort
+switch, whose server cause is `unavailable`. The log records no effort, reasoning or thinking field
+anywhere. That probe returns a null whichever way the mechanism works, and the null reads as "the
+log cannot see rewrites at all" — which is the gate's own failure condition. It is retired unrun.
+
+**A better-shaped control was already on disk.** Session `d3567442-c7fb-4680-9871-a5581164e122`
+(EH-dataportal, 2026-08-31) carries one event of each of the two classes 9c and 9d target, joined
+to its debug log by 9a's `requestId` key:
+
+| Event | Server label | `cache_read` | Debug-log signature in the window |
+|---|---|---|---|
+| 20:52:05Z | `messages_changed`, 125,528 missed | 175,364 → 164,922 | **None.** Nothing separates it from an ordinary turn |
+| 21:46:13Z | `system_changed`, 137,065 missed | 200,357 → 24,765, 163,581 re-created | **Unmistakable.** Full teardown and re-init |
+
+`[verified 2026-08-31 by re-reading both files: the two `cache_miss_reason` records in the
+transcript, and the named lines in `~/.claude/debug/d3567442….txt`]`
+
+**So the answer to the gate is "one of two", and that is the finding.** A rewrite with a known
+cause *can* leave a legible signature, so 9c and 9d are not dead — but the `messages_changed`
+member left none, which is the same class Task 7b already failed to characterise from the
+transcript side. Two instruments have now returned nothing on it.
+
+**What the `system_changed` window actually holds.** `21:45:45` MCP servers terminated, LSP down,
+`CCRClient: Epoch mismatch (409, reason=session_not_active), shutting down`; `21:46:03` full
+re-init — plugins, MCP reconnect, skills reload, hooks re-registered; `21:46:04` `Reattaching to
+persisted bridge session … at seq 104`; `21:46:06` the engine turn counter resets 5 → 1 and the
+request dispatches. **This was not a process restart:** `configureGlobalMTLS starting` appears
+exactly once in the whole file, at 14:41 — so it is a headless engine session re-created inside a
+live process.
+
+**Exactly two things moved across the re-init, and neither is a tool or a skill.** Everything the
+log names on both sides held identical: `Loaded 5 unique skills (5 unconditional, 0 conditional,
+managed: 0, user: 5, project: 0, additional: 0)` — 12 times, byte-identical, including at
+21:46:05; `Initialized versioned plugins system with 19 plugins`; `Total plugin output styles
+loaded: 1`; `Hooks: Found 0 total hooks in registry` — 53 times; `effectiveWindow=980000` — 53
+times; model `claude-sonnet-5`; and the MCP set (context7 and playwright reconnected, `github`
+failing identically on both inits for a missing `GITHUB_PERSONAL_ACCESS_TOKEN`). The two that
+moved:
+
+| | before | after |
+|---|---|---|
+| permission mode | `auto`, all 5 preceding turns | `acceptEdits` at 21:46:06.638Z |
+| deferred tool pool | `Dynamic tool loading: 0/48` | `0/47` from 21:46:06.651Z |
+
+**The tool-pool drop tracks the re-init, not the mode — and that kills the tempting reading.** The
+obvious story is that losing auto mode dropped a tool. It does not survive: the mode was back to
+`auto` by ~21:47:45 and the pool was still `0/47` at 21:56:58Z, the last reading in the window
+`[verified 2026-08-31]`. So the 48 → 47 drop has no identified cause; the MCP set was constant
+across both inits, which was the other candidate.
+
+**The mode is the mechanism the server's label points at; the reload is only the trigger.** Auto
+mode injects a system-prompt block, so losing it changes the system prompt, which is what
+`system_changed` names. That reconciles this event with Tasks 3b and 3c, which replaced the process
+twice and returned exact nulls: **process replacement on its own does not rewrite the prefix; this
+one did because it also dropped the mode.** Two caveats, both load-bearing. The log never dumps the
+system prompt, so "the auto-mode block was removed" is an inference from the mode field being the
+only system-relevant change plus the server's label — something unlogged could have moved. And the
+mode → tool-pool link is a co-occurrence at n=1, not a demonstrated mechanism.
+
+**The drop is at re-init only and it did not persist**, which matters for anyone designing the
+reload arm. `[session-notices] mode=` reads `auto` at 20:35, 20:44, 20:52, 21:38 and 21:43,
+`acceptEdits` at 21:46:06 — and by 21:48:58 a permission decision reads `mode=auto` again
+(`Slow permission decision: 73769ms for Bash (mode=auto, behavior=allow)`, so the mode was back
+before ~21:47:45). The transcript's per-turn `permissionMode` label does **not** show the return:
+only six records in the whole 357-record file carry that field at all, the last of them the
+21:46:06Z one, and it is never emitted again even though the session runs on to 21:57:08Z
+`[verified 2026-08-31]`. Two instruments, two different answers, and the disagreement is a
+sampling artefact rather than a contradiction — the label is stamped at a turn boundary and the
+mode moved inside a turn. **For mode state within a turn, read the debug log, not the transcript
+label.** This is a caveat on every null Task 1 Step 5 and arm E drew from that field.
+
+**Consequence for 3a.** The window-reload arm's null stands for what it tested and is narrower
+than "a reload does not rewrite". `6597c649` ran at `acceptEdits` on all 7 turns and never had a
+mode to lose. Testing reload-qua-reload needs a reload that keeps the mode — and §1 above says why
+that cannot be arranged from a cold start on this machine while the wrapper is configured.
 
 ---
 
