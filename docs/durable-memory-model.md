@@ -1,10 +1,11 @@
 # A durable memory model that stops the always-loaded tier growing
 
-**Status as of 2026-08-29.** Tasks 1 and 2 are done and Task 1's **premise held**: `paths:` is
+**Status as of 2026-09-01.** Tasks 1 and 2 are done and Task 1's **premise held**: `paths:` is
 honoured at user scope, so §4's global routing lane is real rather than assumed. §1's *method* stands,
 but its **numbers are a 2026-08-25 baseline, not current** — the live global `CLAUDE.md` has since
-grown from 49,553 B to **56,836 B**, and nothing has re-measured its token share. Task 3's split is
-rebuilt against the drifted file and still proved lossless, but **not applied**: its step 5 has now
+grown from 49,553 B to **62,370 B**, and nothing has re-measured its token share. Task 3's split was
+**re-cut a third time on 2026-09-01** against a section that had drifted to 14,749 B and still proved
+lossless — 22 bullets, 14,749 -> 10,042 B (-31.9%), 19 lesson files — but it is **not applied**: its step 5 has now
 **run and returned a null** — all three arms fired 30/30, including the arm with the section
 deleted, so the probe cannot discriminate and licenses neither applying the split nor abandoning
 it. **Tasks 5 and 6 remain gated**, now on a redesigned probe rather than on an unrun one. **Task 8 was
@@ -28,7 +29,7 @@ a lock**, and unblocks that task.
 |---|---|---|---|---|
 | 1 | Falsify the user-scope `paths:` premise | `0f82133` — no code commit; the result **is** §5 Task 1 below | **DONE 2026-08-25** | `InstructionsLoaded` hook log + model self-report, 2 sessions, 4 arms, 5 controls, all passed. Verbatim log line in §5 Task 1 |
 | 2 | Record the real baseline | `0f82133` — no code commit; the result **is** §1 below | **DONE 2026-08-25** | differential token measurement, 11 `claude -p` runs, each arm controlled by the same hook log. Method, and the two arms it voided, in §1 |
-| 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` + `08239e7` re-cuts | **Steps 1-4 DONE (re-proved 2026-08-28); step 5 RAN 2026-08-29 and returned a NULL — the split is still NOT applied and Tasks 5-6 are still gated** | Steps 1-4: split built and proved lossless: 17 bullets, **11,350 -> 8,310 B (-26.8%)**, all 14 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection, and check 4 re-injected on 2026-08-28. Guard fired twice, then **passed clean on 2026-08-29** — no third re-cut needed. Step 5: 30 responses on `claude-sonnet-5`, `RESTORED OK` (sha verified), **30/30 raised on all three arms including the deleted arm** ⇒ `A≈B≈C`, **probe dead, licenses nothing either way**. Judged twice, 100% agreement. Full result and the three routes out in the step-5 note in §5 Task 3 |
+| 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` + `08239e7` re-cuts, and the **2026-09-01 re-cut** — no hash cited, because this row moved in it; find it with `git log --follow docs/task-3-section-before.md`, end state 22 bullets, 14,749 -> 10,042 B, 19 lesson files | **Steps 1-4 DONE (re-proved 2026-08-28); step 5 RAN 2026-08-29 and returned a NULL — the split is still NOT applied and Tasks 5-6 are still gated** | Steps 1-4: split built and proved lossless, most recently by the **2026-09-01 re-cut**: 22 bullets, **14,749 -> 10,042 B (-31.9%)**, all 19 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection, check 4 re-injected on 2026-08-28, and checks 2 and 4 re-injected on 2026-09-01 against the re-indexed bullet list. Guard fired twice, passed clean on 2026-08-29, and **fired a third time on 2026-09-01**. Step 5: 30 responses on `claude-sonnet-5`, `RESTORED OK` (sha verified), **30/30 raised on all three arms including the deleted arm** ⇒ `A≈B≈C`, **probe dead, licenses nothing either way**. Judged twice, 100% agreement. Full result and the three routes out in the step-5 note in §5 Task 3 |
 | 4 | Route the file-triggered content | — | **Not started** — unblocked by Task 1 | — |
 | 5 | Roll the split across the rest of global CLAUDE.md | — | **BLOCKED on Task 3** | — |
 | 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
@@ -55,13 +56,15 @@ nor the repo's `.claude/rules/` exists again, so nothing extra loads into any se
 `ls ~/.claude/rules/` (expect "No such file or directory").
 
 **A second piece of live environment state, added 2026-08-25 by Task 3.** `~/.claude/lessons/`
-now exists and holds **14 files / 20,461 B** — the evidence moved out of the pilot section, each
+now exists and holds **19 files / 27,534 B** — the evidence moved out of the pilot section, each
 containing its original bullet verbatim. Nothing loads them; they are read only when a rule's
-`[[pointer]]` is followed. **`~/.claude/CLAUDE.md` itself is UNCHANGED** — the split is built and
-proved but deliberately not applied, because the firing test that would license applying it has not
-run. Derive that rather than trusting this line, because the probe below copies each arm over that
-file and restores it afterwards: the guard command returns 11,350 while the section is unsplit and
-8,310 once it is not. To undo the lessons directory: `rm -rf ~/.claude/lessons/`.
+`[[pointer]]` is followed. **The split itself is still not applied** — the live section holds the full
+text, not the split text, because the firing test that would license applying it has not returned a
+usable answer. `~/.claude/CLAUDE.md` is no longer untouched, though: on 2026-09-01 the parked
+lessons bullet was applied to it (see below), and the pre-edit file is at
+`~/.claude/CLAUDE.md.bak-recut-20260901`. Derive that rather than trusting this line, because the probe below copies each arm over that
+file and restores it afterwards: the guard command returns 14,749 while the section is unsplit and
+10,042 once it is not. To undo the lessons directory: `rm -rf ~/.claude/lessons/`.
 
 **One thing owed, and it is not a step in this document.** The `keep-ledger` 1.3.1 release that
 this work's lessons pass produced is **settled**: `efd2637` merged to `main` as PR #8 on
@@ -72,17 +75,17 @@ Still owed: a `reconcile-records` sweep of this project's memory store and `READ
 **deferred until step 5 lands**, because that run moves the same numbers again — one of the four
 memory files was spot-checked (`eval-suites-have-no-behavioural-runner`, current) and the other
 three were not. The 2026-08-28 re-cut adds to what that sweep must reconcile: §1's byte figures for
-the global `CLAUDE.md` (49,553 B, measured) against the file as it now stands (**56,836 B**, after
-the 2026-08-28 lessons pass added 858 B).
+the global `CLAUDE.md` (49,553 B, measured) against the file as it now stands (**62,370 B** on
+2026-09-01, after the 2026-08-28 lessons pass added 858 B and the parked bullet added 507 B).
 
-**Also owed, and held deliberately: one lessons-pass bullet that would fire the step-5 guard.** The
-2026-08-28 pass produced three entries for the global `CLAUDE.md`. Two were applied — they land in
-`Choosing and running the check` and `Session workflow`, and the guard still reads 11,350. The
-third lands in **`Validating the instrument`, which is the Task 3 pilot section**, so applying it
-would move the section a third time and force a third re-cut of `task-3-section-{before,after}.md`
-and the 14 lesson files, immediately before step 5 — the exact incident §0 records twice already.
-It is held until step 5 has run, and its text is parked here so the deferral cannot quietly become
-a loss:
+**The parked lessons-pass bullet is no longer parked — it was applied on 2026-09-01.** The
+2026-08-28 pass produced three entries for the global `CLAUDE.md`; two were applied that day, into
+`Choosing and running the check` and `Session workflow`. The third lands in
+**`Validating the instrument`, which is the Task 3 pilot section**, so it was held to avoid forcing
+a re-cut of its own. That reason expired when the section drifted anyway: the 2026-09-01 re-cut had
+to run regardless, so the bullet was applied first and the cut covered it in one pass. It sits
+immediately above `In a two-arm comparison, perturb the variable under test` and added **507 B**
+(14,242 —> 14,749). Its text, for the record:
 
 > - **A precondition check that reads the same field the measurement reads contaminates it.**
 >   Verify the precondition on a different instance than the one you perturb. Confirming a session
@@ -91,7 +94,9 @@ a loss:
 >   context. The added-token half of the nonce stayed clean and carried the result; the deleted
 >   half was dead on arrival `[2026-08-28]`.
 
-Apply it **after** step 5, then re-cut. Applying it before means doing the re-cut twice.
+The general form of what this cost: **a deferral that exists to avoid a re-cut is void the moment
+something else forces one.** The hold was correct when written and wrong four days later, and
+nothing in the deferral itself would have said so — re-read the reason, not the decision.
 
 **Next command — redesign step 5's probe. Step 5 ran on 2026-08-29 and returned `A≈B≈C` at the
 ceiling: 30/30 on every arm, including the arm with the section deleted.** By its own
@@ -117,10 +122,10 @@ below is what it does first anyway:
 
 ```sh
 awk '/^### Validating the instrument/,/^### Verifying a claim/' ~/.claude/CLAUDE.md | head -n -1 | wc -c
-# expect 11350 — if not, the section moved and section-before.md must be re-cut before anything else
+# expect 14749 — if not, the section moved and section-before.md must be re-cut before anything else
 ```
 
-**This guard has now fired twice**, and the second time cost more than the first. On 2026-08-25 a
+**This guard has now fired three times.** On 2026-08-25 a
 lessons pass appended a sentence to one bullet between the fixtures being cut and step 5 being
 reached, and the section read 11,069 B against an expected 10,858 B; the re-cut is `e7ddc91`. On
 2026-08-28 it read 11,350 B against 11,069 B, and the +281 B was **two independent drifts, not one**
@@ -130,6 +135,15 @@ fixtures; the live file now holds zero U+2014 and kept U+2192, U+2026 and U+00A7
 dash-specific), *shrinking* the section by 54 B, while one bullet gained 335 B of new evidence. Net
 +281 B, and a re-cut that touched all 17 bullets and all 14 lesson files rather than one of each,
 because check 4 tests the original verbatim and "the original" had changed everywhere.
+
+**The third firing, 2026-09-01, was the cheapest of the three and had a third distinct cause.** The
+section read 14,242 B against an expected 11,350 B — **+2,892 B, an order of magnitude past the
++211 and +281 of the first two** — and the whole drift was **5 changed lines: 4 new bullets and 1
+amended**, with no mechanical transform to disentangle (the file already held zero U+2014 from the
+2026-08-26 normalization). Cause: the `feature-cache-rewrite-sweep` branch's lessons pass, merged
+as PR #9. So the byte delta and the work are not proportional — the +281 firing touched all 17
+bullets and all 14 lesson files, and this +2,892 one touched 5 bullets and 6 lesson files. Do not
+read the guard's number as an estimate of the re-cut.
 
 **The normalization was a hand edit, not a tool** — the repo owner made it on 2026-08-26 while
 testing cache rewrites `[stated by them 2026-08-28]`. That is the reassuring answer and the
@@ -673,10 +687,11 @@ is not a baseline.
 **Files:** `~/.claude/CLAUDE.md` §Verification → Validating the instrument;
 `~/.claude/lessons/` (new).
 
-Chosen as the pilot because it is the largest single subsection in the file at **11,350 B**
+Chosen as the pilot because it is the largest single subsection in the file at **14,749 B**
 `[re-measured three times: 10,166 B when this task was written, 10,858 B after the 2026-08-25
-lessons pass — which §1 describes — 11,069 B after an amendment that evening, and 11,350 B on
-2026-08-28 after a dash normalization and a second amendment]` — bigger than six of the nine top-level sections —
+lessons pass — which §1 describes — 11,069 B after an amendment that evening, 11,350 B on
+2026-08-28 after a dash normalization and a second amendment, and 14,749 B on 2026-09-01 after four
+new bullets, one amendment and the parked bullet]` — bigger than six of the nine top-level sections —
 and because it is the densest in evidence specifics, so it is where the split has the most to prove
 and the most to lose. The other two Verification subsections are unchanged at 5,418 B and 5,246 B.
 
@@ -714,9 +729,9 @@ something already points at it. These are evidence, so they are files.
    What step 5 needs instead is a **behavioural probe**, at
    `scripts/measure-rule-firing.py` — **run 2026-08-29; the result is the step-5 block below and
    it is a null**. Three arms differing only in this section of
-   `~/.claude/CLAUDE.md`: **A** full (11,350 B), **B** split (8,310 B), **C** deleted — built from
-   `docs/task-3-section-{before,after}.md` and verified to differ by exactly 3,040 B and 11,350 B
-   `[checked 2026-08-25, re-checked after the e7ddc91 re-cut]`. Arm C is load-bearing: without
+   `~/.claude/CLAUDE.md`: **A** full (14,749 B), **B** split (10,042 B), **C** deleted — built from
+   `docs/task-3-section-{before,after}.md` and verified to differ by exactly 4,707 B and 14,749 B
+   `[checked 2026-08-25, re-checked after the e7ddc91 and 2026-09-01 re-cuts]`. Arm C is load-bearing: without
    a floor, A≈B cannot be told apart from a
    probe that never saw the section. Five queries, each presenting a situation **without** the
    rule's own vocabulary — which is this section's own rule about eval prompts that hand over the
@@ -849,18 +864,24 @@ have discredited a sound judge. What actually settled it was reading five arm-C 
 the earlier read that seemed to show Q2 missing its point was truncated at 1,000 characters and
 the point was in the third bullet.
 
-**Steps 1-4 result, 2026-08-25.** Inventory: `task-3-split-inventory.md`, built before any edit. The
-section is **17 bullets** (14 top-level, 3 nested), not the flat list it reads as. **Three of the 17
-carry no evidence specifics at all** — no date, no number, no incident — and are kept byte for byte;
-that is the first real bound on the yield, since the section's size is not uniformly evidence.
-The other 14 split to `~/.claude/lessons/<slug>.md`, each holding its original bullet **verbatim**,
+**Steps 1-4 result, 2026-08-25; re-cut 2026-09-01.** Inventory: `task-3-split-inventory.md`, built
+before any edit; it describes the 17-bullet section as it stood then, and is not re-cut. The
+section is now **22 bullets** (18 top-level, 4 nested), not the flat list it reads as. **Three of
+the 22 carry no evidence specifics at all** — no date, no number, no incident — and are kept byte
+for byte; that is the first real bound on the yield, since the section's size is not uniformly
+evidence. The other 19 split to `~/.claude/lessons/<slug>.md`, each holding its original bullet **verbatim**,
 which turns "every evidence item is locatable" from a judgment call into a substring test.
 
-**Measured: 11,350 → 8,310 B, −3,040 B, −26.8%.** `[re-measured 2026-08-28 after the second
-re-cut; earlier figures were 10,858 → 8,048 B (−25.9%) and 11,069 → 8,106 B (−26.8%)]` The yield
-ratio has now held at 26.8% across two independent drifts of the source section, which is weak
-evidence that it is a property of the section's evidence density rather than of one cut. Proved by five checks — bullet count preserved,
-the three unchanged bullets byte-identical, all 14 pointers resolving, all 14 originals verbatim in
+**Measured: 14,749 → 10,042 B, −4,707 B, −31.9%.** `[re-measured 2026-09-01 after the third
+re-cut; earlier figures were 10,858 → 8,048 B (−25.9%), 11,069 → 8,106 B (−26.8%) and
+11,350 → 8,310 B (−26.8%)]` **The yield ratio did not hold.** This document previously read the
+two 26.8% figures as weak evidence that the ratio is a property of the section's evidence density
+rather than of one cut; the third cut returns **31.9%**, so that reading was wrong and is
+withdrawn. The five bullets added since carry an unusually high share of dates, counts and memory
+citations, which is exactly what the split removes — so the ratio tracks **which bullets arrived
+most recently**, not a stable property of the section. Treat 26.8-31.9% as the observed range and
+do not project a single figure from it. Proved by five checks — bullet count preserved,
+the three unchanged bullets byte-identical, all 19 pointers resolving, all 19 originals verbatim in
 their lesson files, and a 1:1 pointer↔file mapping with no orphans.
 
 **The verifier was itself validated before its passes were believed**, by injecting six faults and
@@ -870,7 +891,9 @@ and two checks crashed instead of reporting, which exits non-zero and reads as a
 trusted on its first all-pass, this task would have reported a clean proof from an instrument with
 two dead arms.
 
-**Not applied.** `~/.claude/CLAUDE.md` is untouched. The split is `docs/task-3-section-after.md`,
+**Not applied.** The live `~/.claude/CLAUDE.md` still holds the full section, not the split one.
+(The file itself was edited on 2026-09-01 to land the parked bullet — see §0 — so "untouched", which
+this line used to say, is no longer the right word for it.) The split is `docs/task-3-section-after.md`,
 its pre-split source is `docs/task-3-section-before.md`, and applying it is gated on step 5.
 `scripts/verify-split.py` re-proves the whole thing from those two files plus `~/.claude/lessons/`
 in about a second, and exits non-zero on any failure — that being its informative answer, chain it
@@ -1018,6 +1041,14 @@ move and the non-Verification sections are thinner — returns 15,232 B and land
 Task 4's lane and §4's skills route load-bearing rather than complementary. §4 already suspected
 this ("if the hypothesis fails, the reachable reduction is roughly the routing lane alone"); the
 arithmetic now says it holds whether or not the hypothesis fails.
+
+**Re-run against the 2026-09-01 figures, the conclusion is unchanged and slightly worse.** The
+global file is now 62,370 B, so it must shed **37,370 B**; the re-cut pilot returns 4,707 B, so the
+target is **7.9 pilot-sized splits** rather than 10.5. Applying the re-cut's 31.9% yield to the
+entire file returns 19,896 B and lands at **42,474 B, still 70% over**. Both inputs moved in the
+direction that flatters — a bigger pilot yield against a bigger file — and the gap did not close. §1's
+table and the sweep table above are fixed points and are not edited to match; this paragraph is the
+re-measurement.
 
 ```sh
 sh scripts/check-memory-budget.sh        ; echo $?   # 0 = all under, 1 = over, 2 = nothing measured

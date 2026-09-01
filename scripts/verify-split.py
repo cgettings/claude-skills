@@ -3,7 +3,7 @@
 
 Five checks, each stated so a failure names the bullet:
 
-  1. bullet count is preserved (17 -> 17)
+  1. bullet count is preserved (22 -> 22)
   2. the three no-evidence bullets are byte-identical before and after
   3. every [[pointer]] in the after-text resolves to a file in ~/.claude/lessons/
      (override that directory with LESSONS_DIR, and docs/ with SECTIONS_DIR --
@@ -25,7 +25,7 @@ BEFORE = SECTIONS / "task-3-section-before.md"
 AFTER = SECTIONS / "task-3-section-after.md"
 LESSONS = Path(os.environ.get("LESSONS_DIR")
                or Path(os.path.expanduser("~")) / ".claude" / "lessons")
-UNCHANGED_IDX = {2, 15, 16}  # B3, B13, B14 in document order
+UNCHANGED_IDX = {2, 20, 21}  # B3, B21, B22 in document order (re-indexed 2026-09-01)
 
 
 def read(p: Path) -> str:
