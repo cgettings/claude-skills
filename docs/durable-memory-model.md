@@ -1,5 +1,27 @@
 # A durable memory model that stops the always-loaded tier growing
 
+**Decision, 2026-09-01: stop measuring, start routing.** The efficacy question Task 3 step 5 was
+built to answer is **closed without a verdict, by decision rather than by result.** Three runs
+licensed nothing, and §5 Task 8's arithmetic had already shown the trim they were testing cannot
+reach §3c's ceiling on its own. A further reason arrived with the decision: `c3e4aa0` audited the
+one judge shared by all three runs — on the 18 responses of the three-arm run, complete rather than
+sampled — and it **failed its own 90% gate at 14/18 (77.8%), with disagreement arm-correlated**. A
+fourth run would have had to rebuild the instrument before it could measure anything. What replaces the judge is use: apply the model, record every rule
+that misses, and let the misses answer what the runs could not. The re-sequenced main line is
+**Task 10 → 4 → 11 → 7 → 12 → 13**. Tasks 5 and 6 come **off** the main line — no longer gated on
+Task 3, but no longer the point either. Task 14 carries the stopping condition that §3c's chosen
+ceilings were standing in for.
+
+**What this trades away, written once so nobody re-discovers it as a surprise.** Whether a trimmed
+rule fires as reliably as a full one is still unknown; shipping the split would mean finding out in
+production. Task 13 is what makes that observable instead of silent, and Task 12 is what keeps it
+reversible. Neither is optional if Tasks 5-6 are ever picked up.
+
+**The order is not a preference.** Task 10 precedes everything that moves a file, because
+`~/.claude` had no version control until 2026-09-01 and the reconstitution promise has nothing
+behind it otherwise. Task 11 precedes Task 7 because Task 7 writes a routing table into a skill,
+and an untested table is a table every future pass will file against by feel.
+
 **Status as of 2026-09-01.** Tasks 1 and 2 are done and Task 1's **premise held**: `paths:` is
 honoured at user scope, so §4's global routing lane is real rather than assumed. §1's *method* stands,
 but its **numbers are a 2026-08-25 baseline, not current** — the live global `CLAUDE.md` has since
@@ -11,8 +33,8 @@ Step 5 has now run **three times** and none of the three licensed a verdict: a c
 two-repeat artefact, and a three-arm run that voided two of its three queries on its own
 replication gate. Pooled post-hoc the arms read A 12/12, B 2/6, C 2/12 — the shape that would
 **stop** Tasks 5-6 — but **arm is aliased with run order in every run so far**, so drift is an
-unexcluded explanation. **Tasks 5 and 6 remain gated**, now on a decision between one interleaved
-~$6.91 run and route (c). **Task 8 was
+unexcluded explanation. **Tasks 5 and 6 are no longer gated** — the decision above closed step 5
+rather than resolving it, and the interleaved ~$6.91 run was considered and declined. **Task 8 was
 built and validated on 2026-08-29** and its first sweep changes the plan's shape: all nine live
 directories are over budget, the largest at 147,391 B always loaded, and the arithmetic shows
 **§3c's 25,000 B ceiling is not reachable by §3b's trimming at all** — it would take 10.5
@@ -33,13 +55,18 @@ a lock**, and unblocks that task.
 |---|---|---|---|---|
 | 1 | Falsify the user-scope `paths:` premise | `0f82133` — no code commit; the result **is** §5 Task 1 below | **DONE 2026-08-25** | `InstructionsLoaded` hook log + model self-report, 2 sessions, 4 arms, 5 controls, all passed. Verbatim log line in §5 Task 1 |
 | 2 | Record the real baseline | `0f82133` — no code commit; the result **is** §1 below | **DONE 2026-08-25** | differential token measurement, 11 `claude -p` runs, each arm controlled by the same hook log. Method, and the two arms it voided, in §1 |
-| 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` + `08239e7` re-cuts, and the **2026-09-01 re-cut** — no hash cited, because this row moved in it; find it with `git log --follow docs/task-3-section-before.md`, end state 22 bullets, 14,749 -> 10,042 B, 19 lesson files | **Steps 1-4 DONE (re-cut 2026-09-01); step 5 has now run THREE times and none licensed a verdict — the split is still NOT applied and Tasks 5-6 are still gated.** The 2026-09-01 pair added a confound to fix before any fourth run: arm is aliased with run order | Steps 1-4: split built and proved lossless, most recently by the **2026-09-01 re-cut**: 22 bullets, **14,749 -> 10,042 B (-31.9%)**, all 19 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection, check 4 re-injected on 2026-08-28, and checks 2 and 4 re-injected on 2026-09-01 against the re-indexed bullet list. Guard fired twice, passed clean on 2026-08-29, and **fired a third time on 2026-09-01**. Step 5, three runs, all `RESTORED OK` (sha verified), 0 unresolved judge holes: **2026-08-29** 30 responses, 30/30 on all three arms including the deleted one, `A≈B≈C`, licenses nothing; **2026-09-01 screen** 22 responses, 3 of 8 candidates looked discriminating and were **retracted the same day** (a 0/2 screen fires 56% against a true rate of 0.25); **2026-09-01 three-arm** 18 responses, **2 of 3 queries VOID** on the replication gate, third's B cell 1/2. Pooled post-hoc A 12/12, B 2/6, C 2/12, A-vs-B `p = 0.0049` — but **arm is aliased with run order in all three**. Full results and the decision in the step-5 note in §5 Task 3 |
-| 4 | Route the file-triggered content | — | **Not started** — unblocked by Task 1 | — |
-| 5 | Roll the split across the rest of global CLAUDE.md | — | **BLOCKED on Task 3** | — |
-| 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
-| 7 | Make the routing rule enforceable at write time | — | **Not started, but unblocked** — Task 9 settled its write protocol: **read-before-write or a lock**, for correctness. No batching or write boundary is needed; the write is free to concurrent sessions | — |
+| 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` + `08239e7` re-cuts, and the **2026-09-01 re-cut** — no hash cited, because this row moved in it; find it with `git log --follow docs/task-3-section-before.md`, end state 22 bullets, 14,749 -> 10,042 B, 19 lesson files | **Steps 1-4 DONE (re-cut 2026-09-01). Step 5 CLOSED WITHOUT A VERDICT, 2026-09-01, by decision — not by result.** Three runs, none licensing an answer; **no fourth run will be commissioned**, so the run-order confound is now a permanent limitation of this record rather than a defect to fix. The split is still NOT applied, and Tasks 5-6 are **no longer gated on it**. A session reading this row should not re-run the judge | Steps 1-4: split built and proved lossless, most recently by the **2026-09-01 re-cut**: 22 bullets, **14,749 -> 10,042 B (-31.9%)**, all 19 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection, check 4 re-injected on 2026-08-28, and checks 2 and 4 re-injected on 2026-09-01 against the re-indexed bullet list. Guard fired twice, passed clean on 2026-08-29, and **fired a third time on 2026-09-01**. Step 5, three runs, all `RESTORED OK` (sha verified), 0 unresolved judge holes: **2026-08-29** 30 responses, 30/30 on all three arms including the deleted one, `A≈B≈C`, licenses nothing; **2026-09-01 screen** 22 responses, 3 of 8 candidates looked discriminating and were **retracted the same day** (a 0/2 screen fires 56% against a true rate of 0.25); **2026-09-01 three-arm** 18 responses, **2 of 3 queries VOID** on the replication gate, third's B cell 1/2. Pooled post-hoc A 12/12, B 2/6, C 2/12, A-vs-B `p = 0.0049` — but **arm is aliased with run order in all three**, and the judge behind every one of these numbers **failed its own audit** (`c3e4aa0`): a complete Opus re-judge of the three-arm run returns 14/18 (77.8%), 0 holes, below the 90% gate, with disagreement arm-correlated (A 6/6, B 4/6, C 4/6). Full results and the decision in the step-5 note in §5 Task 3 |
+| 4 | Route the file-triggered content | — | **NEXT, after Task 10.** The main line: Task 8's arithmetic makes routing whole rules out the only route that reaches the ceiling | — |
+| 5 | Roll the split across the rest of global CLAUDE.md | — | **Ungated 2026-09-01, and off the main line.** Optional; §5 Task 5 states the only basis on which it gets picked up | — |
+| 6 | Same for the project CLAUDE.md | — | **Ungated 2026-09-01, deliberately sequenced last.** Needs the team's agreement, and wants a working global example to show them first | — |
+| 7 | Make the routing rule enforceable at write time | — | **Gated on Task 11** — its routing table must survive the boundary test before it is written into a skill. Task 9 already settled its write protocol: **read-before-write or a lock**, for correctness | — |
 | 8 | Make the ceiling check mechanical | see the commit that adds `scripts/check-memory-budget.sh` | **DONE 2026-08-29** | `scripts/check-memory-budget.sh` + `test-check-memory-budget.sh`, **11-arm fault injection, all pass**, including a negative control that redirects `HOME` so exit 0 is reachable. Injection caught a real bug: the store-name fold missed `.`, so **every worktree read "no project store"** while ten arms passed. First sweep: **all 9 live directories over budget**, worst 147,391 B always loaded. Ceiling shown unreachable by §3b alone — see §5 Task 8 |
 | 9 | Does an instruction-file edit reach a running session? | — | **DONE 2026-08-28.** Answer: **replay on ordinary turns, rebuild at compaction** — the pre-registered binary was false. Steps 2-3 retired, not skipped: nothing is left for the proxy to measure | Step 0: `scripts/probe-memory-delivery.py`, 281 transcripts / 182,561 lines, 0 unreadable, **63 `Read` calls on topic files** ⇒ moved X to the project `CLAUDE.md`. Step 1: 2 sessions, 4 asks + `/compact` + arm 3, **0 tool calls** in B (transcript-checked), stale window **~2m55s across 2 turns**. Full timeline in §5 Task 9 |
+| 10 | Put `~/.claude` under version control | — | **NOT STARTED — blocks Tasks 4, 5, 12.** `git init` was run 2026-09-01; **nothing is committed and no `.gitignore` exists yet**, so the tree is one `git add -A` away from committing 242 M of transcripts and a credentials file | — |
+| 11 | Test the routing rule's boundaries before rolling it out | — | **Not started — gates Task 7** | — |
+| 12 | Make the lazy tiers reachable | — | **Not started — blocks applying any split** | — |
+| 13 | Close the loop from use | — | **Not started.** This is what replaces step 5 | — |
+| 14 | Replace the chosen ceilings with a saturation reading | — | **Not started, and deliberately last** — it needs several `distill-lessons` passes under the new model before it has anything to read | — |
 
 **Live environment state — not in this repo, and it goes with the machine rather than the branch.**
 Task 1 registered an `InstructionsLoaded` hook in `~/.claude/settings.json` and **deliberately left
@@ -452,6 +479,11 @@ Recognition kept: the command, "long path", "no diff but correct exit code", the
 causes, the action. Evidence moved: `~150 characters`, `exited 1`, the `Filename too long`
 warning text, the `C:/temp` control, the date.
 
+**The `[[pointer]]` in that example is wrong and Task 12 replaces it.** The syntax already means a
+file in the per-project memory store, and is in live use there. Write the path instead —
+``Evidence: `~/.claude/lessons/git-diff-no-index-long-path.md` ``. This example is the template
+every later split copies, so it is the one place the wrong form does the most damage.
+
 So the split is a **fourth qualifying edit shape** to add to `refile-rules` §5's three, not an
 exception to a prohibition — and it inherits that section's bar unchanged, which is exactly Task 3
 step 3. Task 7 is where it gets written into the skill.
@@ -500,6 +532,16 @@ add no rule that fires on a situation the store did not already cover, the alway
 saturated and the right ceiling is roughly where it sits. That is a real experiment and nobody has
 run it. Until then these are placeholders: Task 3 measures what the split actually yields on a real
 section, and the ceilings get revised against that result rather than defended.
+
+**Amended 2026-09-01, twice over.** First, the table's own numbers are stale: `~/.claude/CLAUDE.md`
+is **62,370 B**, not 49,553, so the shortfall is 37,370 B rather than 24,553
+`[measured 2026-09-01: sh scripts/check-memory-budget.sh, true exit 1 — read the exit status
+without a pager, since a `| head` reports the pager's]`. Second, Task 8 established that **§3b's
+trimming cannot close that gap at any effort** — it would take 10.5 pilot-sized splits — so the
+25,000 B figure is not a target the split is failing to hit; it is a target only Task 4's routing
+can reach. Treat the whole table as a **placeholder with a named replacement**: Task 14 adopts the
+saturation reading above, which is observed rather than chosen. Do not defend these three numbers
+and do not tune them.
 
 ---
 
@@ -968,8 +1010,19 @@ was spurious — 6 agreements, 0 disagreements, 4 Opus replies that returned no 
 were scored as disagreements by `None != True`. A rate that folds in the cases the instrument
 failed to score cannot distinguish "the judges disagree" from "one judge did not answer", and those
 have different fixes. `scripts/rejudge-on-opus.py` separates them, and re-judging all 30 on Opus
-gave 30/30 judged, 0 unreadable, **100% Haiku-vs-Opus agreement** — so the cheap judge was fine all
-along and the gate nearly bought an unnecessary re-run.
+gave 30/30 judged, 0 unreadable, **100% Haiku-vs-Opus agreement** on that run, and the gate nearly
+bought an unnecessary re-run.
+
+**"So the cheap judge was fine all along" was the wrong generalization, and `c3e4aa0` corrects it.**
+That 100% is one run's agreement, on a sample of 10 of 30 — it is not a property of the judge. A
+complete audit of the later 18-response three-arm run, `scripts/audit-judge.py`, returns **14/18
+(77.8%) with 0 holes**, below the same 90% gate, and the disagreement is **arm-correlated**:
+`A_full` 6/6, `B_split` 4/6, `C_absent` 4/6, with all four disagreements in B and C and none in A.
+Under Opus the tallies read A 6/6, B 2/6, C 0/6 against Haiku's A 6/6, B 2/6, C 2/6; both give
+Fisher `p = 0.0606`. So the A>B ordering survives a second judge while the judge itself fails its
+own quality gate — which is a third independent reason step 5 could not license a verdict, beside
+the ceiling null and the run-order aliasing, and it is the one that reaches back across every
+Haiku-derived number in this section.
 
 **One check worth not repeating the way I first ran it.** Asked whether the judges' quotes were
 real, an exact-substring test said 43% were fabricated. They were not: the test scored *elisions*
@@ -1047,12 +1100,38 @@ second reason to draw it carefully.
 
 ### Task 5: Roll the split across the rest of global CLAUDE.md
 
-Gated on Task 3. Per section, same procedure. Two classes, proved two ways, per `refile-rules` §6.
+**Files:** `~/.claude/CLAUDE.md`, one section per pass; `~/.claude/lessons/<slug>.md` for each
+relocated evidence block.
+
+**Interfaces:** consumes Task 12's pointer convention — without it a split section's `[[slug]]`
+references resolve to nothing and the split is a straight deletion of evidence. Produces entries for
+Task 13's miss log to be read against.
+
+**Ungated 2026-09-01, and off the main line.** Per section, same procedure: two classes, proved two
+ways, per `refile-rules` §6.
+
+**The only basis on which this gets picked up.** Not "the plan says so" — that gate is gone with
+step 5. Pick it up when Task 4 has landed and the budget check still reports over, *and* Task 13's
+miss log holds no entries of the form *in context, but trimmed past recognition*. The second
+condition is the one that matters: it is the same question step 5 failed to answer, asked of real
+misses instead of judged responses, and it costs nothing to wait for.
+
+**Prove each section, not the roll.** `scripts/verify-split.py` proves that every relocated original
+survives verbatim, and that property is what makes the single-file model reconstitutable. Run it
+per section as you go. Proved once at the pilot and never again, reversibility expires with no
+event to notice — the split would still look correct in every diff.
 
 ### Task 6: Same for the project CLAUDE.md, plus the repo lesson tier
 
-Gated on Task 3. **Ask before applying** — the project file is team-shared and its organization is
-the team's call. Propose the manifest; do not apply it unilaterally.
+**Ungated 2026-09-01, and deliberately sequenced last.** **Ask before applying** — the project file
+is team-shared and its organization is the team's call. Propose the manifest; do not apply it
+unilaterally.
+
+**Last is a decision, not a leftover.** The global tier is one person's file and can be changed and
+reverted without consulting anyone; the project file is three people's and spans 20,666–59,726 B
+across live worktrees, so a mistake here is a conversation rather than a `git revert`. Run the model
+on global for several weeks first, then propose this to the team with a working example and Task
+13's miss log in hand, rather than with a spec.
 
 Two things §4 added to this task after the fact:
 
@@ -1669,6 +1748,273 @@ The parallel session's finding changed one thing beyond its own paragraph: it re
 alternative to the proxy, which strengthens the case for building one but does **not** reorder the
 steps. The two-sided nonce is what licenses keeping step 1 ahead of step 2 — with the old one-sided
 nonce the gate was unsound and the proxy should have run first.
+
+### Task 10: Put `~/.claude` under version control
+
+**Files:** `~/.claude/.gitignore` (new); the initial commit of `~/.claude`.
+
+**Interfaces:** blocks Tasks 4, 5 and 12 — each moves or deletes content in a tree that currently
+has no history. Produces the pre-migration baseline every later task's revert depends on.
+
+**Why this is first, and not housekeeping.** The whole model rests on being able to reconstitute the
+single-file version later. Today that promise has nothing behind it: `~/.claude` had no repository
+until 2026-09-01 `[verified 2026-09-01: git rev-parse --is-inside-work-tree in ~/.claude returned
+"fatal: not a git repository"; control: the same command in this repo returns "true"]`, the 19
+lesson files carrying the pilot's relocated evidence have no history and no backup, and §0's own
+undo recipe is `rm -rf ~/.claude/lessons/`, which would take the evidence and leave the trimmed
+rules standing. Commit before anything moves, so the initial commit *is* the baseline.
+
+**`git init` has been run and nothing is committed.** That is the dangerous state, not a finished
+one: a bare `git add -A` would commit 242 M of session transcripts and a credentials file.
+
+Measured composition, 2026-09-01 (`du -sh */` and `ls -la`):
+
+| Path | Size | Track? |
+|---|---:|---|
+| `projects/` | 242 M | **No** — every transcript ever produced, including anything pasted into a session |
+| `file-history/` | 31 M | **No** — editor undo state |
+| `plugins/` | 27 M | **No** — installed from marketplaces, reinstallable |
+| `debug/` `shell-snapshots/` `telemetry/` `cache/` `uploads/` `sessions/` `session-env/` `backups/` `daemon/` `ide/` `jobs/` | ~12 M | **No** — churn |
+| `.credentials.json` | 562 B | **No — a secret** |
+| `history.jsonl` `stats-cache.json` `.last-*` `*.bak-*` | ~90 K | **No** — machine state and one-off backups |
+| `CLAUDE.md` | 62,370 B | **Yes** — the file this whole plan is about |
+| `settings.json` | 7,415 B | **Yes** — carries the hooks and permissions. Scans clean: `grep -inE 'token|secret|key|password|api[-_]?key|bearer'` returns nothing `[2026-09-01]` |
+| `lessons/` | 84 K | **Yes** — the lazy evidence tier |
+| `hooks/` `skills/` `output-styles/` | ~40 K | **Yes** — authored content |
+| `scripts/` | 184 K | **Yes, except `*.exe`** — the debug wrapper's source is already tracked in this repo (`1553b2e`); the binary is a build artifact |
+| `plans/` | 222 K | **No** — harness-assigned scratch. `~/.claude/CLAUDE.md` §Plan mode already says a plan that outlives the sitting belongs in the repo that owns the work |
+
+Allowlist rather than blocklist, so a directory the harness adds next month is ignored by default
+instead of committed by surprise:
+
+```gitignore
+# Ignore everything at the top level, then re-include what is worth keeping.
+# Allowlist, not blocklist: a new harness directory is ignored until named here.
+/*
+
+!/.gitignore
+!/CLAUDE.md
+!/settings.json
+!/hooks/
+!/lessons/
+!/rules/
+!/skills/
+!/output-styles/
+!/scripts/
+
+# Build artifact; its source is tracked in claude-skills (1553b2e).
+/scripts/*.exe
+```
+
+`/*` matches only top-level entries, so re-including a directory re-includes its contents.
+`.credentials.json` is covered by `/*` and is never re-included.
+
+**Proof, as an end state rather than a file list.** Two greps and a control, joined with `;` —
+`grep -c` exits non-zero on its informative answer:
+
+```sh
+cd ~/.claude
+git add -A --dry-run > /tmp/staged.txt 2>&1; echo "exit $?"
+grep -cE 'projects/|file-history/|plugins/|\.credentials\.json' /tmp/staged.txt   # expect 0
+grep -cE 'CLAUDE\.md|lessons/|settings\.json' /tmp/staged.txt                     # positive control: expect > 0
+```
+
+The second grep is not decoration. The first is a null, and a null from an empty dry-run file and a
+null from a correct `.gitignore` are indistinguishable — the control is what separates them. Then
+commit, and confirm the repository is the size the allowlist implies rather than the size of the
+directory: `git count-objects -vH` should report single-digit MB, not 313 M.
+
+### Task 11: Test the routing rule's boundaries before rolling it out
+
+**Files:** none changed. Produces a written result in this section.
+
+**Interfaces:** gates Task 7 — Task 7 writes §3a's routing table into `distill-lessons`, and an
+untested table is one every future pass files against by feel. Consumes §3a and §4's destination
+list.
+
+**What this measures, and why it is not the question step 5 was asking.** Step 5 asked whether a
+trimmed rule still fires. This asks whether a *future pass can predict where a rule goes*. Both
+affect retrieval; only the second is cheap, and only the second gets worse silently with every entry
+filed across an ambiguous boundary. The destination count goes from 3 (CLAUDE.md / memory /
+nowhere) to 7: always-loaded `CLAUDE.md`, `~/.claude/rules/` with `paths:`, a skill,
+`~/.claude/lessons/`, the per-project memory store, repo `docs/lessons/`, and nowhere.
+
+`refile-rules` §3 already carries the instrument; it applies to tiers as written:
+
+> Take four or five entries already in the file. From the **destination names alone**, predict which
+> tier each one lives in. Then check.
+
+**Sampling, which is where this test can go wrong.** §3's own warning is that predicting on entries
+you just wrote measures memory of the session, not the file's structure. Two constraints follow:
+
+1. **Exclude the pilot section entirely.** It has been re-cut three times on this branch; every
+   bullet in it is remembered rather than predicted.
+2. **Pick mechanically, not by choosing** — every 12th bullet of the remainder. Choosing is how the
+   easy ones get sampled.
+
+**Pre-registered failure criterion, written before the run:** 2 or more of 5 unpredictable, or any
+two destinations that both attract the same entry, means the routing rule is not real yet. The fix
+is to merge destinations before Task 7 writes them down, not to invent a distinction that explains
+the split — `refile-rules` §3 names that reflex, and an invented distinction is usually how the
+overlap arrived.
+
+**Pre-registered no-power condition:** if all 5 sampled entries land in the same destination, the
+test exercised one boundary and separates nothing. Report **no power** and redraw to span at least
+three destinations. A no-power run and a clean pass look identical afterwards, and the clean pass is
+the one that gets reported.
+
+**The likeliest finding, named in advance so it is not a surprise.** `~/.claude/lessons/` and the
+per-project memory store are two lazy evidence tiers with overlapping purpose and different index
+mechanisms. §4 gives a real reason for files-over-skills — *"a plain file at a known path"* — but
+says nothing about which of these two lazy stores an entry belongs in. If the test finds that
+boundary unpredictable, the answer is a stated rule (personal-and-cross-project vs. repo-scoped is
+the candidate), not a new tier.
+
+### Task 12: Make the lazy tiers reachable
+
+**Files:** `~/.claude/CLAUDE.md` — one line, added near the top; `~/.claude/lessons/` — read only,
+to check the slugs resolve.
+
+**Interfaces:** blocks applying any split, Task 5 included. Consumes nothing.
+
+**The gap is not that `[[slug]]` is undefined. It is that it is already defined, and resolves
+somewhere else.** `docs/task-3-section-after.md` carries **19** `Evidence: [[slug]]` pointers.
+The harness's own memory instructions define that exact syntax for a different store — *"link to
+related memories with `[[name]]`, where `name` is the other memory's `name:` slug"* — meaning a
+file in the per-project auto-memory store, and it is in live use there: **22 `[[slug]]` links
+across this project's memory store** `[verified 2026-09-01: grep -ro over
+~/.claude/projects/c--Users-Chris-Documents-Projects-claude-skills/memory returned 22, resolving to
+that directory's own files]`. Nothing in `~/.claude/CLAUDE.md` re-points the syntax at the lessons
+directory; that file contains **no `[[` at all**, and mentions `lessons` once
+`[verified 2026-09-01: grep -c on both; control: grep -c 'Verification' on the same file returns 5,
+so the file is being read]`.
+
+So a reader following `[[git-diff-no-index-long-path]]` has a convention that tells them to look in
+the project memory store, where the file does not exist `[verified 2026-09-01: 0 of the 19 lesson
+slugs resolve to a file in that store; control: effort-switch-cache-lineages.md, a slug that does
+resolve there, is found by the same test]`. §4's justification for files-over-skills is
+that *evidence does not need finding, because the rule that cites it names it*. A slug under a
+colliding convention does not name it.
+
+**The fix is to stop using the wikilink for this, not to disambiguate it.** Write the path:
+
+> Evidence: `~/.claude/lessons/git-diff-no-index-long-path.md`
+
+**This is cheaper than the alternative I first drafted**, which was one always-loaded sentence
+defining the convention. Costs, both measured against the pilot's 4,707 B saving: writing the path
+adds 16 B per pointer × 19 = **304 B, 6.5% of the saving**, and needs **zero** always-loaded bytes.
+The convention line would have cost ~44 tokens of always-loaded space
+`[at ~/.claude/CLAUDE.md §Effort's 1.45 tokens/word]` *and* left two conventions sharing one syntax.
+A path needs no convention, no index, and no disambiguation, and it survives being pasted into a
+context that never read the definition.
+
+**No index file either.** `ls ~/.claude/lessons/` is the index. A maintained index is a second thing
+that must be kept true, and a stale one answers "is this covered?" with a confident wrong no.
+
+**Proof: enumerate and compare, never grep once per expected slug.** A per-slug grep cannot return a
+slug nobody named, and that failure has no error to notice — `~/.claude/CLAUDE.md` §Validating the
+instrument names this exact shape.
+
+```sh
+grep -o 'lessons/[a-z0-9-]*\.md' docs/task-3-section-after.md | sed 's|.*/||;s|\.md$||' | sort -u > /tmp/cited.txt
+ls ~/.claude/lessons/ | sed 's/\.md$//' | sort -u > /tmp/present.txt
+diff /tmp/cited.txt /tmp/present.txt; echo "exit $?"    # expect no output, exit 0
+wc -l /tmp/cited.txt /tmp/present.txt                   # expect 19 and 19; a 0 means the extractor broke
+grep -c '\[\[' docs/task-3-section-after.md             # expect 0 once converted — no wikilinks left
+```
+
+The `wc -l` is the positive control: an empty `cited.txt` diffs clean against an empty
+`present.txt`, and that passes while proving nothing.
+
+### Task 13: Close the loop from use
+
+**Files:** `plugins/distill-lessons/skills/distill-lessons/SKILL.md` §4;
+`plugins/refile-rules/skills/refile-rules/SKILL.md` §1 and §2;
+`~/.claude/hooks/lessons-gate.sh`; `~/.claude/lessons/misses.md` (new).
+
+**Interfaces:** consumes Task 11's boundary result and Task 12's pointer convention. **This is what
+replaces step 5** — the instrument that says whether the model is working, drawn from use rather
+than from judged responses. Produces the input Task 14 reads.
+
+**Four edits. The third is the one that makes the other three worth anything.**
+
+**1. `distill-lessons` §4 gains a differential under "does a rule for this already exist?"** Its
+current text assumes the answer — *"the rule is written, it was loaded, and it did not fire"* —
+which was safe under one always-loaded file and is an assumption with three ways to be wrong once
+rules are split across tiers. Three rows, not four: a compaction-dropped `paths:` rule shares its
+repair with a never-loaded one and is close to undiagnosable in practice, so it is folded in rather
+than given a row of its own.
+
+| Why it missed | How to tell | Repair |
+|---|---|---|
+| Never in context | its tier was never summoned: no `Skill` call, no `Read` on the lesson file, no `path_glob_match` in the `InstructionsLoaded` log for its `.claude/rules/` file | wrong tier. Hand to `refile-rules`; leave the wording alone |
+| In context, but trimmed past recognition | the vocabulary that would have matched this situation is in the rule's `~/.claude/lessons/` file, not in the surviving line | restore those specifics to the loaded line — the split took a recognition specific for an evidence one |
+| In context, intact | neither of the above | narrow it until a command can check it, per the table already in §4 |
+
+**"Was it in context" is asked first, because it is the only one with a mechanical answer.** For a
+`CLAUDE.md` or a `.claude/rules/` file, `grep '<filename>' "$LOG"` on the `InstructionsLoaded` log
+and read `load_reason`. For a skill or a lesson file there is no hook — the evidence is this
+session's own `Skill` or `Read` call. Either way the answer is a null, so before reporting *never
+loaded*, run the same grep against a file known to have loaded this session.
+
+**2. `refile-rules` §2 gains a fifth finding**, and §1's second unprompted trigger splits in two.
+The finding: *a rule sits in a tier that is never summoned for the situations it covers* — the
+mirror of §2's existing "content in the always-loaded tier that has a perfectly good trigger
+elsewhere", and the one the routing rule itself produces. §1 currently routes every failed-to-fire
+handoff to the same place; only *never in context* is a move. *In context, intact, and not
+narrowable* is retrieval. *Trimmed past recognition* goes back to `distill-lessons` — it is an edit
+to one entry, not a structural finding.
+
+**3. `~/.claude/lessons/misses.md`, one line per miss.** This is the part I would not skip. A
+diagnosis written into each rule's own evidence file cannot be counted, and 3 of the pilot's 22
+bullets have no evidence file at all — they are the judgment-shaped rules, the ones most likely to
+miss. One miss is an anecdote. Six misses that all read *never in context, on a skill* is a verdict
+on the routing rule rather than on six rules, and only a single file makes that visible.
+
+```
+| date | rule (first ~6 words) | tier it lives in | why it missed | repair applied |
+```
+
+After ten entries this is the only evidence about the model that came from use rather than from a
+judge. Three entries against one rule is a `refile-rules` trigger on its own.
+
+**4. Give `check-memory-budget.sh` a trigger it does not depend on being remembered.** It is the one
+instrument here that costs nothing per run, and today it fires only if someone thinks of it — the
+left-hand column of `distill-lessons`' own table. `~/.claude/hooks/lessons-gate.sh` is already a
+registered `Stop` hook that nudges after 8 commits `[verified 2026-09-01: registered in
+settings.json; threshold CLAUDE_LESSONS_COMMIT_THRESHOLD, default 8]`, which fires at precisely the
+right moment — a batch of work has landed and a lessons pass is about to run. Emit the budget line
+in that nudge. Chain with `;` and not `&&`: the script exits non-zero on its informative answer.
+
+**Version bump.** Editing two `SKILL.md` files means two `.claude-plugin/plugin.json` manifests plus
+two frontmatter `version:` fields, which drift in both directions. Run `sh scripts/check-versions.sh`
+before committing; chain it with `;`, since a mismatch is its informative non-zero answer.
+
+### Task 14: Replace the chosen ceilings with a saturation reading
+
+**Files:** §3c's ceiling table; `scripts/check-memory-budget.sh` ceiling constants, once there is a
+number to put in them.
+
+**Interfaces:** consumes Task 13's miss log and the per-pass record below. Deliberately last: it has
+nothing to read until the model has run for several `distill-lessons` passes.
+
+§3c's three ceilings are, in its own words, *chosen, not derived*, and Task 8 showed the global one
+unreachable by the mechanism that was supposed to reach it. The replacement is already named in
+§3c and comes from `align` (§7): **saturation.** If N consecutive `distill-lessons` passes add no
+rule that fires on a situation the store did not already cover, the always-loaded tier is saturated,
+and the right ceiling is roughly where it sits.
+
+**The datum is already produced for free.** `distill-lessons` §4 opens with *"does a rule for this
+already exist?"*, so every pass answers this about every survivor. Record one line per pass —
+date, survivors, how many covered a genuinely uncovered situation — at the bottom of
+`~/.claude/lessons/misses.md`, so both series live in one file.
+
+**N is a free parameter, so it gets the treatment §3c's own numbers did not.** Do not pick N in
+advance and do not defend one. Collect at least ten passes, then report the observed run-length
+series read at **N = 3 and N = 5**, per `~/.claude/CLAUDE.md` §Validating the instrument: a derived
+structure is a function of the choices that produced it, and a stopping point visible at one setting
+can vanish at another. If the two settings disagree, the honest report is *setting-dependent* and
+the ceilings stay placeholders for longer.
 
 ---
 
