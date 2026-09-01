@@ -21,8 +21,9 @@ repo). Task 4's step 1 ran the same day and closed the task at global scope with
 anything — 0 of its 11 bullets are file-triggered. **Task 11 ran the same day and unblocked Task 7
 with a changed brief: its routing table asks two questions, not one, because §3a's four classes
 conflate two axes. Task 7 landed the same day, taking `distill-lessons` and `refile-rules` to
-2.0.0, so new lessons now route under the model rather than appending to the old file. Task 12 is
-next.**
+2.0.0, so new lessons now route under the model rather than appending to the old file. Task 12
+landed the same day — the 19 pointers are written paths and the verifier moved with them, which
+revised the pilot's yield to −29.7% / 4,384 B saved. **Task 13 is next.**
 Task 14 is promoted from tidy-up to the task the plan now turns on.
 
 **The ceiling is unreachable by any mechanism in this plan, and that is a 2026-09-01 finding rather
@@ -84,7 +85,7 @@ a lock**, and unblocks that task.
 | 9 | Does an instruction-file edit reach a running session? | — | **DONE 2026-08-28.** Answer: **replay on ordinary turns, rebuild at compaction** — the pre-registered binary was false. Steps 2-3 retired, not skipped: nothing is left for the proxy to measure | Step 0: `scripts/probe-memory-delivery.py`, 281 transcripts / 182,561 lines, 0 unreadable, **63 `Read` calls on topic files** ⇒ moved X to the project `CLAUDE.md`. Step 1: 2 sessions, 4 asks + `/compact` + arm 3, **0 tool calls** in B (transcript-checked), stale window **~2m55s across 2 turns**. Full timeline in §5 Task 9 |
 | 10 | Put `~/.claude` under version control | `fe46278` — **in the `~/.claude` repo, not this one**; `git -C ~/.claude show fe46278` | **DONE 2026-09-01.** Tasks 4, 5 and 12 are unblocked. The root commit is the pre-migration baseline every later revert diffs against | Allowlist `.gitignore`, **30 paths, 57.84 KiB tracked against a 313 M directory** (`git count-objects -vH`). Two-armed proof over `git add -A --dry-run`: excluded pattern (`projects/`, `file-history/`, `plugins/`, `debug/`, `shell-snapshots/`, `plans/`, `*.exe`, `.credentials.json`) returns **0**; the positive control (`CLAUDE.md`, `lessons/`, `settings.json`) returns **21**, so an empty dry-run cannot pass as a clean one. All 30 staged files scanned for private-key headers, token prefixes and password assignments: clean. No CR bytes on any tracked file |
 | 11 | Test the routing rule's boundaries before rolling it out | — | **DONE 2026-09-01. Task 7 is unblocked, with a changed brief:** its routing table must ask **two** questions, not one. Rule axis needs no fix (degenerate, not ambiguous); evidence axis needed a rule and now has one | Mechanical sample, 5 of 58 entries outside the pilot section, step 11, file lines 27/77/93/107/146 across five sections. **Rule axis: NO POWER** — 5 of 5 *momentary → stays*, 4 forced; the pre-registered redraw would fail because Task 4 emptied the `paths:` destination and the skills already hold the language content. **Evidence axis: failure criterion tripped 4 of 5** — three global rules cite evidence in two *different* project memory stores and none cites `~/.claude/lessons/`. Fixed by a two-question rule, derived from "only one memory store loads per session". One instrument error caught mid-run: `grep -n` over an `awk`-filtered stream returns filtered-stream line numbers. Full table in §5 Task 11, "Result" |
-| 12 | Make the lazy tiers reachable | — | **Not started — blocks applying any split** | — |
+| 12 | Make the lazy tiers reachable | see the commit converting the 19 pointers | **DONE 2026-09-01.** The 19 `[[slug]]` pointers are written paths, and `verify-split.py` moved with them. Nothing now blocks Tasks 5-6 on reachability grounds | 19 found, 19 converted, 0 CR bytes, **+323 B** (17/pointer). New authoritative figures: after-section **10,365 B**, saved **4,384 B**, yield **−29.7%**, **8.5** pilot-sized splits to the ceiling. The verifier's `[[…]]` regex would have made checks [3] and [4] **PASS over zero items**, so it gained a count assertion derived from the fixture (`len(after) − len(UNCHANGED_IDX)`). Four injection arms all red against a copy, unmodified copy green first; arm 1 was re-run as 1b after its capital-letter slug landed in the count guard instead of the missing-file branch |
 | 13 | Close the loop from use | — | **Not started.** This is what replaces step 5 | — |
 | 14 | Replace the chosen ceilings with a saturation reading | — | **Not started, and deliberately last** — it needs several `distill-lessons` passes under the new model before it has anything to read | — |
 
@@ -115,7 +116,8 @@ usable answer. `~/.claude/CLAUDE.md` is no longer untouched, though: on 2026-09-
 lessons bullet was applied to it (see below), and the pre-edit file is at
 `~/.claude/CLAUDE.md.bak-recut-20260901`. Derive that rather than trusting this line, because the probe below copies each arm over that
 file and restores it afterwards: the guard command returns 14,749 while the section is unsplit and
-10,042 once it is not. To undo the lessons directory: `rm -rf ~/.claude/lessons/`.
+10,365 once it is not `[the after-figure moved from 10,042 on 2026-09-01, when Task 12 converted the
+19 pointers to written paths: +323 B]`. To undo the lessons directory: `rm -rf ~/.claude/lessons/`.
 
 **One thing owed, and it is not a step in this document.** The `keep-ledger` 1.3.1 release that
 this work's lessons pass produced is **settled**: `efd2637` merged to `main` as PR #8 on
@@ -1346,7 +1348,9 @@ arithmetic now says it holds whether or not the hypothesis fails.
 
 **Re-run against the 2026-09-01 figures, the conclusion is unchanged and slightly worse.** The
 global file is now 62,370 B, so it must shed **37,370 B**; the re-cut pilot returns 4,707 B, so the
-target is **7.9 pilot-sized splits** rather than 10.5. Applying the re-cut's 31.9% yield to the
+target is **7.9 pilot-sized splits** rather than 10.5 `[amended 2026-09-01: Task 12's written-path
+pointers cost 323 B, so the pilot now returns 4,384 B and the target is **8.5 splits**. The
+conclusion is unchanged and moves the wrong way]`. Applying the re-cut's 31.9% yield to the
 entire file returns 19,896 B and lands at **42,474 B, still 70% over**. Both inputs moved in the
 direction that flatters — a bigger pilot yield against a bigger file — and the gap did not close. §1's
 table and the sweep table above are fixed points and are not edited to match; this paragraph is the
@@ -2120,6 +2124,51 @@ grep -c '\[\[' docs/task-3-section-after.md             # expect 0 once converte
 
 The `wc -l` is the positive control: an empty `cited.txt` diffs clean against an empty
 `present.txt`, and that passes while proving nothing.
+
+#### Result, 2026-09-01 — done, and it moved the verifier as well as the fixture
+
+**The 19 pointers are written paths.** `` Evidence: `~/.claude/lessons/<slug>.md` ``. Converted by a
+one-off script that asserted the match count *before* substituting and re-read the result to confirm
+none survived, with `newline=""` on both read and write — 19 found, 19 converted, 0 CR bytes.
+
+**Cost, measured rather than estimated: +323 B**, exactly 17 per pointer (21 added for
+`~/.claude/lessons/` + `.md`, 4 removed for the brackets). The estimate above said ~304; the
+difference is arithmetic, not a surprise.
+
+**The authoritative figures move with it, and every earlier statement of them in this document
+predates the conversion:**
+
+| | Before Task 12 | Now |
+|---|---:|---:|
+| after-section | 10,042 B | **10,365 B** |
+| always-loaded saved | 4,707 B | **4,384 B** |
+| yield on the pilot section | −31.9% | **−29.7%** |
+| pilot-sized splits to reach the 25,000 B ceiling | 7.9 | **8.5** |
+
+**The fixture could not move alone, and finding that out was the substance of this task.**
+`verify-split.py` matched `\[\[([a-z0-9-]+)\]\]`. Checks [3] and [4] both iterate the pointers
+found, so a stale pattern makes each of them print a PASS over **zero** items — `[3] PASS 0 pointers
+all resolve`, `[4] PASS all 0 originals verbatim`. Only [5] would have failed, and it would have
+reported **19 orphans**, which reads as the split having lost its pointers rather than as the
+pattern having gone stale. So the regex changed, and a **count assertion** was added beside it,
+derived from the fixture rather than hardcoded: `len(after) - len(UNCHANGED_IDX)`, so a fourth
+re-cut updates the expectation for free.
+
+**Four fault-injection arms, all red, against a copy** (`SECTIONS_DIR` and `LESSONS_DIR` pointed at
+it), with the unmodified copy passing first as the harness's own control:
+
+| Arm | Injection | Expected | Got |
+|---|---|---|---|
+| 0 | none | pass | exit 0, 5/5 |
+| 1b | one slug regex-legal but naming no file | the missing-lesson branch | `[3] bullet 6 points at missing lesson no-op-proof-scope-x.md` |
+| 2 | one pointer reverted to `[[slug]]` | the new count guard | `[3] found 18 pointers, expected 19` |
+| 3 | all pointers reverted | the count guard, naming the stale pattern | `[3] found 0 pointers, expected 19 … if this is 0, the pointer pattern is stale, not the fixture` |
+
+**Arm 1 was run first and tested the wrong thing.** It typo'd a slug to `no-op-proof-scopeX`, and
+`[a-z0-9-]+` does not match a capital letter — so the pointer failed to *match* rather than failing
+to *resolve*, and it landed in the count guard alongside arm 2 instead of the missing-file branch.
+Re-run as arm 1b with a lowercase slug. An injection that produces a red run has not thereby tested
+the branch you aimed at; read which failure fired, not just that one did.
 
 ### Task 13: Close the loop from use
 

@@ -5,9 +5,17 @@ Five checks, each stated so a failure names the bullet:
 
   1. bullet count is preserved (22 -> 22)
   2. the three no-evidence bullets are byte-identical before and after
-  3. every [[pointer]] in the after-text resolves to a file in ~/.claude/lessons/
-     (override that directory with LESSONS_DIR, and docs/ with SECTIONS_DIR --
+  3. every `~/.claude/lessons/<slug>.md` pointer in the after-text resolves to a
+     file there, and there are as many pointers as bullets that should carry one
+     (override the directory with LESSONS_DIR, and docs/ with SECTIONS_DIR --
       the fault-injection control needs both to point at a copy)
+
+     The count assertion is not decoration. Checks [3] and [4] iterate over the
+     pointers found, so a regex that matches nothing makes both print a PASS
+     over zero items. That is how this check read when the pointer form changed
+     from [[slug]] to a written path in Task 12 -- only [5] caught it, and it
+     reported 19 orphans, which reads as the split having lost its pointers
+     rather than as the pattern having gone stale.
   4. every split bullet's ORIGINAL text is present verbatim in its lesson file
      -- this is the "every evidence item is locatable" bar, as a substring test
   5. every lesson file is pointed at by exactly one rule (no orphans, no dupes)
@@ -59,14 +67,26 @@ def main() -> int:
     else:
         print(f"[2] PASS  {len(UNCHANGED_IDX)} no-evidence bullets byte-identical")
 
-    # 3. pointers resolve
-    ptr = re.compile(r"\[\[([a-z0-9-]+)\]\]")
+    # 3. pointers resolve -- and there are as many as there should be
+    # The pointer is a written path, not a [[wikilink]]: that syntax is already
+    # taken by the per-project memory store, so a slug under it resolved to the
+    # wrong tier (Task 12). LESSONS still says where to look; the text says what
+    # to look for.
+    ptr = re.compile(r"`~/\.claude/lessons/([a-z0-9-]+)\.md`")
     pointed = []
     for i, ln in enumerate(after):
         for slug in ptr.findall(ln):
             pointed.append((i, slug))
             if not (LESSONS / f"{slug}.md").exists():
                 fails.append(f"[3] bullet {i} points at missing lesson {slug}.md")
+    # Guard the degenerate pass: [3] and [4] both iterate `pointed`, so a stale
+    # pattern makes each of them PASS over nothing. Expectation is derived from
+    # the fixture, not hardcoded, so a re-cut updates it.
+    expect_ptrs = len(after) - len(UNCHANGED_IDX)
+    if len(pointed) != expect_ptrs:
+        fails.append(f"[3] found {len(pointed)} pointers, expected {expect_ptrs} "
+                     f"({len(after)} bullets - {len(UNCHANGED_IDX)} with no evidence) "
+                     f"-- if this is 0, the pointer pattern is stale, not the fixture")
     if not any(f.startswith("[3]") for f in fails):
         print(f"[3] PASS  {len(pointed)} pointers all resolve in {LESSONS}")
 
