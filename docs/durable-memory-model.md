@@ -23,7 +23,11 @@ with a changed brief: its routing table asks two questions, not one, because §3
 conflate two axes. Task 7 landed the same day, taking `distill-lessons` and `refile-rules` to
 2.0.0, so new lessons now route under the model rather than appending to the old file. Task 12
 landed the same day — the 19 pointers are written paths and the verifier moved with them, which
-revised the pilot's yield to −29.7% / 4,384 B saved. **Task 13 is next.**
+revised the pilot's yield to −29.7% / 4,384 B saved. Task 13 landed the same day, closing the loop
+from use — both skills at 2.1.0, and `~/.claude/misses.md` now carries both the miss log and the
+per-pass series. **The main line is complete.** What remains is Task 14, which cannot start until
+several passes have been recorded, and Tasks 5-6, which were taken off the main line and are picked
+up only on the basis §5 Task 5 states.
 Task 14 is promoted from tidy-up to the task the plan now turns on.
 
 **The ceiling is unreachable by any mechanism in this plan, and that is a 2026-09-01 finding rather
@@ -86,7 +90,7 @@ a lock**, and unblocks that task.
 | 10 | Put `~/.claude` under version control | `fe46278` — **in the `~/.claude` repo, not this one**; `git -C ~/.claude show fe46278` | **DONE 2026-09-01.** Tasks 4, 5 and 12 are unblocked. The root commit is the pre-migration baseline every later revert diffs against | Allowlist `.gitignore`, **30 paths, 57.84 KiB tracked against a 313 M directory** (`git count-objects -vH`). Two-armed proof over `git add -A --dry-run`: excluded pattern (`projects/`, `file-history/`, `plugins/`, `debug/`, `shell-snapshots/`, `plans/`, `*.exe`, `.credentials.json`) returns **0**; the positive control (`CLAUDE.md`, `lessons/`, `settings.json`) returns **21**, so an empty dry-run cannot pass as a clean one. All 30 staged files scanned for private-key headers, token prefixes and password assignments: clean. No CR bytes on any tracked file |
 | 11 | Test the routing rule's boundaries before rolling it out | — | **DONE 2026-09-01. Task 7 is unblocked, with a changed brief:** its routing table must ask **two** questions, not one. Rule axis needs no fix (degenerate, not ambiguous); evidence axis needed a rule and now has one | Mechanical sample, 5 of 58 entries outside the pilot section, step 11, file lines 27/77/93/107/146 across five sections. **Rule axis: NO POWER** — 5 of 5 *momentary → stays*, 4 forced; the pre-registered redraw would fail because Task 4 emptied the `paths:` destination and the skills already hold the language content. **Evidence axis: failure criterion tripped 4 of 5** — three global rules cite evidence in two *different* project memory stores and none cites `~/.claude/lessons/`. Fixed by a two-question rule, derived from "only one memory store loads per session". One instrument error caught mid-run: `grep -n` over an `awk`-filtered stream returns filtered-stream line numbers. Full table in §5 Task 11, "Result" |
 | 12 | Make the lazy tiers reachable | see the commit converting the 19 pointers | **DONE 2026-09-01.** The 19 `[[slug]]` pointers are written paths, and `verify-split.py` moved with them. Nothing now blocks Tasks 5-6 on reachability grounds | 19 found, 19 converted, 0 CR bytes, **+323 B** (17/pointer). New authoritative figures: after-section **10,365 B**, saved **4,384 B**, yield **−29.7%**, **8.5** pilot-sized splits to the ceiling. The verifier's `[[…]]` regex would have made checks [3] and [4] **PASS over zero items**, so it gained a count assertion derived from the fixture (`len(after) − len(UNCHANGED_IDX)`). Four injection arms all red against a copy, unmodified copy green first; arm 1 was re-run as 1b after its capital-letter slug landed in the count guard instead of the missing-file branch |
-| 13 | Close the loop from use | — | **Not started.** This is what replaces step 5 | — |
+| 13 | Close the loop from use | see the commit taking both skills to **2.1.0**, and its pair in the `~/.claude` repo | **DONE 2026-09-01.** The loop is closed: a miss now has a named cause, a repair per cause, and one countable place to land. This is what replaces step 5 | Three-cause differential in `distill-lessons` §4; the fifth finding in `refile-rules` §2 and its §1 trigger split (only two of the three causes route there — *trimmed past recognition* goes back). `~/.claude/misses.md`, **not** in `lessons/`, which check [5] holds 1:1 with pointers; allowlisted and confirmed untracked-not-ignored. Budget reading appended by `lessons-gate.sh`, guarded on the checker existing and never chained with `&&`. Hook tested in a throwaway repo (running it in a real one re-anchors the marker): `bash -n` clean, first run silent, 8 commits → valid JSON `decision: block` with the budget, and graceful degradation where no `CLAUDE.md` or store exists. `check-versions.sh` passes at 2.1.0/2.1.0; `verify-split.py` still 5/5 |
 | 14 | Replace the chosen ceilings with a saturation reading | — | **Not started, and deliberately last** — it needs several `distill-lessons` passes under the new model before it has anything to read | — |
 
 **Live environment state — not in this repo, and it goes with the machine rather than the branch.**
@@ -2233,6 +2237,39 @@ in that nudge. Chain with `;` and not `&&`: the script exits non-zero on its inf
 **Version bump.** Editing two `SKILL.md` files means two `.claude-plugin/plugin.json` manifests plus
 two frontmatter `version:` fields, which drift in both directions. Run `sh scripts/check-versions.sh`
 before committing; chain it with `;`, since a mismatch is its informative non-zero answer.
+
+#### Result, 2026-09-01 — done, with the log moved out of `lessons/`
+
+**`misses.md` is at `~/.claude/misses.md`, not `~/.claude/lessons/misses.md` as specified above.**
+`verify-split.py` check [5] holds that directory 1:1 with pointers, so a log file there is an
+**orphan**: the run would go red and report *"lesson files nothing points at: ['misses']"*, which
+reads as the split having lost a pointer rather than as a file having been added. Trading that
+invariant — the one that makes the single-file model reconstitutable — for a tidier path is a bad
+exchange. `~/.claude/lessons/` holds lessons. The allowlist needed one line, `!/misses.md`, since
+the `.gitignore` denies `/*`; confirmed by `git status` reporting it untracked rather than ignored.
+
+**The file carries both series**, misses and the per-pass saturation counts Task 14 reads, because
+they are read together. Today's pass is backfilled as the first row (4 survivors, 4 uncovered) and
+labelled as backfilled, since it predates the file.
+
+**Both skills take a minor bump, 2.0.0 → 2.1.0, and the reasoning is the rule this repo just
+recorded.** These skills are environment-agnostic: in a store with one always-loaded tier the old
+text is still correct, and the three-cause differential only has more than one answer once rules are
+split across tiers. So a reader following the old text gets an *incomplete* answer, not a wrong one.
+That is the minor/major line, applied rather than asserted.
+
+**A stale count fixed in passing.** `distill-lessons` §4 still read *"Otherwise, three
+destinations"* — true before Task 7 added the two axes above it, and missed then. Now it names the
+three headings as the starting set and defers to the axes for a store with more tiers.
+
+**The hook change is guarded, and was tested end to end rather than by reading.** `lessons-gate.sh`
+appends the budget reading only if the checker exists on this machine, and never chains it with
+`&&` — it exits non-zero when a ceiling is passed, which is its informative answer. Tested in a
+throwaway git repo, since running it in a real one re-anchors that repo's marker as a side effect:
+`bash -n` clean; first run anchored and stayed silent; after 8 commits it emitted valid JSON with
+`decision: block` and the budget appended; and it degraded correctly in a repo with no `CLAUDE.md`
+and no memory store, printing *"not present"* and *"no project store for this directory"* rather
+than failing.
 
 ### Task 14: Replace the chosen ceilings with a saturation reading
 

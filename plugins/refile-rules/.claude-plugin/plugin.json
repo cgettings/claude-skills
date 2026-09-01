@@ -1,6 +1,6 @@
 {
   "name": "refile-rules",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Reorganize a rule store whose structure stopped holding — overlapping sections, rules filed by feel, content in the always-loaded tier that had a trigger all along. Shortens an entry only against a specifics inventory.",
   "author": {
     "name": "cgettings"
