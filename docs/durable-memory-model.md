@@ -8,7 +8,15 @@ one judge shared by all three runs — on the 18 responses of the three-arm run,
 sampled — and it **failed its own 90% gate at 14/18 (77.8%), with disagreement arm-correlated**. A
 fourth run would have had to rebuild the instrument before it could measure anything. What replaces the judge is use: apply the model, record every rule
 that misses, and let the misses answer what the runs could not. The re-sequenced main line is
-**Task 10 → 4 → 11 → 7 → 12 → 13**; **Task 10 landed 2026-09-01, so Task 4 is next**. Tasks 5 and 6 come **off** the main line — no longer gated on
+**Task 10 → 4 → 11 → 7 → 12 → 13**. **Task 10 landed 2026-09-01 (`fe46278`, in the `~/.claude`
+repo). Task 4's step 1 ran the same day and closed the task at global scope without moving
+anything — 0 of its 11 bullets are file-triggered — so Task 11 is next**, and Task 14 is promoted
+from tidy-up to the task the plan now turns on.
+
+**The ceiling is unreachable by any mechanism in this plan, and that is a 2026-09-01 finding rather
+than a failure.** Task 8 closed §3b's trim as insufficient; Task 4 step 1 closed §3a's routing as
+empty at global scope. Both routes to 25,000 B are shut. §3c already called those numbers *chosen,
+not derived* — Task 14 replaces them with a saturation reading, and it is no longer optional. Tasks 5 and 6 come **off** the main line — no longer gated on
 Task 3, but no longer the point either. Task 14 carries the stopping condition that §3c's chosen
 ceilings were standing in for.
 
@@ -56,7 +64,7 @@ a lock**, and unblocks that task.
 | 1 | Falsify the user-scope `paths:` premise | `0f82133` — no code commit; the result **is** §5 Task 1 below | **DONE 2026-08-25** | `InstructionsLoaded` hook log + model self-report, 2 sessions, 4 arms, 5 controls, all passed. Verbatim log line in §5 Task 1 |
 | 2 | Record the real baseline | `0f82133` — no code commit; the result **is** §1 below | **DONE 2026-08-25** | differential token measurement, 11 `claude -p` runs, each arm controlled by the same hook log. Method, and the two arms it voided, in §1 |
 | 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` + `08239e7` re-cuts, and the **2026-09-01 re-cut** — no hash cited, because this row moved in it; find it with `git log --follow docs/task-3-section-before.md`, end state 22 bullets, 14,749 -> 10,042 B, 19 lesson files | **Steps 1-4 DONE (re-cut 2026-09-01). Step 5 CLOSED WITHOUT A VERDICT, 2026-09-01, by decision — not by result.** Three runs, none licensing an answer; **no fourth run will be commissioned**, so the run-order confound is now a permanent limitation of this record rather than a defect to fix. The split is still NOT applied, and Tasks 5-6 are **no longer gated on it**. A session reading this row should not re-run the judge | Steps 1-4: split built and proved lossless, most recently by the **2026-09-01 re-cut**: 22 bullets, **14,749 -> 10,042 B (-31.9%)**, all 19 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection, check 4 re-injected on 2026-08-28, and checks 2 and 4 re-injected on 2026-09-01 against the re-indexed bullet list. Guard fired twice, passed clean on 2026-08-29, and **fired a third time on 2026-09-01**. Step 5, three runs, all `RESTORED OK` (sha verified), 0 unresolved judge holes: **2026-08-29** 30 responses, 30/30 on all three arms including the deleted one, `A≈B≈C`, licenses nothing; **2026-09-01 screen** 22 responses, 3 of 8 candidates looked discriminating and were **retracted the same day** (a 0/2 screen fires 56% against a true rate of 0.25); **2026-09-01 three-arm** 18 responses, **2 of 3 queries VOID** on the replication gate, third's B cell 1/2. Pooled post-hoc A 12/12, B 2/6, C 2/12, A-vs-B `p = 0.0049` — but **arm is aliased with run order in all three**, and the judge behind every one of these numbers **failed its own audit** (`c3e4aa0`): a complete Opus re-judge of the three-arm run returns 14/18 (77.8%), 0 holes, below the 90% gate, with disagreement arm-correlated (A 6/6, B 4/6, C 4/6). Full results and the decision in the step-5 note in §5 Task 3 |
-| 4 | Route the file-triggered content | — | **NEXT, after Task 10.** The main line: Task 8's arithmetic makes routing whole rules out the only route that reaches the ceiling | — |
+| 4 | Route the file-triggered content | — | **STEP 1 DONE 2026-09-01; STEP 2 NOT DONE AND SHOULD NOT BE.** The classification came back **0 of 11 bullets file-triggered**, so there is nothing to move at global scope and moving anyway would make the rules fire less often. **Closed at global scope**; the same classification is now Task 6's first step against the project file | Labelled sweep over all 11 bullets of §Language & platform conventions (9,414 B), each classified by naming the glob open at its moment of need. 0 move; 2 hold a file-triggered half worth ~600 B that only exists after an edit. Swept the other 129 lines for file-triggered content the section-level table missed: 5 extension mentions, all citations inside momentary rules, each read individually; control returns 11 hits inside the target section. Table and consequences in §5 Task 4, "Step 1 result" |
 | 5 | Roll the split across the rest of global CLAUDE.md | — | **Ungated 2026-09-01, and off the main line.** Optional; §5 Task 5 states the only basis on which it gets picked up | — |
 | 6 | Same for the project CLAUDE.md | — | **Ungated 2026-09-01, deliberately sequenced last.** Needs the team's agreement, and wants a working global example to show them first | — |
 | 7 | Make the routing rule enforceable at write time | — | **Gated on Task 11** — its routing table must survive the boundary test before it is written into a skill. Task 9 already settled its write protocol: **read-before-write or a lock**, for correctness | — |
@@ -558,7 +566,7 @@ and do not tune them.
 | Effort & orchestration | momentary | stays; the cache-lineage numbers are evidence |
 | Session workflow | mixed | commit/branch rules stay; ledger and lessons rules are already skill pointers |
 | Code philosophy, Comments | momentary | stays |
-| Language & platform conventions | **file-triggered** | `~/.claude/rules/` with `paths:`, one file per platform |
+| Language & platform conventions | ~~**file-triggered**~~ **momentary — corrected 2026-09-01** | ~~`~/.claude/rules/` with `paths:`~~ **stays.** 0 of its 11 bullets are file-triggered; §5 Task 4 step 1 |
 | Plan mode | task-triggered | already a skill pointer; keep the pointer |
 | Team context | momentary | stays (2 lines) |
 
@@ -581,6 +589,12 @@ Routing (§3a) can only move the file-triggered content, and that is 7,815 B —
 alone is 21,685 B and is entirely momentary class: nothing external summons "you are about to
 trust an unvalidated instrument", so **none of it can be routed anywhere.** It can only shrink by
 the recognition/evidence split.
+
+> **Corrected 2026-09-01: that 7,815 B was never routable.** It is the size of the section, not the
+> size of its file-triggered content, and the two were assumed equal here without the per-bullet
+> classification that would have separated them. Run in Task 4 step 1, the classification returns
+> **0 of 11 bullets movable and ~600 B of split candidates**. The paragraph's conclusion survives
+> and hardens: routing was never the safe move, and now it is not a move at all at global scope.
 
 So the plan does not rest on the safe move. It rests on Task 3, the untested one. If §3b's
 hypothesis fails, the reachable reduction is roughly the routing lane alone — and the 25,000 B
@@ -1076,6 +1090,12 @@ with `;`.
 **Interfaces:** consumed Task 1's yes/no, which came back **yes**. Produces the first real reduction
 in the global file, and it is the one reduction that does not depend on Task 3.
 
+> **STEP 1 RAN 2026-09-01, AND ITS RESULT STOPS STEP 2. Nothing was moved.** The separation §4's
+> caveat asks for was performed as a labelled sweep over all 11 bullets, and **0 of 11 are cleanly
+> file-triggered.** The move this task specifies would make the rules fire *less* often, not more.
+> Full classification and the consequences are in "Step 1 result" below; the move procedure that
+> follows it is retained for the project file, where the classification has not been run.
+
 Separate the file-triggered rules from the shell-composition rules first (§4's caveat), then move
 only the former, **byte for byte** — this is `refile-rules`' moves class and gets its mechanical
 proof: sort the rule lines before and after and diff the sorted forms; the only differences may be
@@ -1097,6 +1117,74 @@ Note the compaction behaviour recorded in §2 before treating this as free: a pa
 matter while editing a matching file that is correct. For a rule that matters when *composing a
 command about* such a file, it is a real loss — which is the same boundary §4's caveat draws, and a
 second reason to draw it carefully.
+
+#### Step 1 result, 2026-09-01: the routing lane is empty at global scope
+
+**The test applied per bullet, chosen because it is answerable rather than arguable:** name the glob
+that would be matching at the moment of need. Not "is this rule about PowerShell" — every bullet
+here is about a platform — but "what file is open when you need it". §Language & platform
+conventions is **9,414 B** across 11 bullets `[measured 2026-09-01: awk over ~/.claude/CLAUDE.md
+lines 130-153; it was 7,815 B on 2026-08-25, so it grew 20% during the analysis]`.
+
+| Bullet | Moment of need | Glob | Class |
+|---|---|---|---|
+| L132 skill pointer, 338 B | about to write R / PowerShell / front-end / Actions | — already routed; the four skills' descriptions are the trigger | **stays** (it *is* the routing) |
+| L134 section meta-rule, 347 B | filing a rule into this section | none | momentary |
+| L136 two shell tools + heredoc form, 2,104 B | composing a `Bash` or `PowerShell` call | none | momentary — **its own first clause says so**: *"The one thing with no file to trigger it"* |
+| L138 backslashes survive a quoted delimiter, 747 B | composing a heredoc body | none | momentary |
+| L140 PowerShell eats `--` in `npm run`, 825 B | typing an npm command, usually copied from a README | none | momentary |
+| L142 npm bare positionals, 449 B | compose time; **and** writing a script npm calls | `**/*.mjs`, `**/*.js` for the second half only | **split candidate** |
+| L144 `$var` expanded by the parent `pwsh`, 396 B | composing a cross-process call — the caller may be any language | none reliable | momentary |
+| L146 join with `;` not `&&`, 834 B | composing a verification chain | none | momentary — the bullet says it outright: *"at the moment a `Bash` call is being composed"* |
+| L148 Windows CLI flags and `/tmp` under Bash, 1,666 B | composing a Bash call | none | momentary |
+| L150 `git diff --no-index` on a long path, 518 B | composing that command | none | momentary |
+| L152 per-file shell loop; Python decoding, 1,144 B | compose time; **and** writing a `.py` sweep | `**/*.py` for the second half only | **split candidate** |
+
+**0 of 11 move. 2 of 11 contain a file-triggered half that does not exist until the bullet is
+edited** — and an edit is `refile-rules`' class 2, proved by reading against an inventory, never the
+sorted-line diff this task was scoped around. Their routable halves total roughly 600 B of 9,414.
+
+**Why moving them anyway would be worse than doing nothing.** A `paths:` rule loads on a glob match.
+A rule whose moment of need is *composing a command* has no file open that matches, so routing it
+converts a rule that is always present into one that is present only by coincidence — and §2's
+compaction behaviour makes that strictly worse again, since a path-scoped rule is out of context
+after a `/compact` until something re-matches. This is not a close call: the failure mode the rules
+prevent is a `Bash` call composed in PowerShell idiom, which happens when no `.ps1` is open.
+
+**Nor is there file-triggered content elsewhere in the file that §4's section-level table missed.**
+Swept for it rather than assumed: the only file-extension mentions outside this section are at
+L34 (`smoke-pages.mjs:246`), L36, L62 and L80 (`map.js:452`), and each is a citation inside a
+momentary rule, not a rule with a file trigger `[verified 2026-09-01: grep -noE over lines 1-129
+returned 5 hits, all 4 lines read individually; control: the same pattern returns 11 hits inside
+§Language & platform conventions, so it fires]`.
+
+**A skill is not the escape hatch either.** §3a's task-triggered class needs the model to recognise
+it is starting a kind of work. These rules fire when you do *not* recognise that — the whole point
+of L136 is that the wrong idiom is what feels natural. A skill whose description says "before
+composing a shell call" depends on the recognition the rule exists to supply. That is the definition
+of the momentary class, so the classification is not a routing failure; it is the correct answer.
+
+**What this falsifies, named with its siblings, per the plan-expectations rule.** The premise is
+*"the file-triggered lane is the reachable reduction at global scope."* It is false. Resting on it:
+
+1. **§4's table row** — `Language & platform conventions | file-triggered | one file per platform`.
+   Wrong classification. The caveat beneath it was right and understated: not *"part of that
+   section"*, but all of it bar two half-bullets.
+2. **§0 and the status block** — *"Task 4 promoted to the main event."* There is no main event.
+3. **§5 Task 8's conclusion** — *"routing whole rules out is the only route that reaches
+   [the ceiling]."* Both routes are now closed at global scope: §3b's trim cannot reach 25,000 B by
+   Task 8's arithmetic, and §3a's routing has ~600 B of candidates. **The 25,000 B ceiling is not
+   reachable by any mechanism in this plan.** That is a finding about the ceiling, not about the
+   file — and it is what Task 14 exists to replace, which is now the load-bearing task rather than
+   the tidy-up it was scheduled as.
+
+**What survives, and it is not nothing.** The four language skills already carry the file-triggered
+content, and L132's pointer is the routing this task was going to perform — done, before the plan
+was written, by the reasoning quoted in §3a. The global file's `paths:` lane is real (Task 1) and
+now has no cargo at global scope. **Its cargo, if any, is in the project file**, where Hugo
+templates, R scripts and workflow YAML are genuinely open at the moment their rules are needed —
+so this classification runs again as Task 6's first step, against the project `CLAUDE.md`, and the
+move procedure below is retained for it.
 
 ### Task 5: Roll the split across the rest of global CLAUDE.md
 
