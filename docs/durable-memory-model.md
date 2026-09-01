@@ -10,8 +10,10 @@ fourth run would have had to rebuild the instrument before it could measure anyt
 that misses, and let the misses answer what the runs could not. The re-sequenced main line is
 **Task 10 → 4 → 11 → 7 → 12 → 13**. **Task 10 landed 2026-09-01 (`fe46278`, in the `~/.claude`
 repo). Task 4's step 1 ran the same day and closed the task at global scope without moving
-anything — 0 of its 11 bullets are file-triggered — so Task 11 is next**, and Task 14 is promoted
-from tidy-up to the task the plan now turns on.
+anything — 0 of its 11 bullets are file-triggered. **Task 11 ran the same day and unblocked Task 7
+with a changed brief: its routing table asks two questions, not one, because §3a's four classes
+conflate two axes. Task 7 is next.** Task 14 is promoted from tidy-up to the task the plan now
+turns on.
 
 **The ceiling is unreachable by any mechanism in this plan, and that is a 2026-09-01 finding rather
 than a failure.** Task 8 closed §3b's trim as insufficient; Task 4 step 1 closed §3a's routing as
@@ -71,7 +73,7 @@ a lock**, and unblocks that task.
 | 8 | Make the ceiling check mechanical | see the commit that adds `scripts/check-memory-budget.sh` | **DONE 2026-08-29** | `scripts/check-memory-budget.sh` + `test-check-memory-budget.sh`, **11-arm fault injection, all pass**, including a negative control that redirects `HOME` so exit 0 is reachable. Injection caught a real bug: the store-name fold missed `.`, so **every worktree read "no project store"** while ten arms passed. First sweep: **all 9 live directories over budget**, worst 147,391 B always loaded. Ceiling shown unreachable by §3b alone — see §5 Task 8 |
 | 9 | Does an instruction-file edit reach a running session? | — | **DONE 2026-08-28.** Answer: **replay on ordinary turns, rebuild at compaction** — the pre-registered binary was false. Steps 2-3 retired, not skipped: nothing is left for the proxy to measure | Step 0: `scripts/probe-memory-delivery.py`, 281 transcripts / 182,561 lines, 0 unreadable, **63 `Read` calls on topic files** ⇒ moved X to the project `CLAUDE.md`. Step 1: 2 sessions, 4 asks + `/compact` + arm 3, **0 tool calls** in B (transcript-checked), stale window **~2m55s across 2 turns**. Full timeline in §5 Task 9 |
 | 10 | Put `~/.claude` under version control | `fe46278` — **in the `~/.claude` repo, not this one**; `git -C ~/.claude show fe46278` | **DONE 2026-09-01.** Tasks 4, 5 and 12 are unblocked. The root commit is the pre-migration baseline every later revert diffs against | Allowlist `.gitignore`, **30 paths, 57.84 KiB tracked against a 313 M directory** (`git count-objects -vH`). Two-armed proof over `git add -A --dry-run`: excluded pattern (`projects/`, `file-history/`, `plugins/`, `debug/`, `shell-snapshots/`, `plans/`, `*.exe`, `.credentials.json`) returns **0**; the positive control (`CLAUDE.md`, `lessons/`, `settings.json`) returns **21**, so an empty dry-run cannot pass as a clean one. All 30 staged files scanned for private-key headers, token prefixes and password assignments: clean. No CR bytes on any tracked file |
-| 11 | Test the routing rule's boundaries before rolling it out | — | **Not started — gates Task 7** | — |
+| 11 | Test the routing rule's boundaries before rolling it out | — | **DONE 2026-09-01. Task 7 is unblocked, with a changed brief:** its routing table must ask **two** questions, not one. Rule axis needs no fix (degenerate, not ambiguous); evidence axis needed a rule and now has one | Mechanical sample, 5 of 58 entries outside the pilot section, step 11, file lines 27/77/93/107/146 across five sections. **Rule axis: NO POWER** — 5 of 5 *momentary → stays*, 4 forced; the pre-registered redraw would fail because Task 4 emptied the `paths:` destination and the skills already hold the language content. **Evidence axis: failure criterion tripped 4 of 5** — three global rules cite evidence in two *different* project memory stores and none cites `~/.claude/lessons/`. Fixed by a two-question rule, derived from "only one memory store loads per session". One instrument error caught mid-run: `grep -n` over an `awk`-filtered stream returns filtered-stream line numbers. Full table in §5 Task 11, "Result" |
 | 12 | Make the lazy tiers reachable | — | **Not started — blocks applying any split** | — |
 | 13 | Close the loop from use | — | **Not started.** This is what replaces step 5 | — |
 | 14 | Replace the chosen ceilings with a saturation reading | — | **Not started, and deliberately last** — it needs several `distill-lessons` passes under the new model before it has anything to read | — |
@@ -431,6 +433,13 @@ things.
 
 The momentary class is irreducible. You do not know you are about to overclaim; no file extension
 fires for it. Everything else has a better summons than proximity.
+
+> **Corrected 2026-09-01 by Task 11: this table conflates two axes.** The first three rows are one
+> question — which **rule** tier holds the recognition line. **Evidence** is not a fourth answer to
+> it; it is the answer to a second, independent question about where a rule's *evidence* goes, and
+> under §3b a rule that stays always-loaded still has one. Read as a flat list of four, every entry
+> matches two rows and the classification looks ambiguous when it is not. Task 7 writes it down as
+> two questions.
 
 **The file-triggered lane is currently unused.** No `.claude/rules/` directory exists on this
 machine, at user or project scope `[verified 2026-08-25: ls on both]`. The four language skills
@@ -1969,6 +1978,82 @@ mechanisms. §4 gives a real reason for files-over-skills — *"a plain file at 
 says nothing about which of these two lazy stores an entry belongs in. If the test finds that
 boundary unpredictable, the answer is a stated rule (personal-and-cross-project vs. repo-scoped is
 the candidate), not a new tier.
+
+#### Result, 2026-09-01 — and the test found a defect in its own design first
+
+**Sample.** 58 entries outside the pilot section (§Verification → Validating the instrument, lines
+31-55, excluded because this branch re-cut it three times). Step 11 rather than the 12 written
+above: 58/12 yields four samples, not five, and fudging the offset to reach five would be choosing.
+Offsets 11/22/33/44/55 give file lines **27, 77, 93, 107, 146**, spanning five different sections.
+
+**One instrument error, caught and corrected before it produced a result.** The first draw ran
+`grep -n` over an `awk`-filtered stream, so its line numbers indexed the *filtered* stream and named
+five unrelated entries — one of which was a `##` heading, which is the tell. Filter by line number
+after grepping the original file, never grep a filtered stream and read its numbers as file lines.
+
+**Finding 1, structural, and it outranks the sample: the seven destinations are two axes, not one.**
+Every entry answers two independent questions —
+
+- **rule tier:** always-loaded `CLAUDE.md` / `~/.claude/rules/` with `paths:` / a skill / nowhere
+- **evidence tier:** `~/.claude/lessons/` / the per-project memory store / repo `docs/lessons/` / none
+
+— and under §3b a rule that *stays* always-loaded still produces an evidence destination. So "two
+destinations attract the same entry" is true of **every** entry by construction, and the failure
+criterion above would have tripped vacuously five times out of five. The defect traces to §3a's
+table, which lists **Evidence** as a fourth class beside file-triggered, task-triggered and
+momentary, as though it were a peer. It is not a peer; it is the other axis. **Task 7's routing
+table must ask two questions, not one** — that is this task's main deliverable to it.
+
+**Finding 2, rule axis: NO POWER, by the condition pre-registered above.** All five classify as
+*momentary → stays*, and four of the five are forced rather than close. The one non-forced call is
+L27 (*a green check is a fact about a commit*), whose action mentions a ledger and could argue for
+the `keep-ledger` skill; the moment of need is broader than that skill's trigger, so it stays.
+
+The pre-registration says to redraw across three destinations. **The redraw would fail, and that is
+the result rather than an obstacle.** Task 4 step 1 established the `paths:` destination has no
+cargo at global scope; the skill destination already holds the four language skills, whose content
+left this file before the plan was written. At global scope the rule axis is **degenerate, not
+ambiguous** — one live destination. A boundary cannot be unpredictable when there is nothing to
+choose between, so the rule axis needs no fix and Task 7 can write it down as it stands.
+
+**Finding 3, evidence axis: the failure criterion is tripped, four times.**
+
+| Entry | Evidence today | Plausible destinations |
+|---|---|---|
+| L27 green check vs. branch | the 2026-08-20 `merge/production` incident, uncited | `~/.claude/lessons/`, EH store, EH `docs/lessons/` — **three** |
+| L77 outside-repo claims need a source | self-contained; nothing to file | none — not applicable |
+| L93 prefix rewrite: read `cache_miss_reason` | `cache-prefix-rewrite-investigation`, **`claude-skills` store** | that store, or `~/.claude/lessons/` — **two** |
+| L107 never write a record's own commit state | `feedback-existing-ledger-is-not-current`, **`EH-dataportal` store** | that store, or `~/.claude/lessons/` — **two** |
+| L146 join with `;` not `&&` | `feedback-verify-my-own-verification`, **`EH-dataportal` store** | that store, or `~/.claude/lessons/` — **two** |
+
+`[verified 2026-09-01: grep -oE '`[A-Za-z-]+` project store' per sampled line; L93 returns
+claude-skills, L107 and L146 return EH-dataportal, L27 and L77 return nothing]`
+
+**Three global rules cite evidence in two different project memory stores, and none cites
+`~/.claude/lessons/`** — the tier §3b creates for exactly this. That is the overlap predicted
+above, observed, and worse than predicted: it is not two tiers competing but three, one of them
+instantiated twice.
+
+**The fix is a stated rule, not a merge, because the tiers differ in who can read them.** Merging
+would destroy a real distinction: `~/.claude/lessons/` and the memory stores are machine-local,
+`docs/lessons/` is in the repo and visible to the team and to a fresh clone. Two questions settle
+it, in this order, and both are answerable without knowing anything about tiers:
+
+1. **Would a colleague on a fresh clone need this?** Yes → repo `docs/lessons/`. This is Task 7's
+   audience gate, already written; it separates the repo tier from the two local ones and nothing
+   more.
+2. **Is the rule that cites it global or project-scoped?** Global → `~/.claude/lessons/`.
+   Project → that project's memory store.
+
+Rule 2 is what was missing, and it is derivable rather than chosen: only one memory store loads per
+session (§4), so a global rule's evidence in a project store is unreachable from every other
+project. The existing global CLAUDE.md rule — *"every citation names the project store that owns
+it"* — is a mitigation for that, not a routing rule, and L93/L107/L146 are the drift it mitigates.
+
+**Not fixed here.** Re-homing those three citations is a `reconcile-records` pass over the whole
+file, not five sampled lines, and it is not on this plan's main line. Recorded so it is not
+rediscovered: **the sweep is "every global rule citing a project store", and the sample says the
+rate is 3 in 5.**
 
 ### Task 12: Make the lazy tiers reachable
 
