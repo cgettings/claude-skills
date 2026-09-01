@@ -1,7 +1,7 @@
 ---
 name: distill-lessons
 description: Review a finished stretch of work for durable lessons and write each one to the right place — CLAUDE.md for standing instructions, memory for incidents, nowhere for the rest. Use this whenever a branch, plan, multi-stage task, or long debugging session wraps up; when context is about to be lost to a compaction or session reset; and whenever the user asks "any lessons?", "anything for CLAUDE.md?", "what did we learn?", "anything worth remembering?", "let's debrief", or otherwise asks what should be carried forward from the work. Also use it proactively at the end of substantial work even if the user doesn't ask — lessons left in a plan doc or scratch ledger are read by nobody. Two things this is NOT for — summarizing or recapping what happened, which is a report on the work rather than a decision about what outlives it; and edits already decided on, since "add X to CLAUDE.md" or "remember that I prefer Y" is a direct request to just do it. This pass is for deciding *what* is worth recording.
-version: 2.1.0
+version: 2.2.0
 license: GPL-3.0-or-later
 ---
 
@@ -67,7 +67,11 @@ Check before routing. If the store already covers this ground, the lesson is not
 
 **Ask "was it in context" first, because it is the only one of the three with a mechanical answer.** If the environment logs instruction-file loads, that log answers it directly; otherwise the evidence is this session's own transcript — the skill invocation or file read that would have pulled the tier in. Either way the answer is a **null**, so prove the probe can fire before reporting one: run the same check against a rule you know was loaded this session.
 
-**Record the diagnosis where it can be counted, not beside the rule.** One miss is an anecdote. Six that all read *never in context, on a skill* is a verdict on the routing rule rather than on six rules, and per-rule notes cannot be counted — nor do they have anywhere to live for a rule whose evidence was never split out. One line per miss in one file: date, rule, the tier it lives in, why it missed, what was repaired. Three lines against the same rule is a `refile-rules` trigger on its own.
+**Record the diagnosis where it can be counted, not beside the rule.** One miss is an anecdote. Six that all read *never in context, on a skill* is a verdict on the routing rule rather than on six rules, and per-rule notes cannot be counted — nor do they have anywhere to live for a rule whose evidence was never split out. One line per miss in one file: date, rule, the tier it lives in, why it missed, what was repaired. Three lines against the same rule is a `refile-rules` trigger on its own. Put that file wherever this environment keeps durable notes that are not themselves rules, and create it on the first miss rather than looking for somewhere it already fits.
+
+**Count occasions too, or the log can only ever report harm.** A miss count on its own is a numerator. Zero misses over forty occasions where a rule applied is a result; zero over three is silence; and nothing in a list of misses distinguishes them — so record, per pass, roughly how many times a rule from the affected tier applied at all, fired or not. A rough figure is enough; what is needed is an order of magnitude, not a census.
+
+This matters because the two directions are not symmetric. **Harm is well evidenced by a single entry**, because the diagnosis carries its own control: *trimmed past recognition* means you can open the evidence file and see whether the vocabulary that would have matched this situation is the vocabulary that was moved out of the loaded line. **Safety is a null**, and a null against an uncounted denominator is not a result. Without the second column the honest reading of an empty log is "nothing has been observed yet", which is exactly what it will be mistaken for evidence against.
 
 The output is a **revision of the existing entry, never a new one**, and the revision has a preferred shape: narrow the rule until a command can check it.
 
