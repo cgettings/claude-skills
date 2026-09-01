@@ -1,4 +1,12 @@
-# A durable memory model that stops the always-loaded tier growing
+# A durable memory model that shrinks the always-loaded tier and slows its growth
+
+**The title said "stops … growing" until 2026-09-01, and §3c has always denied it** — *"Not one
+that stops growing … a rule store that stops growing has usually stopped being written to rather
+than stopped needing to be."* The goal is a smaller file now, by means that also flatten the slope.
+It is not a budget that lessons have to justify themselves against: **a lesson is worth having or
+it is not, and that judgment is made on the lesson.** The title is what gets read every time this
+document is opened and §3c is four hundred lines in, so the contradiction had one direction of
+travel.
 
 **Decision, 2026-09-01: stop measuring, start routing.** The efficacy question Task 3 step 5 was
 built to answer is **closed without a verdict, by decision rather than by result.** Three runs
