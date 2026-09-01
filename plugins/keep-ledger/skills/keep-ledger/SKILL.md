@@ -1,7 +1,7 @@
 ---
 name: keep-ledger
 description: Keep a resumable ledger — what is done, what proof actually ran, and the exact next command — in the tracked document that owns the work, written so a session that was not there can run the next step from it alone. Use when starting anything with more than one step (a plan about to be executed, a staging list, a migration, a multi-stage refactor), and use again when picking such work back up — a new session, a fresh context after a compaction or a session-limit reset, or when the user says "where were we", "pick this back up", "what's left on X", "did we finish Y". Also use when a plan or staging list turns out to list steps with no status. This is not for deciding what knowledge is worth keeping, which is `distill-lessons`, and not for sweeping a record store for what recent work made false, which is `reconcile-records` — though a stale or absent ledger is exactly what that pass is built to catch. It is also not a session recap or a handover summary — those describe what happened, and a ledger records only what a future session must act on.
-version: 1.3.0
+version: 1.3.1
 license: GPL-3.0-or-later
 ---
 
@@ -111,9 +111,11 @@ The incident: *unpushed, no PR* went into a ledger and two memory records at abo
 Four things strand a cold session, and none of them is a step status — which is how a ledger can look complete and still fail:
 
 - **A decision taken, and what was rejected with it.** A session that does not know an option was considered and dropped will re-argue it or quietly undo it. Record the choice and the reason once.
-- **Environment state.** The branch, the worktree, a seeded fixture, a temp directory, a service left running, a checkout that is not where someone would assume. None of it is in the repo, and all of it goes with the session.
+- **Environment state.** The branch, the worktree, a seeded fixture, a temp directory, a service left running, a checkout that is not where someone would assume. None of it is in the repo, and all of it goes with the session. Where the next command will *change* some of it — an experiment that swaps a live config file — record the backup path and the restore line the run prints, because `git checkout` recovers none of it.
 - **What was deliberately deferred, and what would un-defer it.** Otherwise it reads as an oversight — or as done.
 - **Uncommitted state.** What is in the working tree and why it has not been committed.
+
+The incident: two of these sit in one spec. A `settings.json` was copied aside before a hook probe registered anything, and a firing probe copies each of three arm variants over the user's global `CLAUDE.md` and puts it back in a `finally`. Neither is recoverable with `git checkout`, and a run that dies before its restore leaves the state changed and the ledger still describing the old one — so the ledger carries the backup path and names the line the run prints when the restore succeeds.
 
 **Asking costs a sentence; recording happens only when the answer isn't "nothing".** That asymmetry is what makes the check affordable every step, and it is why the check does not license a ledger out of proportion to the work. §1 still holds: a three-step task's ledger is still three lines with a status each.
 
