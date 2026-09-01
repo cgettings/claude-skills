@@ -8,7 +8,7 @@ one judge shared by all three runs — on the 18 responses of the three-arm run,
 sampled — and it **failed its own 90% gate at 14/18 (77.8%), with disagreement arm-correlated**. A
 fourth run would have had to rebuild the instrument before it could measure anything. What replaces the judge is use: apply the model, record every rule
 that misses, and let the misses answer what the runs could not. The re-sequenced main line is
-**Task 10 → 4 → 11 → 7 → 12 → 13**. Tasks 5 and 6 come **off** the main line — no longer gated on
+**Task 10 → 4 → 11 → 7 → 12 → 13**; **Task 10 landed 2026-09-01, so Task 4 is next**. Tasks 5 and 6 come **off** the main line — no longer gated on
 Task 3, but no longer the point either. Task 14 carries the stopping condition that §3c's chosen
 ceilings were standing in for.
 
@@ -62,7 +62,7 @@ a lock**, and unblocks that task.
 | 7 | Make the routing rule enforceable at write time | — | **Gated on Task 11** — its routing table must survive the boundary test before it is written into a skill. Task 9 already settled its write protocol: **read-before-write or a lock**, for correctness | — |
 | 8 | Make the ceiling check mechanical | see the commit that adds `scripts/check-memory-budget.sh` | **DONE 2026-08-29** | `scripts/check-memory-budget.sh` + `test-check-memory-budget.sh`, **11-arm fault injection, all pass**, including a negative control that redirects `HOME` so exit 0 is reachable. Injection caught a real bug: the store-name fold missed `.`, so **every worktree read "no project store"** while ten arms passed. First sweep: **all 9 live directories over budget**, worst 147,391 B always loaded. Ceiling shown unreachable by §3b alone — see §5 Task 8 |
 | 9 | Does an instruction-file edit reach a running session? | — | **DONE 2026-08-28.** Answer: **replay on ordinary turns, rebuild at compaction** — the pre-registered binary was false. Steps 2-3 retired, not skipped: nothing is left for the proxy to measure | Step 0: `scripts/probe-memory-delivery.py`, 281 transcripts / 182,561 lines, 0 unreadable, **63 `Read` calls on topic files** ⇒ moved X to the project `CLAUDE.md`. Step 1: 2 sessions, 4 asks + `/compact` + arm 3, **0 tool calls** in B (transcript-checked), stale window **~2m55s across 2 turns**. Full timeline in §5 Task 9 |
-| 10 | Put `~/.claude` under version control | — | **NOT STARTED — blocks Tasks 4, 5, 12.** `git init` was run 2026-09-01; **nothing is committed and no `.gitignore` exists yet**, so the tree is one `git add -A` away from committing 242 M of transcripts and a credentials file | — |
+| 10 | Put `~/.claude` under version control | `fe46278` — **in the `~/.claude` repo, not this one**; `git -C ~/.claude show fe46278` | **DONE 2026-09-01.** Tasks 4, 5 and 12 are unblocked. The root commit is the pre-migration baseline every later revert diffs against | Allowlist `.gitignore`, **30 paths, 57.84 KiB tracked against a 313 M directory** (`git count-objects -vH`). Two-armed proof over `git add -A --dry-run`: excluded pattern (`projects/`, `file-history/`, `plugins/`, `debug/`, `shell-snapshots/`, `plans/`, `*.exe`, `.credentials.json`) returns **0**; the positive control (`CLAUDE.md`, `lessons/`, `settings.json`) returns **21**, so an empty dry-run cannot pass as a clean one. All 30 staged files scanned for private-key headers, token prefixes and password assignments: clean. No CR bytes on any tracked file |
 | 11 | Test the routing rule's boundaries before rolling it out | — | **Not started — gates Task 7** | — |
 | 12 | Make the lazy tiers reachable | — | **Not started — blocks applying any split** | — |
 | 13 | Close the loop from use | — | **Not started.** This is what replaces step 5 | — |
@@ -1764,8 +1764,13 @@ lesson files carrying the pilot's relocated evidence have no history and no back
 undo recipe is `rm -rf ~/.claude/lessons/`, which would take the evidence and leave the trimmed
 rules standing. Commit before anything moves, so the initial commit *is* the baseline.
 
-**`git init` has been run and nothing is committed.** That is the dangerous state, not a finished
-one: a bare `git add -A` would commit 242 M of session transcripts and a credentials file.
+**DONE 2026-09-01 — `fe46278`, in the `~/.claude` repo rather than this one.** 30 paths, 57.84 KiB
+tracked against a 313 M directory, working tree clean, no CR bytes. What follows is the record of
+what was decided and how it was checked, not work outstanding.
+
+The state this closed was the dangerous one, not a finished one: `git init` run, nothing committed,
+no `.gitignore` — a bare `git add -A` would have committed 242 M of session transcripts and a
+credentials file.
 
 Measured composition, 2026-09-01 (`du -sh */` and `ls -la`):
 
@@ -1823,6 +1828,13 @@ The second grep is not decoration. The first is a null, and a null from an empty
 null from a correct `.gitignore` are indistinguishable — the control is what separates them. Then
 commit, and confirm the repository is the size the allowlist implies rather than the size of the
 directory: `git count-objects -vH` should report single-digit MB, not 313 M.
+
+**One decision left open, deliberately.** This repository has **no remote**, and nothing here needs
+one — the baseline does its job locally. If one is ever added, the tracking set changes what that
+means: `settings.json` carries machine paths, enabled plugins and marketplace repos, and
+`CLAUDE.md` and `lessons/` carry work detail. None of it is a secret, and all of it is personal.
+That is a push-time decision, not a tracking-time one, and it is recorded here so it gets made
+rather than defaulted into.
 
 ### Task 11: Test the routing rule's boundaries before rolling it out
 
