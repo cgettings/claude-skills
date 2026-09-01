@@ -1,0 +1,521 @@
+{
+  "records": [
+    {
+      "leg": "A_full",
+      "id": "S2-B4",
+      "bullet": "the corpus records your own query",
+      "repeat": 0,
+      "raised": true,
+      "quote": "If log captures tool-input echo lines, each field appears once because you typed it. Strip tool-input echo lines and re-count.",
+      "chars": 2107,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 20796,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 38083,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 38083
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Don't write that up. The \"exactly one hit per field\" pattern is the signature of a broken instrument, not a finding about the runtime.\n\n**The uniform count is the tell.** When every one of eight different search terms returns exactly 1, the most likely explanation is that you're counting your own probe. Debug logs, shell history, and session transcripts record the calls made against them. If your grep ran in a context that logs to the same file, or if the log captures tool-input echo lines, each field name appears once because you typed it once. This exact failure is in your own memory store (`claude-code-debug-logs`, `cache-prefix-rewrite-investigation`): eight cache-field terms each returned exactly 1 against a Claude Code debug log, and the true count was 0. Strip the tool-input echo lines and re-count before trusting anything.\n\n**Even if the hits are real, the conclusion doesn't follow.** Three separate gaps:\n\n- A log line mentioning a field proves the field was logged, not that it was read, and not where. It could be printed in a config-dump banner that touches nothing.\n- One hit doesn't mean one use. The runtime can read a field many times and log it zero or once. Logging frequency measures the log's verbosity, not the code's access pattern. \"Used exactly once at startup\" is a claim about code paths, and a log is not a substitute for reading the code that consumes the config.\n- Absence of further hits is a null result from an unvalidated probe. You haven't shown the log *would* contain a second reference if a second use existed.\n\n**What would actually support the claim.** Grep the runtime's source (or the installed binary's strings) for each field name and count occurrences \u2014 a field referenced once in source is a candidate for single-use; open that reference to confirm it's a read and not a re-export. For the log approach to mean anything, you first need a positive control: find a field you know is used repeatedly and confirm it shows more than one hit. If the heavily-used field also returns exactly 1, the log doesn't discriminate and the whole sweep says nothing."
+    },
+    {
+      "leg": "A_full",
+      "id": "S2-B4",
+      "bullet": "the corpus records your own query",
+      "repeat": 1,
+      "raised": true,
+      "quote": "log recording your own queries, not the runtime. A count that equals the number of terms you searched is the tell.",
+      "chars": 1768,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 20403,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 38084,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 38084
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Don't write that up. The pattern you're describing \u2014 eight different field names, every one returning *exactly* one hit \u2014 is the signature of the log recording your own queries, not the runtime touching the fields. This has already bitten this project once: eight cache-field terms each returned exactly 1 against a Claude Code debug log and the true count was 0 (that's the `claude-code-debug-logs` / `cache-prefix-rewrite-investigation` memory). Claude Code debug logs echo tool-input lines back, so a grep finds the line where *you* typed the term. A count that equals the number of terms you searched, with no variance, is the tell.\n\nWhat to do before this is a finding:\n\n- **Strip the tool-input echo lines and re-grep.** If the counts go to zero, the runtime references nothing in that log and your write-up would be exactly backwards.\n- **Get a positive control.** Find a field you *know* the runtime reads at startup and confirm it appears in the log with a distinguishable, non-echo line. If you can't make a known-used field fire, the probe has no power and a null (or a uniform \"1\") means nothing.\n- **Check what the log actually is.** It records events from one session's run, not the code. A field read on every request could be logged once or never; a field logged once could be read in a loop. \"Used exactly once at startup\" is a claim about code structure, and a session log is not the artifact that answers it \u2014 the source that parses the config is.\n\nEven setting the echo problem aside, \"one log hit\" \u2192 \"used exactly once at startup\" doesn't follow. The log tells you a field name appeared in output once during one run, under whatever code paths that run exercised. It's silent on frequency, on startup-vs-later, and on fields the run never touched."
+    },
+    {
+      "leg": "A_full",
+      "id": "S5-B17",
+      "bullet": "a trigger that also moves something the classifier already explains",
+      "repeat": 0,
+      "raised": true,
+      "quote": "buy that covariate check first \u2014 two turns confirming the columns didn't move beats five more turns of ambiguous boundaries",
+      "chars": 2387,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 37728,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 38093,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 38093
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "**Your plan reproduces a probe that already failed once here.** The `cache-prefix-rewrite-investigation` note records a permission-mode probe run on Haiku where entering plan mode swapped in `claude-sonnet-5` at effort `high`. Both plan-mode boundaries then tested an effort switch, which your classifier strips by construction, and seven turns produced nothing. Plan mode is the one permission mode bundled with a model/effort swap on at least some setups, plus it injects plan-mode instructions into the system prompt. So \"toggle plan mode and read what's left\" gives you void arms, not clean ones \u2014 after filtering effort you're left with `model_changed` and `system_changed` events that are caused by the ride-along swaps, not by the permission mode as an independent cache key.\n\n**Don't infer the cause from leftover events at all.** The server labels it. Each assistant record carries `message.diagnostics.cache_miss_reason`, one of `tools_changed`, `system_changed`, `messages_changed`, `model_changed`, `unavailable`, `previous_message_not_found`. Read that field directly off the transcript for the turns spanning each toggle. That turns \"subtract the explanations I know about and interpret the residue\" into \"read the one column that says why.\"\n\n**Design that can actually answer it:** pin the session to a single model at a single effort, then toggle between `default` and `acceptEdits` (or `bypassPermissions`) \u2014 modes that don't carry a model swap the way plan mode does. On the *first* boundary, read the `model` and `effort` fields alongside `cache_miss_reason` to confirm they held fixed. A toggle is cheap per turn, so buy that covariate check first \u2014 two turns confirming the columns didn't move beats five more turns of ambiguous boundaries. If the prefix rebuilds with those held constant, permission mode is in the cached prefix; if it doesn't, it isn't.\n\n**My prior, which is a guess and not a measurement:** permission mode is a client-side gate on whether tool calls execute, and nothing in what I have says it's serialized into the cached system prompt or tool block \u2014 except plan mode, which demonstrably edits the system prompt. So I'd expect a `default` \u2194 `acceptEdits` toggle to cause no rebuild, and plan mode to always cause one via `system_changed` whether or not \"permission mode\" per se is a key. The diagnostics field settles both in a single session."
+    },
+    {
+      "leg": "A_full",
+      "id": "S5-B17",
+      "bullet": "a trigger that also moves something the classifier already explains",
+      "repeat": 1,
+      "raised": true,
+      "quote": "If plan mode moves effort, your classifier strips that event as unavailable, eats the rebuild you're observing. That's no-power outcome, not evidence",
+      "chars": 2526,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 35934,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 38097,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 38097
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Lead recommendation: don't run this as a subtraction experiment. The server tells you the cause directly. Each assistant turn carries `message.diagnostics.cache_miss_reason` \u2014 `system_changed`, `tools_changed`, `messages_changed`, `model_changed`, `unavailable` (effort/model lineage didn't exist yet), `previous_message_not_found` (TTL). That's a far stronger instrument than \"filter out effort rebuilds and look at the residue,\" and it's what the `cache-prefix-rewrite-investigation` work established after a week lost to not using it.\n\nCheck disk before toggling anything. You (or a prior session) already swept ~376 transcripts for cache events. Some of those sessions almost certainly entered and left plan mode. Grep the transcripts for turns where permission mode changed and read the `cache_miss_reason` on the next assistant record. If that answers it, you're done for the cost of one query.\n\nIf you do run a live toggle, the design has a confound that runs in the direction that will fool you. Per the 2026-08-30 permission-mode probe: on some models, entering plan mode also swaps the model and raises effort (Haiku \u2192 Sonnet 5 / high, observed). This session is already Sonnet 5, so the model swap may not fire here \u2014 but you can't assume it, you have to read the `model`/`effort` fields on each turn and confirm they held. If plan mode moves effort, your classifier strips that event as `unavailable`, which means it eats the very rebuild you're trying to observe. So a null result from your method is consistent with \"permission mode does trigger a rebuild, and the classifier hid it.\" That's a no-power outcome, not evidence of absence.\n\nMechanism prediction, so you have something to check the result against: entering plan mode injects plan-mode instructions into the system prompt. If permission mode influences the cached prefix at all, the most likely signature is `system_changed`, not `unavailable`. If you toggle plan mode with model and effort verified constant and see `cache_miss_reason: system_changed` (or `tools_changed`, since plan mode also restricts the tool set), that's your answer. If you see no rebuild at all on a verified-constant turn, that's a real null \u2014 but only after you've shown your detection can fire, using a positive control that isn't itself a plan-mode toggle (e.g. a known effort switch, which you already know produces `unavailable`).\n\nOne more: toggle at least twice in each direction. Plan-mode entry and plan-mode exit are different prefix edits and may not be symmetric."
+    },
+    {
+      "leg": "A_full",
+      "id": "S8-B6",
+      "bullet": "a no-op proof is scoped to the unit you compare",
+      "repeat": 0,
+      "raised": true,
+      "quote": "the identical-after-strip check answers a question about the file as a unit, so a second change sharing these files hides inside the same green result",
+      "chars": 1950,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 28611,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 38086,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 38086
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your strip-and-diff proves one thing: after removing `class=` attributes, the 7 files are byte-identical to their originals. That means every difference your refactor introduced is confined to the contents of `class=` attributes. It's a real result \u2014 it rules out stray edits elsewhere in those files.\n\nBut it doesn't prove the claim you're making. Two gaps:\n\n**It doesn't test the change itself.** You proved the parts you *didn't* change are unchanged. The `class=` edits are the refactor, and stripping them from both sides deletes exactly the thing under test from the comparison. Class names drive CSS selectors, `querySelector`/`getElementsByClassName` calls, and framework behavior. If you removed, renamed, reordered, or merged classes, rendered styling or behavior can move while the class-stripped DOM stays identical. \"No-op for rendered output\" needs the rendered output compared \u2014 computed styles / DOM snapshot from an actual render of both versions, or, if the edit is purely cosmetic (e.g. reordering independent utility classes), a grep of every CSS and JS file for the affected class names showing none depend on order or on a name you touched.\n\n**The proof is scoped to the file, not to the refactor.** This is a known failure mode \u2014 the identical-after-strip check answers a question about the file as a unit, so a second change sharing these files hides inside the same green result. If any of the 7 also carry edits from another task, \"identical after stripping class=\" can still pass while conflating two changes. Compare each file's parent tree to its staged tree (or split the commits per task) so the no-op proof is exact for the refactor alone.\n\nAlso worth confirming before you trust the strip: that whatever stripped `class=` matched every form present \u2014 double- and single-quoted, and any multi-line attributes \u2014 identically on both sides. A stripper that misses a variant can still yield matching output by coincidence."
+    },
+    {
+      "leg": "A_full",
+      "id": "S8-B6",
+      "bullet": "a no-op proof is scoped to the unit you compare",
+      "repeat": 1,
+      "raised": true,
+      "quote": "Compare the parent tree to the staged tree instead, or split the commits, so the proof is about your change alone.",
+      "chars": 2188,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 30381,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 38835,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 38835
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your check proves less than the claim needs, and it does so in the one way that matters here.\n\nStripping every `class=` and diffing tells you that the differences between original and refactored are *confined to* class attributes \u2014 nothing in the element structure, text, or other attributes moved. That's a real fact and worth having. But your claim is \"pure no-op for rendered output,\" and class attributes are an input to rendering: they decide which CSS rules match. You normalized away the exact region your refactor edits, then read the resulting silence as proof the edit is invisible. A refactor that renamed a class, split one into two, or dropped one the stylesheet still targets would pass this check unchanged.\n\nSo what you've actually shown is \"the non-class markup is untouched.\" Whether the class changes are inert depends on what the refactor does, and that determines the check:\n\n- If the classes are supposed to come out byte-identical (e.g. you deduplicated templates that should emit the same HTML), then don't strip anything \u2014 diff the raw rendered HTML and expect zero differences. The strip is hiding your real signal.\n- If class names or groupings changed and the stylesheet changed to match, source diffing can't reach the claim at all. You need to render both versions and compare \u2014 computed styles on a representative set of nodes, or a visual diff. Nothing below the browser rung settles a \"rendered output\" claim when CSS selector matching is in play.\n\nTwo smaller things. First, \"diffed against the originals\" \u2014 if these 7 files carry other uncommitted work, that diff fuses two changes and the strip-and-diff is scoped to the file, not to your commit. Compare the parent tree to the staged tree instead, or split the commits, so the proof is about your change alone. This is a known repeat pattern: the \"strip every `class=`, all 7 identical\" check has been recorded as passing before while actually failing on the files that also carried an unrelated task's edits. Second, if the diff genuinely showed *only* class regions differing and you expected the refactor to leave classes untouched too, then something else changed and you haven't looked at it yet."
+    },
+    {
+      "leg": "B_split",
+      "id": "S2-B4",
+      "bullet": "the corpus records your own query",
+      "repeat": 0,
+      "raised": false,
+      "quote": "A debug log records lines that logging statements chose to emit, not reads the runtime performed.",
+      "chars": 2271,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 27749,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 36613,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 36613
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Don't write that up \u2014 the log can't support the claim, and the uniformity of the result is the tell.\n\n**What one grep hit actually means.** A debug log records lines that logging statements chose to emit, not reads the runtime performed. A field read twenty times behind one `log.debug(\"config loaded: %s\", cfg)` line shows one hit. A field never read at all but included in a startup config dump also shows one hit. The count you measured is a property of the logging, not of the usage.\n\n**Eight fields, all exactly one hit, is an instrument artifact signature, not a finding.** The most common way every field name appears exactly once in a startup log is a single serialized config-dump line \u2014 `Loaded configuration: {field_a: ..., field_b: ...}` \u2014 which contains each key once by construction, regardless of whether anything downstream consumes it. Uniform results across eight things you expected to differ should make you suspect the probe collapsed them, the same way a fixture field that's identical across every case is dead rather than passing.\n\n**No positive control.** You haven't shown the log *can* report a field more than once. Pick a field you know for certain is used repeatedly (something on a hot path, or re-read on reload) and grep that. If it also returns one hit, your probe has no power to distinguish \"once\" from \"many\" and the whole exercise is void. If it returns several, you've at least established the instrument discriminates \u2014 but you still have problems 1 and 2.\n\n**Bare-string grep misses real usages.** Destructuring, aliasing into a local, dynamic access by key, or a snake_case/camelCase boundary between config file and code all hide a usage from a literal field-name search. A confident zero or one from that kind of match describes the search, not the code.\n\n**\"At startup\" is scoped to the window you captured.** The log covers one startup. A field re-read on SIGHUP, per-request, or on a timer won't appear if the capture ends after boot \u2014 so even a sound count wouldn't license \"only at startup.\"\n\nWhat would actually answer the question: grep the **source**, count occurrences per field (not find-first), and open each site to confirm it's a live read rather than a declaration or a passthrough into a struct nothing consumes."
+    },
+    {
+      "leg": "B_split",
+      "id": "S2-B4",
+      "bullet": "the corpus records your own query",
+      "repeat": 1,
+      "raised": false,
+      "quote": "",
+      "chars": 2107,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 29324,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 36618,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 36618
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Don't write that up yet. The inference has a hole big enough that the conclusion is probably an artifact of the instrument.\n\n**\"Exactly one hit\" for all eight fields is the tell, not the finding.** When eight independent searches return the identical count, the likely cause is a single structural feature of the log, not eight matching facts about the runtime. The most common one: a startup line that dumps the whole config object (`loaded config: {\u2026}` / `resolved settings: \u2026`). Every field name appears once in that one line, so every grep returns 1. Open the hit lines and check whether they're the same line. If they are, the count measures \"the config is logged once,\" which you already knew.\n\n**A log hit proves the string was logged, not that code read the field.** Logging isn't usage. A field can be echoed at startup and never read by any code path; or read on every request and logged only once. Grep over a debug log can't distinguish these \u2014 it sees log statements, whose frequency is a property of where someone put a log call, not of field access.\n\n**\"Once\" doesn't follow even if the hits were usage.** Log volume tracks log-statement placement, not access count. A field consulted on every iteration can still show one line.\n\n**No positive control.** Grep a field you *know* is hot \u2014 one the runtime clearly reads repeatedly. If it also shows exactly one hit, the metric demonstrably isn't counting usage, and the whole writeup is measuring the log's shape. If some field showed zero hits and got dropped from the set, that's selection on top of it.\n\n**The debug log only contains what debug-level statements emit.** Fields consumed inside library code, or on paths that don't log, are invisible here \u2014 so \"the runtime touches these eight and only these\" isn't supported either.\n\nWhat would actually support the claim: trace the field reads in the source (grep the config accessor in the code, not the log), and use log *timestamps* to confirm the \"at startup\" part. Right now you have one thing established \u2014 the config object gets logged \u2014 and the rest is inference the log can't carry."
+    },
+    {
+      "leg": "B_split",
+      "id": "S5-B17",
+      "bullet": "a trigger that also moves something the classifier already explains",
+      "repeat": 0,
+      "raised": true,
+      "quote": "if something else also rebuilds on those turns, the residue misattributes it.",
+      "chars": 3241,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 41456,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 36622,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 36622
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Short version: your plan will probably show *a* rebuild on plan-mode toggles, but the \"read whatever's left over\" method is the weak part, and there's a lineage effect that will make the results look inconsistent unless you plan for it.\n\n**Don't infer from leftovers \u2014 read the reason field.** The server stamps `message.diagnostics.cache_miss_reason` on the assistant record (`tools_changed`, `system_changed`, `messages_changed`, `model_changed`, `unavailable`, `previous_message_not_found`). That's what settled the 27-of-33 question in the cache-prefix-rewrite investigation. Label each turn with its mode transition (normal\u2192plan, plan\u2192normal, or none) and read the reason per turn. Subtracting \"effort rebuilds\" from a total and interpreting the residue is exactly the blind-to-a-shared-gap move \u2014 if something else also rebuilds on those turns, the residue misattributes it.\n\n**Expected mechanism: `tools_changed`, not a distinct \"permission mode\" key.** Entering plan mode adds `ExitPlanMode` and drops the mutating tools (Edit/Write/NotebookEdit) from the tool array; leaving it reverses that. A changed tool array invalidates the whole prefix because the tool block sits at the very front. There may also be a `system_changed` component if plan-mode instructions go into the system prompt rather than into an injected `system-reminder` message \u2014 the reason field will tell you which. I'm fairly confident about the tool-array change; less so about where the plan-mode text lives. Note this is a *different* mechanism from effort level, which rebuilds via `unavailable` (a separate lineage that doesn't exist yet), so your effort filter keying on `unavailable` won't touch these.\n\n**The lineage effect will bite you.** Effort level keeps a per-level cache lineage; returning to a recently-used level costs only the delta. If permission mode behaves the same way (plausible \u2014 same \"prefix variant\" shape), then toggling \"a few times\" gives you: first normal\u2192plan = full rewrite, first plan\u2192normal = full rewrite (or delta if that lineage is still warm from before you entered plan mode), and subsequent toggles = cheap deltas. That oscillating cost pattern reads as \"only sometimes rebuilds\" if you're counting rewrites rather than reading reasons and tracking which lineage is active. Whether mode even has independent lineages is itself one of the things the experiment should answer \u2014 so record `cache_creation` and `cache_read` token counts per turn, not just a boolean.\n\n**Instrument checks before you trust a null.** You need a positive control (a turn where you know the prefix changed \u2014 e.g. an effort switch \u2014 producing a visible rebuild in your reading pipeline) and a negative control (an ordinary turn with no toggle and no effort change, confirming it *doesn't* rebuild). Without both, \"plan-mode toggle caused the rebuild\" isn't isolated from \"the turn boundary did.\"\n\n**One more confound:** if you're testing this by actually using plan mode, entering it via the brainstorming/plan flow may pull in extra context or change the system prompt for reasons unrelated to the permission bit itself. Toggle with the raw mode switch (shift+tab cycle), not by starting a planning workflow, so the only thing varying is the mode."
+    },
+    {
+      "leg": "B_split",
+      "id": "S5-B17",
+      "bullet": "a trigger that also moves something the classifier already explains",
+      "repeat": 1,
+      "raised": false,
+      "quote": "your classifier's effort filter is irrelevant here \u2014 effort and mode rebuilds carry different labels",
+      "chars": 2207,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 34326,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 36626,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 36626
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "**Do the cheaper check first.** You don't need a toggle experiment. When the server rebuilds a prefix it names the cause in `message.diagnostics.cache_miss_reason` on the assistant record \u2014 the same field the cache-prefix-rewrite investigation used. A permission-mode rebuild would read `system_changed` or `tools_changed`; an effort switch reads `unavailable`. So sweep existing transcripts for turns where a mode switch already happened and read the reason directly. That also means your classifier's effort filter is irrelevant here \u2014 effort and mode rebuilds carry different labels, there's no confusion to filter out.\n\n**If you do run the toggle test, the confound is attribution, not effort.** Toggling \"a few times\" then reading leftover events tells you a rebuild happened, not which toggle caused it. Toggle once, send one request, read the reason on that assistant record; toggle back, send another, read again. One request per state.\n\n**Two real confounds beyond that:**\n\n- Plan mode changes *both* the tool set (ExitPlanMode appears, Edit/Write drop) and the system prompt (a plan-mode reminder is injected). A bare rebuild event won't tell you which. Read whether the reason is `tools_changed` or `system_changed` to get the mechanism.\n- You need a positive control that your reading method can see a rebuild at all \u2014 point it at a known effort-switch rebuild and confirm it shows up \u2014 otherwise a null (\"no rebuild after toggle\") is indistinguishable from \"I'm reading the wrong field.\"\n\n**My prediction:** entering/exiting *plan mode* specifically does trigger a prefix rebuild, because Claude Code injects a plan-mode system-reminder and restricts the tool list, and both are part of the cache key. The other permission modes \u2014 `default`, `acceptEdits`, `bypassPermissions` \u2014 I'd expect *not* to rebuild, because they're harness-side gates on whether a tool call is allowed to run and don't change the serialized tools or system prompt sent to the API. That asymmetry is worth checking explicitly rather than concluding \"permission mode causes rebuilds\" from plan mode alone. This is a prediction from how the cache key is known to work, not something I've verified against your transcripts."
+    },
+    {
+      "leg": "B_split",
+      "id": "S8-B6",
+      "bullet": "a no-op proof is scoped to the unit you compare",
+      "repeat": 0,
+      "raised": true,
+      "quote": "It's the no-op-proof-scope trap: strip-and-diff answers a question about the file",
+      "chars": 2586,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 38495,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 37161,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 37161
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your strip-and-diff can't fail, and that's the problem with it.\n\nIf the refactor changed only `class` attributes, then removing every `class` attribute before diffing deletes exactly the bytes you changed. \"Identical after stripping\" is then true by construction \u2014 it would come back identical whether the refactor is correct, half-done, or actively broken. The instrument has no power to detect the failure mode you care about. It's the no-op-proof-scope trap in a sharper form: strip-and-diff answers a question about the file (\"does anything *other* than class attributes differ?\"), and you're trying to read it as an answer about rendered output.\n\nWhat the diff does legitimately establish: no *incidental* edits rode along \u2014 no stray text change, no moved element, no altered non-class attribute in those 7 files. That's worth having, but it's the cheap half.\n\nWhat it doesn't touch: `class` is the primary hook for CSS selectors and JS queries. Two HTML files identical except for class attributes render differently the moment a stylesheet rule or a `querySelector` references a class whose name you changed, split, merged, or dropped. Your diff is blind to that by design.\n\nThe proof that would actually catch a rendering regression, roughly in order of cost:\n\n- **Confirm the strip fired.** Print the count of `class` attributes removed per file. A regex that misses `class ='...'`, single quotes, multiline attributes, or templated class expressions removes nothing on some file and hands you a free \"identical.\" Positive control: it should remove a number that matches what you can eyeball in the source.\n- **Enumerate the class-name delta.** Every name added, removed, or renamed across the refactor. This is the checklist everything else is swept against.\n- **Grep the whole selector surface for both old and new names** \u2014 all CSS, all JS, any framework templates, not just these 7 files. The refactor is a true no-op only if nothing outside the changed markup references a name you touched (old names now dangling, new names not yet styled). If you also edited CSS to match, then the diff hid the exact change that determines the outcome.\n- **Render before/after on a representative page or two and diff** \u2014 screenshot, or computed styles on the affected nodes. This is the only rung that actually observes \"rendered output,\" which is what you're claiming.\n\nIf you genuinely only deleted provably-unused classes and changed no CSS or JS, the grep is the load-bearing step and the browser check is confirmation. But right now \"the no-op is proved\" overstates what you have."
+    },
+    {
+      "leg": "B_split",
+      "id": "S8-B6",
+      "bullet": "a no-op proof is scoped to the unit you compare",
+      "repeat": 1,
+      "raised": false,
+      "quote": "a real non-class edit that happened to land on a class-bearing line was deleted symmetrically",
+      "chars": 2563,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 47114,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 37164,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 37164
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Short version: you've proved a narrower thing than \"no-op for rendered output,\" and the gap is exactly where HTML rendering is most sensitive.\n\n**What the strip-and-diff actually establishes.** After normalizing away `class=`, the 7 refactored files are byte-identical to their originals. That means the only thing your edit changed in those files is the content of `class` attributes. That's a real result, worth having \u2014 it rules out stray edits to text, structure, other attributes, whitespace.\n\n**What it doesn't establish.** \"Rendered output is identical\" is a claim about what the browser paints, and `class` is the single most render-significant attribute in HTML \u2014 it's the hook CSS selectors and `querySelector`/`classList` code target. You normalized away the one thing whose whole purpose is to drive rendering, then concluded rendering is unchanged. The diff is scoped to the source files; the claim is about the DOM plus every stylesheet and script that selects into it. If any CSS rule keys off a class you removed, renamed, reordered-into-a-different-combination, or added, the output moves and your diff can't see it. That's `[[no-op-proof-scope]]`: strip-and-diff answers a question about *the file*, not about *the change you meant to test*.\n\n**One instrument check before you even trust the narrow result.** If your strip was line-oriented (`sed '/class=/d'`, `grep -v`), it deleted every line containing `class=` from both sides \u2014 so a real non-class edit that happened to land on a class-bearing line (an `id`, an inline `style`, an attribute value on the same element) was deleted symmetrically and reads as identical. Confirm the strip was attribute-scoped, and confirm it actually removed content (line counts dropped on all 7) so you know the regex fired.\n\n**To actually close it**, pick one:\n- Enumerate the class tokens per element before and after, diff that set, then grep every stylesheet and script \u2014 including print and any third-party CSS, which may not be in the 7 files you touched \u2014 for every token that changed. A no-op requires that set difference to be empty *or* every affected token to have zero selectors.\n- Render both versions of a representative page and diff computed styles or screenshots (the `reviewing-web-performance` path). This is the only check that covers the CSS you don't know about.\n\nIf the refactor was a class *rename* with matching CSS renames, note that the CSS file is part of the change and needs its own before/after \u2014 and the two halves have to be verified together, not each against \"looks fine.\""
+    },
+    {
+      "leg": "C_absent",
+      "id": "S2-B4",
+      "bullet": "the corpus records your own query",
+      "repeat": 0,
+      "raised": false,
+      "quote": "A debug log records what someone chose to log, not what the runtime touches",
+      "chars": 2307,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 22763,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 33347,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 33347
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Don't write that up \u2014 the inference doesn't hold, and the pattern in your own result is the tell.\n\n**Eight fields, each exactly one hit, is what a single log statement looks like, not eight independent uses.** The most likely explanation is one startup line that dumps the resolved config object (\"loaded config: {\u2026}\" or similar), in which every field name appears once because it's printed once. That's one code path touching the config, not eight, and it tells you nothing about how many times each field is subsequently read.\n\n**A debug log records what someone chose to log, not what the runtime touches.** A field read ten times in a hot path but never logged produces zero hits. A field logged once at startup but also consulted per-request produces one hit. The grep is measuring logging granularity, and you're reading it as access frequency.\n\n**Grepping a field name matches the string, not the accesses.** Destructuring (`const { retries } = config`), aliasing into a local, renaming, or nested access all consume the field without its name appearing near the use site. Conversely the name can appear in comments, error strings, or schema/validation code that isn't a \"use\" in the sense you mean.\n\n**\"At startup\" is an artifact of which log you captured.** If this is a session or startup-phase log, anything consulted later in the process lifetime is invisible to it by construction.\n\nWhat would actually answer the question:\n\n- `grep -C3` each hit and check whether all eight land on the *same line or the same log statement*. If they do, you have one finding, not eight.\n- Add a positive control: grep for a field you already know is load-bearing and frequently used (an API key, the model id, a base URL). If it also returns exactly one hit, the count is a property of the logging, not the usage \u2014 and the whole approach is void.\n- Read the config-consuming code directly. That's the source of truth for \"how many times is this touched\"; the log is a shadow of it.\n\nIf after checking context the eight hits genuinely are eight distinct call sites, then you can say \"each of these eight fields is referenced once in the debug log, at a distinct site\" \u2014 which is a claim about the log, and stop there. \"Used exactly once at startup\" is a claim about the runtime that this evidence can't support."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S2-B4",
+      "bullet": "the corpus records your own query",
+      "repeat": 1,
+      "raised": true,
+      "quote": "You've found one log statement, not eight independent usage sites; the once-each count is an artifact of that line's format.",
+      "chars": 2020,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 23984,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 33346,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 33346
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your grep count doesn't support the conclusion you're about to write down.\n\nThe gap: a debug log records what the logging statements chose to emit, not what the runtime reads. A field can be read on every request with no log line near it (zero hits, heavily used), and a field name can appear once in a `loaded config: {\u2026}` dump line that fires once yet reflects nothing about how often the value is consumed afterward. Grep matches the *string*, and code typically destructures a config field into a local once and then uses the local \u2014 so every downstream read is invisible to a name search. \"Exactly one hit\" is consistent with \"read once at startup,\" but it's equally consistent with \"read many times, logged once\" and \"read once into a variable that's then used all over.\"\n\nThe pattern of the result is itself a warning. Eight unrelated fields each returning exactly one hit is what you'd see if a single startup line enumerates all of them \u2014 in which case you've found one log statement, not eight independent usage sites, and the \"once each\" is an artifact of that line's format.\n\n\"At startup\" is a separate claim you haven't checked. The hit count can't tell you when the line fired; the timestamp on each hit can. If you want the startup claim, read the timestamps.\n\nWhat would actually support the write-up:\n\n- Positive control first: pick a field you *know* is hot (something on the request path) and grep it. If it also returns one hit, your probe can't distinguish \"once\" from \"many\" and the whole method is dead. If it returns many, the probe has some power.\n- Look at the actual matched lines, not the count \u2014 is each one a distinct read, or all the same dump statement?\n- Check timestamps on the hits for the \"at startup\" part.\n- Cross-check against the source: grep the code that reads the config, not just the log it emits.\n\nRight now the honest version of the finding is \"each of these eight field names appears once in the debug log,\" which is a fact about the log's verbosity, not about the runtime."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S5-B17",
+      "bullet": "a trigger that also moves something the classifier already explains",
+      "repeat": 0,
+      "raised": false,
+      "quote": "Unlike effort level, permission mode almost certainly has no per-mode cache lineage",
+      "chars": 2418,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 34336,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 33361,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 33361
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Short answer: almost certainly yes, and it should show up in your leftover events as `system_changed` (possibly `tools_changed`), not as anything effort-related \u2014 so your classifier won't mask it.\n\nReasoning. Plan mode isn't a pure permission gate. Entering it injects the \"you are in plan mode, don't make changes\" instruction block into the system prompt, and depending on the Claude Code version it may also drop the mutating tools (Edit/Write/etc.) from the exposed tool list. Both the system prompt and the tool definitions sit above every cache breakpoint that matters, so flipping plan mode on or off rewrites the whole prefix each direction. The server's `message.diagnostics.cache_miss_reason` on the first assistant turn after each toggle is the thing to read \u2014 I'd expect `system_changed`, or `tools_changed` if your version also swaps the tool set.\n\nUnlike effort level, permission mode almost certainly has no per-mode cache lineage \u2014 it's just prompt content, not a lineage key. So every toggle is a full rewrite in both directions; there's no cheap \"return to a mode you were just in.\" Cost scales with accumulated context, same curve as an effort switch.\n\nThree problems with the toggle-a-few-times plan:\n\n- **Confound in the message stream.** Exiting plan mode adds an ExitPlanMode tool call plus the approval into the conversation. That grows the message array and can independently produce `messages_changed` on the *following* turn, regardless of the permission mode itself. Repeated toggling compounds this. Read the reason on the turn immediately after each toggle and be ready to separate `system_changed` from `messages_changed`.\n- **Repetition buys nothing.** One toggle each direction, with the labeled reason read off each, tells you everything. More cycles just muddy the message log with more ExitPlanMode round-trips.\n- **You need a negative control.** A turn with no toggle and no effort change should show `cache_read` dominant and no rewrite \u2014 otherwise you can't attribute the rewrites you do see.\n\nCheaper path first: if you have any existing transcript where plan mode was entered or exited mid-session, `cache_miss_reason` is already recorded there. Sweep those before running anything. And you can settle the \"what does plan mode actually change\" question by diffing the system/tools blocks of two transcript records \u2014 one in plan mode, one not \u2014 without a live experiment at all."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S5-B17",
+      "bullet": "a trigger that also moves something the classifier already explains",
+      "repeat": 1,
+      "raised": true,
+      "quote": "only the *first* entry into a given mode this session is the expensive rewrite; the second time you see only a small delta",
+      "chars": 2317,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 37143,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 33356,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 33356
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Short answer: almost certainly yes, and your method will show it \u2014 but the design has a gap that will make \"a few toggles\" misread.\n\n**Why it rebuilds.** Plan mode changes two things that both sit above the cache breakpoints: the system prompt (it injects the plan-mode instructions) and the tool set (Edit/Write/NotebookEdit drop out, ExitPlanMode appears). So a toggle should surface as `cache_miss_reason: \"system_changed\"` or `\"tools_changed\"` on the next assistant record \u2014 categories distinct from the `unavailable` your effort-switch filter keys on, so no confusion there. Expect `cache_creation` to jump toward the full prefix and `cache_read` to fall to roughly the tool-definition floor, i.e. comparable in magnitude to a cold effort switch.\n\n**The gap: per-mode lineages.** Effort levels each keep their own cache lineage (your `effort-switch-cache-lineages` finding). Permission modes plausibly do the same. If so, only the *first* entry into a given mode this session is the expensive rewrite; the second time you toggle into plan mode you'd see only a small delta and wrongly conclude \"no rebuild.\" So the informative event is the first transition into a mode not yet seen this session \u2014 not the 2nd\u20134th toggle. Toggling \"a few times\" and reading \"whatever's left over\" will show you mostly the cheap re-entries.\n\n**Confounds live right now.** The session-start reminder says context7 and playwright MCP servers are still connecting. When they land they fire `tools_changed` on their own, independent of your toggling. A CLAUDE.md edit or a compaction would also rewrite the prefix. Do the toggles in a quiet window after the servers have connected, and check the timestamps line up with your toggle, not with something else.\n\n**Better procedure.** Don't infer from token counts \u2014 read `message.diagnostics.cache_miss_reason` on the assistant record directly; the server names the cause. One clean transition into plan mode, on an otherwise trivial turn, with that field read, is decisive. Pre-register: entering plan mode \u2192 `system_changed` or `tools_changed`, creation spikes, read collapses. If you instead want the cost question answered (does every toggle cost, or just the first per mode), you need at least: enter plan \u2192 exit \u2192 re-enter, and compare the first vs. second entry's `cache_creation`."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S8-B6",
+      "bullet": "a no-op proof is scoped to the unit you compare",
+      "repeat": 0,
+      "raised": false,
+      "quote": "it's true by construction given what you did",
+      "chars": 1884,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 25212,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 33891,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 33891
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your diff proves a narrower thing than the claim. Normalizing `class=` out of both sides and getting identical files shows that the *only* edits you made were to class attributes \u2014 no stray tag, text, or attribute change slipped in. That's worth having. But it's a statement about the source, and it's true *by construction* given what you did: you set out to change only classes, and the diff confirms you didn't do more. It cannot tell you the class changes themselves render identically, because it deleted exactly the evidence that would.\n\nClass attributes are inputs to two systems the diff doesn't touch:\n\n- **CSS.** If a class was renamed, removed, or split, the computed styles change unless a corresponding stylesheet change makes them resolve to the same rules \u2014 and you haven't shown that. If classes were removed outright, styling almost certainly changed.\n- **JS and test selectors.** `querySelector('.foo')`, event delegation keyed on class, CSS-in-JS, analytics hooks, Playwright/RTL selectors. A class rename that's cosmetically invisible can still break behavior.\n\nWhat would actually prove the no-op, cheapest first:\n\n1. Enumerate every class token that changed (added/removed/renamed). If the set is empty \u2014 pure whitespace/ordering \u2014 you're done. If not:\n2. `grep` the changed tokens across the stylesheet(s), JS, and tests. Any hit is a place the render or behavior can move.\n3. Render before and after for a representative sample of pages that use these files, and diff the DOM plus computed styles (or just screenshot-diff). This is the rung that catches CSS specificity and cascade effects the grep won't.\n\nAlso confirm the 7 files are the complete set \u2014 a no-op claim is about the whole rendered site, not the files you happened to edit. If a partial or included template references one of these classes, or a page composes these fragments, it's in scope too."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S8-B6",
+      "bullet": "a no-op proof is scoped to the unit you compare",
+      "repeat": 1,
+      "raised": false,
+      "quote": "",
+      "chars": 2130,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 32781,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34101,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34101
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your diff proves one thing cleanly: the edit changed nothing in those 7 files except the contents of `class=` attributes. Everything else \u2014 text, tag structure, other attributes, script bodies \u2014 is byte-identical. That's a real and worthwhile bound on the blast radius.\n\nIt does not prove the rendered-output no-op, and `class=` is close to the worst place to have to make that argument. Class attributes are the primary binding surface for CSS selectors, `getElementsByClassName`/`querySelector`, and anything keyed on `className` string matches. A source diff sits one rung below the claim: rendered output means computed styles and pixels in a browser, and nothing static reaches that.\n\nWhat the check leaves open:\n\n- **What did the refactor actually do to those attributes?** Reordering tokens within an attribute (`\"a b\"` \u2192 `\"b a\"`) genuinely is inert for CSS and for all but exact-string JS matches. Renaming or consolidating classes is not inert unless every stylesheet and script that references the old names changed too \u2014 and those files aren't in your set of 7. The audit's file list should come from \"what does this class change touch\" (grep the CSS and JS for every affected class name), not \"what did I edit.\"\n\n- **Is the strip itself sound?** If it's a regex, run a positive control: introduce a known class change and confirm the strip does *not* hide it. A strip that's slightly too greedy could normalize away a real difference on both sides, and \"identical after stripping\" would look the same as a true no-op. A null isn't a result until the probe is shown able to fire.\n\n- **Dynamic behavior.** CSS `.foo` rules, JS class queries, and anything keyed on class names won't show in an HTML diff even when the classes are visibly different.\n\nTo actually earn the claim: render a representative sample of the affected pages before and after in a browser and diff computed styles or screenshots, and grep the stylesheets/JS for every class name that changed. If the change is pure token reordering, the grep plus a short rationale may be enough; if it's renames, the browser check is the only thing that settles it."
+    }
+  ],
+  "tally": {
+    "A_full": {
+      "S2-B4": {
+        "raised": 2,
+        "not_raised": 0,
+        "holes": 0,
+        "n": 2
+      },
+      "S5-B17": {
+        "raised": 2,
+        "not_raised": 0,
+        "holes": 0,
+        "n": 2
+      },
+      "S8-B6": {
+        "raised": 2,
+        "not_raised": 0,
+        "holes": 0,
+        "n": 2
+      }
+    },
+    "B_split": {
+      "S2-B4": {
+        "raised": 0,
+        "not_raised": 2,
+        "holes": 0,
+        "n": 2
+      },
+      "S5-B17": {
+        "raised": 1,
+        "not_raised": 1,
+        "holes": 0,
+        "n": 2
+      },
+      "S8-B6": {
+        "raised": 1,
+        "not_raised": 1,
+        "holes": 0,
+        "n": 2
+      }
+    },
+    "C_absent": {
+      "S2-B4": {
+        "raised": 1,
+        "not_raised": 1,
+        "holes": 0,
+        "n": 2
+      },
+      "S5-B17": {
+        "raised": 1,
+        "not_raised": 1,
+        "holes": 0,
+        "n": 2
+      },
+      "S8-B6": {
+        "raised": 0,
+        "not_raised": 2,
+        "holes": 0,
+        "n": 2
+      }
+    }
+  },
+  "void": [
+    "S2-B4",
+    "S5-B17"
+  ],
+  "holes": 0
+}

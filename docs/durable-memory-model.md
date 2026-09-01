@@ -5,10 +5,14 @@ honoured at user scope, so §4's global routing lane is real rather than assumed
 but its **numbers are a 2026-08-25 baseline, not current** — the live global `CLAUDE.md` has since
 grown from 49,553 B to **62,370 B**, and nothing has re-measured its token share. Task 3's split was
 **re-cut a third time on 2026-09-01** against a section that had drifted to 14,749 B and still proved
-lossless — 22 bullets, 14,749 -> 10,042 B (-31.9%), 19 lesson files — but it is **not applied**: its step 5 has now
-**run and returned a null** — all three arms fired 30/30, including the arm with the section
-deleted, so the probe cannot discriminate and licenses neither applying the split nor abandoning
-it. **Tasks 5 and 6 remain gated**, now on a redesigned probe rather than on an unrun one. **Task 8 was
+lossless — 22 bullets, 14,749 -> 10,042 B (-31.9%), 19 lesson files — but it is **not applied**.
+Step 5 has now run **three times** and none of the three licensed a verdict: a ceiling null on
+2026-08-29, a query screen on 2026-09-01 whose survivors were retracted the same day as a
+two-repeat artefact, and a three-arm run that voided two of its three queries on its own
+replication gate. Pooled post-hoc the arms read A 12/12, B 2/6, C 2/12 — the shape that would
+**stop** Tasks 5-6 — but **arm is aliased with run order in every run so far**, so drift is an
+unexcluded explanation. **Tasks 5 and 6 remain gated**, now on a decision between one interleaved
+~$6.91 run and route (c). **Task 8 was
 built and validated on 2026-08-29** and its first sweep changes the plan's shape: all nine live
 directories are over budget, the largest at 147,391 B always loaded, and the arithmetic shows
 **§3c's 25,000 B ceiling is not reachable by §3b's trimming at all** — it would take 10.5
@@ -29,7 +33,7 @@ a lock**, and unblocks that task.
 |---|---|---|---|---|
 | 1 | Falsify the user-scope `paths:` premise | `0f82133` — no code commit; the result **is** §5 Task 1 below | **DONE 2026-08-25** | `InstructionsLoaded` hook log + model self-report, 2 sessions, 4 arms, 5 controls, all passed. Verbatim log line in §5 Task 1 |
 | 2 | Record the real baseline | `0f82133` — no code commit; the result **is** §1 below | **DONE 2026-08-25** | differential token measurement, 11 `claude -p` runs, each arm controlled by the same hook log. Method, and the two arms it voided, in §1 |
-| 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` + `08239e7` re-cuts, and the **2026-09-01 re-cut** — no hash cited, because this row moved in it; find it with `git log --follow docs/task-3-section-before.md`, end state 22 bullets, 14,749 -> 10,042 B, 19 lesson files | **Steps 1-4 DONE (re-proved 2026-08-28); step 5 RAN 2026-08-29 and returned a NULL — the split is still NOT applied and Tasks 5-6 are still gated** | Steps 1-4: split built and proved lossless, most recently by the **2026-09-01 re-cut**: 22 bullets, **14,749 -> 10,042 B (-31.9%)**, all 19 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection, check 4 re-injected on 2026-08-28, and checks 2 and 4 re-injected on 2026-09-01 against the re-indexed bullet list. Guard fired twice, passed clean on 2026-08-29, and **fired a third time on 2026-09-01**. Step 5: 30 responses on `claude-sonnet-5`, `RESTORED OK` (sha verified), **30/30 raised on all three arms including the deleted arm** ⇒ `A≈B≈C`, **probe dead, licenses nothing either way**. Judged twice, 100% agreement. Full result and the three routes out in the step-5 note in §5 Task 3 |
+| 3 | Pilot the recognition/evidence split on one section | `c9b7204` write-up, `9dd9eb8` instruments, `e7ddc91` + `08239e7` re-cuts, and the **2026-09-01 re-cut** — no hash cited, because this row moved in it; find it with `git log --follow docs/task-3-section-before.md`, end state 22 bullets, 14,749 -> 10,042 B, 19 lesson files | **Steps 1-4 DONE (re-cut 2026-09-01); step 5 has now run THREE times and none licensed a verdict — the split is still NOT applied and Tasks 5-6 are still gated.** The 2026-09-01 pair added a confound to fix before any fourth run: arm is aliased with run order | Steps 1-4: split built and proved lossless, most recently by the **2026-09-01 re-cut**: 22 bullets, **14,749 -> 10,042 B (-31.9%)**, all 19 relocated originals verbatim in `~/.claude/lessons/`, 3 no-evidence bullets byte-identical. Verifier itself validated by 6-arm fault injection, check 4 re-injected on 2026-08-28, and checks 2 and 4 re-injected on 2026-09-01 against the re-indexed bullet list. Guard fired twice, passed clean on 2026-08-29, and **fired a third time on 2026-09-01**. Step 5, three runs, all `RESTORED OK` (sha verified), 0 unresolved judge holes: **2026-08-29** 30 responses, 30/30 on all three arms including the deleted one, `A≈B≈C`, licenses nothing; **2026-09-01 screen** 22 responses, 3 of 8 candidates looked discriminating and were **retracted the same day** (a 0/2 screen fires 56% against a true rate of 0.25); **2026-09-01 three-arm** 18 responses, **2 of 3 queries VOID** on the replication gate, third's B cell 1/2. Pooled post-hoc A 12/12, B 2/6, C 2/12, A-vs-B `p = 0.0049` — but **arm is aliased with run order in all three**. Full results and the decision in the step-5 note in §5 Task 3 |
 | 4 | Route the file-triggered content | — | **Not started** — unblocked by Task 1 | — |
 | 5 | Roll the split across the rest of global CLAUDE.md | — | **BLOCKED on Task 3** | — |
 | 6 | Same for the project CLAUDE.md | — | **BLOCKED on Task 3**, and needs the team's agreement | — |
@@ -98,12 +102,31 @@ The general form of what this cost: **a deferral that exists to avoid a re-cut i
 something else forces one.** The hold was correct when written and wrong four days later, and
 nothing in the deferral itself would have said so — re-read the reason, not the decision.
 
-**Next command — redesign step 5's probe. Step 5 ran on 2026-08-29 and returned `A≈B≈C` at the
-ceiling: 30/30 on every arm, including the arm with the section deleted.** By its own
-pre-registered reading rule that licenses nothing in either direction, so Tasks 5 and 6 are
-**still gated** and the split is **still not applied**. Do not re-run `measure-rule-firing.py`
-unchanged — it is not a flake and a repeat buys nothing. The result, why the queries saturated,
-and the three routes out are in §5 Task 3's step-5 note. **Do not re-run any part of Task 9** —
+**Next command — decide between one more probe run and route (c). Nothing runs until that is
+decided.** Three runs now exist and none has produced a licensed verdict:
+
+| run | date | result |
+|---|---|---|
+| `measure-rule-firing.py` | 2026-08-29 | `A≈B≈C` at the ceiling, 30/30 every arm. Licenses nothing |
+| `screen-queries.py` | 2026-09-01 | 3 of 8 candidates looked discriminating. **Retracted the same day** — at 2 repeats a 0/2 screen fires 56% of the time against a true rate of 0.25 |
+| `probe-confirmed-queries.py` | 2026-09-01 | 2 of 3 queries VOID on the replication gate; the third's B cell is 1/2. Licenses nothing |
+
+Pooled post-hoc the numbers read **A 12/12, B 2/6, C 2/12** (A-vs-B `p = 0.0049`), which is the
+`A > B ≈ C` branch that would **stop Tasks 5-6**. It is not actionable, because **every run so far
+loops arm-by-arm, so arm is perfectly aliased with position in the run** and drift produces the
+same pattern. Fixing that is the precondition for any further run: interleave the arms in one
+randomized job list.
+
+The decision, with prices attached — both are in §5 Task 3's step-5 note in full:
+
+  * **Spend ~$6.91.** A vs B interleaved, 3 queries x 8 repeats, 48 responses. Answers the
+    question that gates Tasks 5-6. Arm C's floor is already established at 2/12 pooled.
+  * **Route (c), ~$0.** Apply the split on the lossless proof alone and drop §3b's firing claim.
+    Task 8's arithmetic says §3b cannot reach the ceiling either way, so this closes a lane that
+    was never going to be the main one.
+
+**Do not re-run any of the three scripts unchanged.** None is a flake; each answered what it was
+built to ask. **Do not re-run any part of Task 9** —
 its steps 2 and 3 are retired on the result, not left undone, and §5 Task 9 says why.
 
 **One thing Task 9 changed about running step 5.** The old advice was to keep other sessions closed
@@ -837,6 +860,99 @@ that matches what §3b changes, and (a) does not test it at all. (c) **Accept th
 lossless proof alone** and drop the firing claim from §3b, which is honest but gives up the
 argument Tasks 5-6 were resting on. (a) and (b) compose — (a) fixes the sample, (b) fixes what is
 scored — and doing (b) without (a) risks the same ceiling.
+
+**Route (a)'s screen ran 2026-09-01, and the ceiling turned out to be a property of the sample.**
+`scripts/screen-queries.py`, eight candidates drawn from bullets that are local and non-obvious,
+reading rule pre-registered in its docstring. Two phases: arm C first, keeping a candidate only if
+the model **fails** to raise the point; then arm A on the survivors only. Phase 2 is not
+bookkeeping — a phase-1 survival has two innocent readings, the rule is load-bearing or the
+query is too vague to engage, and nothing in phase 1's output separates them.
+
+**Three of eight looked like they discriminate, and the follow-up run says that was mostly noise
+— read the correction below before using this table.** Five saturated at 2/2 on arm C. Three came
+back 0/2 without the rule and 2/2 with it:
+
+| id | bullet | C | A |
+|---|---|---|---|
+| S2-B4 | the corpus records your own query | 0/2 | 2/2 |
+| S5-B17 | a trigger that also moves something your classifier already explains | 0/2 | 2/2 |
+| S8-B6 | a no-op proof is scoped to the unit you compare | 0/2 | 2/2 |
+
+**Retracted 2026-09-01, same day, by the run below.** This paragraph originally read that the
+old probe's null was a fact about its sample rather than about the section, and that "the queries
+are too easy" was closer to right than the structural argument beside it. The three-arm run
+re-measured arm C on these same three queries and got **1/2, 1/2, 0/2** where the screen had got
+0/2, 0/2, 0/2. Arm C is not zero; it is a low nonzero rate, and **two repeats cannot distinguish
+those.** At a true arm-C rate of 0.25 a 0/2 screen fires **56%** of the time `[binomial, (1-p)^2]`,
+so three survivors out of eight candidates is roughly what screening saturated bullets at two
+repeats produces on its own. The screen did not find load-bearing rules; it found the queries whose
+coin came up tails twice. What survives from it: the *procedure* is sound and the arm-A leg is
+solid (12/12 pooled). What does not: the count.
+
+**The verdict is one contested judgment away from "underpowered", which is why it is recorded
+here rather than in a footnote.** S5-B17's second arm-C response came back a judge hole.
+Re-judged on both models, **Haiku returned `raised=true` and Opus `raised=false`**, and Opus was
+taken: Haiku's own quote — "no positive control proving the classifier can surface a
+permission-mode rebuild" — is a point about positive controls, not about a covariate the
+classifier already strips. If Haiku's score stands, S5 is saturated, the count is **2**, and the
+pre-registered rule reads *underpowered — report and decide*. The 2026-08-29 run measured
+Haiku-vs-Opus agreement at 30/30; this is the first disagreement, and it landed on the one
+response that decides a threshold.
+
+**A defect in the screen's own summary, the same shape as the audit-gate defect above.** The
+verdict table printed S5-B17 as "saturated (raised without the rule)" when its arm-C scores were
+`False` and a hole — the opposite of what happened. The survivor filter was correct; the label
+came from an `else` branch that treated everything non-surviving as saturated. **A category
+printed for whatever falls through the branches above it will eventually assert something no arm
+measured.** Fixed: unscored candidates now print `UNSCORED — N judge hole(s); re-judge before
+reading`.
+
+**Cost: $3.17 for 22 responses** `[computed 2026-09-01 from the recorded `usage` in
+`task-3-screen-results.json`; output undercounted, `usage` is read at `message_start`]` —
+**$0.144 per response**, against the $0.104 the 2026-08-29 run's arithmetic implies. Cache hit
+rate 33%. The step-5 note above says a dead query costs "~$0.10 instead of ~$3"; that figure is
+**per response, not per candidate**, so a two-response pre-test is ~$0.29. Budget accordingly.
+
+**The three-arm run on those three queries, 2026-09-01.** `scripts/probe-confirmed-queries.py`,
+18 responses, `RESTORED OK`, 0 judge holes. Its pre-registered rule voids any query whose screen
+result fails to replicate, and **two of three voided**:
+
+| query | A | B | C (screen) | C (this run) | |
+|---|---|---|---|---|---|
+| S2-B4  | 2/2 | 0/2 | 0/2 | **1/2** | VOID |
+| S5-B17 | 2/2 | 1/2 | 0/2 | **1/2** | VOID |
+| S8-B6  | 2/2 | 1/2 | 0/2 | 0/2 | B ambiguous at 2 repeats |
+
+**By its own rule this run licenses nothing** — one replicating query, and its B cell is 1/2,
+which two repeats cannot resolve. The replication gate earned its place: without it the table
+would have been read as a result.
+
+**Post-hoc, and flagged as post-hoc because it is not what was pre-registered**, pooling both runs
+over all three queries: **A 12/12 (100%), B 2/6 (33%), C 2/12 (17%)**; A-vs-B Fisher exact
+two-sided **p = 0.0049**, B-vs-C **p = 0.57**. That is the `A > B ~= C` shape — the branch that
+says §3b is wrong and stops Tasks 5-6.
+
+**Do not act on it yet, because arm is confounded with run order in every run so far.** Both this
+script and `measure-rule-firing.py` iterate arms **sequentially** — the whole A leg, then B, then
+C — so an arm's position in the run is a perfect alias for the arm. A monotone drift over the
+~10 minutes a run takes (cache state, service load, anything) reproduces `A > B > C` with no arm
+effect whatsoever. The 2026-08-29 run had the same structure and it did not matter, because every
+arm sat at the ceiling; it matters now that they do not. **So p = 0.0049 is evidence that arm A
+differs from arm B OR that the run drifted, and nothing measured so far separates those.**
+
+**What a run that could answer this needs, and what it costs.** Interleave the arms in one
+randomized job list rather than looping arm-by-arm, which is a change to `leg()`'s caller and not
+to its logic. Then buy resolution: 2 repeats can separate 0 from 2 and can do nothing else, which
+is the whole story of this pair of runs. Three queries x three arms x six repeats is **54
+responses, ~$7.78** at the measured $0.144. Dropping arm C — its floor is established well enough
+at 2/12 pooled — and running A vs B interleaved at eight repeats is **48 responses, ~$6.91**, and
+answers the question that actually gates Tasks 5-6.
+
+**Route (c) is still on the table and is now cheaper than the evidence.** Two runs and ~$6 have
+bought a signal in the direction of the split *breaking* firing, that cannot yet be told from
+drift. If ~$7 more is not worth spending, (c) — apply the split on the lossless proof alone and
+drop the firing claim from §3b — is the honest alternative, and the arithmetic under Task 8 says
+§3b cannot reach the ceiling either way.
 
 **Cost, now measured rather than estimated, and the estimate was low.** The probe leg cost
 **$3.11** at Sonnet rates against a predicted ~71% of $1-$6 `[computed 2026-08-29 from the
