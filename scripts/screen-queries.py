@@ -66,10 +66,7 @@ import hashlib
 import json
 import os
 import shutil
-import subprocess
 import sys
-import threading
-import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -78,15 +75,15 @@ HOME = Path(os.path.expanduser("~"))
 LIVE = HOME / ".claude" / "CLAUDE.md"
 BEFORE = ROOT / "docs" / "task-3-section-before.md"
 
-STRIP_ENV = {"CLAUDECODE", "ANTHROPIC_LOG", "ANTHROPIC_BASE_URL",
-             "HTTPS_PROXY", "https_proxy"}
-PROBE_MODEL = "claude-sonnet-5"
+# Sibling import. These probe scripts have hyphens in their names, so they are loaded
+# by path rather than imported, and `scripts/` is not on sys.path when one loads
+# another (rejudge-on-opus.py loads this file that way).
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from probe_common import PROBE_MODEL, claude, run_probe  # noqa: E402
+
 JUDGE_MODEL = "claude-haiku-4-5"
 REPEATS = 2
 WORKERS = 3
-
-SUFFIX = ("\n\nAnswer in prose in this turn. Do not use tools and do not ask "
-          "clarifying questions -- give your actual assessment.")
 
 # (id, bullet, query, rubric)
 CANDIDATES = [
@@ -184,61 +181,6 @@ def wr(p, t):
 
 def sha(t):
     return hashlib.sha256(t.encode("utf-8")).hexdigest()
-
-
-def claude(prompt, cwd, model=None, timeout=240):
-    env = {k: v for k, v in os.environ.items() if k not in STRIP_ENV}
-    cmd = ["claude", "-p", prompt]
-    if model:
-        cmd += ["--model", model]
-    try:
-        r = subprocess.run(cmd, capture_output=True, encoding="utf-8",
-                           errors="replace", env=env, cwd=str(cwd), timeout=timeout)
-        return (r.stdout or "").strip()
-    except subprocess.TimeoutExpired:
-        return ""
-
-
-def run_probe(query, cwd, timeout=240):
-    env = {k: v for k, v in os.environ.items() if k not in STRIP_ENV}
-    proc = subprocess.Popen(
-        ["claude", "-p", query + SUFFIX, "--model", PROBE_MODEL,
-         "--output-format", "stream-json", "--verbose", "--include-partial-messages"],
-        stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env, cwd=str(cwd))
-    out = {"text": "", "usage": None, "model": None, "stopped": None, "ms": None}
-    started = time.time()
-    killer = threading.Timer(timeout, proc.kill)
-    killer.start()
-    try:
-        for raw in proc.stdout:
-            try:
-                ev = json.loads(raw.decode("utf-8", "replace").strip())
-            except json.JSONDecodeError:
-                continue
-            if ev.get("type") != "stream_event":
-                continue
-            se = ev.get("event", {})
-            k = se.get("type", "")
-            if k == "message_start":
-                m = se.get("message", {})
-                out["model"], out["usage"] = m.get("model"), m.get("usage")
-            elif k == "content_block_delta":
-                d = se.get("delta", {})
-                if d.get("type") == "text_delta":
-                    out["text"] += d.get("text", "")
-            elif k == "message_stop":
-                out["stopped"] = "message-stop"
-                break
-        else:
-            out["stopped"] = "stream-exhausted"
-    finally:
-        killer.cancel()
-        if proc.poll() is None:
-            proc.kill()
-            proc.wait()
-        proc.stdout.close()
-    out["ms"] = int((time.time() - started) * 1000)
-    return out
 
 
 def judge(response, rubric, cwd):
