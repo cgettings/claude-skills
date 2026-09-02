@@ -42,17 +42,24 @@ setup() {
     fi
 }
 
-# $1 arm name, $2 expected exit, $3 pattern that must appear in the output
+# $1 arm name, $2 expected exit, $3 pattern that must appear in the output,
+# $4 optional second pattern -- the summary tally is a separate claim from the per-file
+# row, and an arm that checks only the row passes while the tally counts one file twice.
 arm() {
     name=$1
     want_exit=$2
     want_text=$3
+    want_more=${4:-}
     out=$(cd "$tmp/work" && HOME="$tmp/home" sh "$SCRIPT" 2>&1)
     got_exit=$?
 
     ok=1
     [ "$got_exit" = "$want_exit" ] || ok=0
     printf '%s' "$out" | grep -q "$want_text" || ok=0
+    if [ -n "$want_more" ]; then
+        printf '%s' "$out" | grep -q "$want_more" || ok=0
+        want_text="$want_text + $want_more"
+    fi
 
     if [ "$ok" = 1 ]; then
         printf '  PASS  %-38s exit %s, matched: %s\n' "$name" "$got_exit" "$want_text"
@@ -80,15 +87,15 @@ setup 5000 25000 5000 20
 arm "project over ceiling" 1 "OVER by 5000 B"
 
 setup 5000 5000 22000 20
-arm "MEMORY.md over ceiling, not truncated" 1 "OVER by 2000 B"
+arm "MEMORY.md over ceiling, not truncated" 1 "OVER by 2000 B" "1 over budget"
 
 # Truncation is a different failure from a ceiling: the file is silently half-loaded.
 # 30,000 B is past the byte cap; 240 short lines are past the line cap while well under it.
 setup 5000 5000 30000 20
-arm "MEMORY.md past the 25,000 B cap" 1 "ALREADY PAST 25000 B"
+arm "MEMORY.md past the 25,000 B cap" 1 "ALREADY PAST 25000 B" "1 over budget"
 
 setup 5000 5000 4800 240
-arm "MEMORY.md past the 200-line cap" 1 "ALREADY PAST 200 lines"
+arm "MEMORY.md past the 200-line cap" 1 "ALREADY PAST 200 lines" "1 over budget"
 
 # Which cap binds is the report's own claim, so check it flips with bytes-per-line.
 # Under both the ceiling and the caps, so exit 0 is correct here -- this arm checks

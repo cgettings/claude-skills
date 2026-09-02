@@ -123,8 +123,13 @@ else
                 printf "the %d-line cap binds first, at ~%d B\n", tl, int(bpl * tl)
         }'
         # Count a live truncation as a failure: silent data loss outranks a budget choice.
-        if [ "$mb" -gt "$TRUNC_BYTES" ] || [ "$ml" -gt "$TRUNC_LINES" ]; then
-            over=$((over + 1))
+        # Only when `report` has not already counted this same file, though. TRUNC_BYTES
+        # sits above CEILING_MEMORY, so every byte-cap truncation is also a ceiling
+        # breach, and counting both makes one file read as "2 over budget".
+        if [ "$mb" -le "$CEILING_MEMORY" ]; then
+            if [ "$mb" -gt "$TRUNC_BYTES" ] || [ "$ml" -gt "$TRUNC_LINES" ]; then
+                over=$((over + 1))
+            fi
         fi
     fi
 fi
