@@ -100,8 +100,14 @@ def main() -> int:
         original = before[i].strip().lstrip("- ").strip()
         if original not in lesson:
             fails.append(f"[4] bullet {i} ({slug}): original text NOT verbatim in lesson file")
+    # Same degenerate pass as [3]: every `continue` above silently drops a bullet from
+    # the comparison, so with no lesson files at all this printed "all 0 originals
+    # verbatim". [3] names the missing files; this says how many were never checked.
+    checked = sum(1 for _, s in pointed if (LESSONS / f"{s}.md").exists())
+    if checked != expect_ptrs:
+        fails.append(f"[4] verified {checked} of {expect_ptrs} originals -- the rest have "
+                     f"no lesson file to read ([3] names them); 0 means nothing was checked")
     if not any(f.startswith("[4]") for f in fails):
-        checked = sum(1 for _, s in pointed if (LESSONS / f"{s}.md").exists())
         print(f"[4] PASS  all {checked} originals verbatim in their lesson files")
 
     # 5. no orphan lesson files, no slug pointed at twice
@@ -113,6 +119,12 @@ def main() -> int:
         fails.append(f"[5] slugs pointed at more than once: {sorted(dupes)}")
     if orphans:
         fails.append(f"[5] lesson files nothing points at: {sorted(orphans)}")
+    # `orphans` only catches files with no pointer. The other direction -- pointers with
+    # no file -- leaves both `orphans` and `dupes` empty, so the PASS line claimed "1:1"
+    # over 0 files against 19 pointers. 1:1 is the claim; assert it in both directions.
+    if len(on_disk) != len(set(slugs)):
+        fails.append(f"[5] {len(on_disk)} lesson files against {len(set(slugs))} distinct "
+                     f"pointers -- not 1:1; 0 files means {LESSONS} is empty or wrong")
     if not any(f.startswith("[5]") for f in fails):
         print(f"[5] PASS  {len(on_disk)} lesson files, 1:1 with pointers, no orphans")
 
