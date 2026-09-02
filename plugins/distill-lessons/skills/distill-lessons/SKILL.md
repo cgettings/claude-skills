@@ -1,7 +1,7 @@
 ---
 name: distill-lessons
 description: Review a finished stretch of work for durable lessons and write each one to the right place — CLAUDE.md for standing instructions, memory for incidents, nowhere for the rest. Use this whenever a branch, plan, multi-stage task, or long debugging session wraps up; when context is about to be lost to a compaction or session reset; and whenever the user asks "any lessons?", "anything for CLAUDE.md?", "what did we learn?", "anything worth remembering?", "let's debrief", or otherwise asks what should be carried forward from the work. Also use it proactively at the end of substantial work even if the user doesn't ask — lessons left in a plan doc or scratch ledger are read by nobody. Two things this is NOT for — summarizing or recapping what happened, which is a report on the work rather than a decision about what outlives it; and edits already decided on, since "add X to CLAUDE.md" or "remember that I prefer Y" is a direct request to just do it. This pass is for deciding *what* is worth recording.
-version: 2.3.0
+version: 2.4.0
 license: GPL-3.0-or-later
 ---
 
@@ -102,6 +102,8 @@ Otherwise, route it. Apply the test, not the vibe. The three headings below are 
 **Axis 2 — which tier carries the evidence.** Two questions in this order, because the first needs no knowledge of tiers at all:
 
 1. **Would a colleague on a fresh clone need this?** Yes → it goes in the repo, where they can read it. A machine-local store is invisible to teammates, to a fresh clone, and to a cloud session — that is a property of the audience, not of the content, and it is the only one of these boundaries that cannot be fixed later by moving a file.
+
+   **A path inside the repo is not automatically in the repo.** Run `git check-ignore -q <dir>` on the destination before writing there. A build-output directory is ignored, and a lesson written into one is untracked and invisible to exactly the colleague this question is about — while looking filed, which the machine-local store at least never does. The write succeeds and `git status` says nothing, so nothing announces it. Which directory this catches is per-repo and not guessable: it is whichever one that project's build or its `.gitignore` claims, and the name that looks most like documentation is a common choice for it.
 2. **Is the rule that cites it global or project-scoped?** Global → the cross-project store. Project → that project's own store.
 
 The second is derivable rather than conventional: where only one project store loads per session, a *global* rule whose evidence sits in one project's store is unreachable from every other project — so the citation reads as missing everywhere except the repo that happens to own it. If you cannot avoid that, the rule must be actionable without opening the evidence at all, and the citation must name the store that owns it.

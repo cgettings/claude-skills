@@ -707,8 +707,17 @@ through source control — and a repo-scoped lesson has no reason to be held to 
 |---|---|---|---|
 | repo-scoped rule with a file trigger | `.claude/rules/<topic>.md` with `paths:` | on a matching read; zero at launch | the team, via git |
 | repo-scoped rule with no file trigger | project `CLAUDE.md` | every session | the team, via git |
-| the evidence behind either | `docs/lessons/<slug>.md`, linked from the rule | when someone follows the link | the team, via git |
+| the evidence behind either | a **tracked** directory the build does not own, `<dir>/lessons/<slug>.md`, linked from the rule — `documents/` in EH-dataportal, `docs/` in `claude-skills` | when someone follows the link | the team, via git |
 | genuinely personal, machine-local notes | `MEMORY.md` + its topic files | index every session, topics on demand | nobody |
+
+**That row said `docs/lessons/` until 2026-09-02, and it was wrong in the one repo this plan was
+written about.** EH-dataportal sets `publishDir = "docs"` (`config/_default/config.toml:9`) and
+gitignores it (`.gitignore:19`, **0 tracked files**), so a lesson written there is untracked —
+invisible to the colleague the audience question is about, while looking filed. `documents/` exists
+in that repo precisely because `docs/` was taken, and lessons go under `documents/lessons/`; its
+`memories/repo/` is a different thing and not the destination. The generalisable part is not a
+directory name but a check: **`git check-ignore -q <dir>` before writing, because a path inside the
+repo is not automatically in the repo, and the write succeeds either way.**
 
 `MEMORY.md` keeps a real job under this — personal working preferences, corrections that are about
 how *I* want to be worked with, machine-specific facts — and loses the one it should never have had.
