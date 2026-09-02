@@ -24,3 +24,10 @@ incidents and methods live in this project's memory store.
   commit — so the diff looks clean while the working tree carries CR bytes. Check with
   `tr -dc '\r' < file | wc -c`, never with the diff. See the
   `scripted-edits-mangle-files-on-windows` memory.
+
+- **A skill's version bump is judged on what changed in the instructions, not on whether anything
+  broke.** There is no caller to break, so **major** here means the change replaces a decision
+  procedure or loosens a prohibition — someone following the old text now gets a *wrong* answer
+  rather than an incomplete one. `distill-lessons` 1.4.0 → 2.0.0 (three flat routing destinations
+  became two axes) and `refile-rules` 1.1.0 → 2.0.0 (§5's byte-for-byte default gained a fourth
+  permitted edit) were both proposed as minor bumps and corrected on review `[2026-09-01]`.

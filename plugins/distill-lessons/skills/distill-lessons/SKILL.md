@@ -1,7 +1,7 @@
 ---
 name: distill-lessons
 description: Review a finished stretch of work for durable lessons and write each one to the right place — CLAUDE.md for standing instructions, memory for incidents, nowhere for the rest. Use this whenever a branch, plan, multi-stage task, or long debugging session wraps up; when context is about to be lost to a compaction or session reset; and whenever the user asks "any lessons?", "anything for CLAUDE.md?", "what did we learn?", "anything worth remembering?", "let's debrief", or otherwise asks what should be carried forward from the work. Also use it proactively at the end of substantial work even if the user doesn't ask — lessons left in a plan doc or scratch ledger are read by nobody. Two things this is NOT for — summarizing or recapping what happened, which is a report on the work rather than a decision about what outlives it; and edits already decided on, since "add X to CLAUDE.md" or "remember that I prefer Y" is a direct request to just do it. This pass is for deciding *what* is worth recording.
-version: 1.4.0
+version: 2.2.0
 license: GPL-3.0-or-later
 ---
 
@@ -55,7 +55,23 @@ If you can't state the shape, you have an anecdote. Anecdotes belong in memory (
 
 **First: does a rule for this already exist?**
 
-Check before routing. If the store already covers this ground, the lesson is not the rule — the rule is written, it was loaded, and it did not fire. A second copy produces two rules that will both sometimes fail to fire.
+Check before routing. If the store already covers this ground, the lesson is not the rule — the rule is written and it did not fire. A second copy produces two rules that will both sometimes fail to fire.
+
+**Name why it missed before revising a word.** Where rules live in one always-loaded file there is one answer — it was in the prompt and nothing happened — so wording is the only repair. Once rules are split across tiers there are three, and two of them are invisible from inside the session that missed.
+
+| Why it missed | How to tell | Repair |
+|---|---|---|
+| Never in context | its tier was never summoned: no skill invocation, no read of the file it lives in, no glob match for a path-scoped rule | wrong tier. This is a `refile-rules` handoff; leave the wording alone |
+| In context, but trimmed past recognition | the vocabulary that would have matched this situation is in the evidence file the rule points at, not in the surviving line | restore those specifics to the loaded line — the split took a recognition specific for an evidence one |
+| In context, intact | neither of the above | narrow it until a command can check it, per the table below |
+
+**Ask "was it in context" first, because it is the only one of the three with a mechanical answer.** If the environment logs instruction-file loads, that log answers it directly; otherwise the evidence is this session's own transcript — the skill invocation or file read that would have pulled the tier in. Either way the answer is a **null**, so prove the probe can fire before reporting one: run the same check against a rule you know was loaded this session.
+
+**Record the diagnosis where it can be counted, not beside the rule.** One miss is an anecdote. Six that all read *never in context, on a skill* is a verdict on the routing rule rather than on six rules, and per-rule notes cannot be counted — nor do they have anywhere to live for a rule whose evidence was never split out. One line per miss in one file: date, rule, the tier it lives in, why it missed, what was repaired. Three lines against the same rule is a `refile-rules` trigger on its own. Put that file wherever this environment keeps durable notes that are not themselves rules, and create it on the first miss rather than looking for somewhere it already fits.
+
+**Count occasions too, or the log can only ever report harm.** A miss count on its own is a numerator. Zero misses over forty occasions where a rule applied is a result; zero over three is silence; and nothing in a list of misses distinguishes them — so record, per pass, roughly how many times a rule from the affected tier applied at all, fired or not. A rough figure is enough; what is needed is an order of magnitude, not a census.
+
+This matters because the two directions are not symmetric. **Harm is well evidenced by a single entry**, because the diagnosis carries its own control: *trimmed past recognition* means you can open the evidence file and see whether the vocabulary that would have matched this situation is the vocabulary that was moved out of the loaded line. **Safety is a null**, and a null against an uncounted denominator is not a result. Without the second column the honest reading of an empty log is "nothing has been observed yet", which is exactly what it will be mistaken for evidence against.
 
 The output is a **revision of the existing entry, never a new one**, and the revision has a preferred shape: narrow the rule until a command can check it.
 
@@ -69,13 +85,28 @@ One shape to look for while you narrow: a rule stated as a norm, later read back
 
 Some rules are irreducibly judgment-shaped and can't be made checkable. That is itself the finding — the failure was **retrieval, not wording**. Restating it more forcefully is the second copy wearing a bolder font. Report it as a `refile-rules` trigger and leave the wording alone.
 
-Otherwise, three destinations. Apply the test, not the vibe.
+Otherwise, route it. Apply the test, not the vibe. The three headings below are the starting set; the two axes described after them are what settles a store with more tiers than this.
 
 **CLAUDE.md — standing instructions.** Would this change what you *do* on some unrelated future task? It's loaded into every prompt, so it earns its place by changing behavior, not by being true. One line per concept, imperative, no narrative.
 - *Project* `CLAUDE.md` if it's tied to this repo's tools, layout, or conventions.
 - *User* `~/.claude/CLAUDE.md` if it holds regardless of repo.
 
 **Then ask where you'd be standing when you needed it.** Always-loaded space is for content whose moment of need is a moment you would *not* know to go get it — a verification habit qualifies, because you don't know you're about to assert something unverified. Content with a natural trigger doesn't: an open `.R` file, a workflow YAML, a `.ps1` are perfect triggers, so those conventions belong in an on-demand skill and this file keeps at most a pointer to it.
+
+**Two questions, not one.** Where the rule goes and where its *evidence* goes are independent, and a flat list of destinations hides that. An entry that stays always-loaded still answers the second question — so answering only the first leaves the evidence wherever it happened to land, which is how one store ends up holding another's.
+
+**Axis 1 — which tier carries the rule.** The question above settles it: no external trigger → always-loaded; a kind of file open → a path-scoped rule if the environment has them; a recognizable kind of work starting → a skill; re-derivable → nowhere. Test it by naming what would be true at the moment of need, not by what the rule is *about*: a rule about PowerShell whose moment of need is composing a shell call has no file open and does not belong behind a path glob.
+
+**Axis 2 — which tier carries the evidence.** Two questions in this order, because the first needs no knowledge of tiers at all:
+
+1. **Would a colleague on a fresh clone need this?** Yes → it goes in the repo, where they can read it. A machine-local store is invisible to teammates, to a fresh clone, and to a cloud session — that is a property of the audience, not of the content, and it is the only one of these boundaries that cannot be fixed later by moving a file.
+2. **Is the rule that cites it global or project-scoped?** Global → the cross-project store. Project → that project's own store.
+
+The second is derivable rather than conventional: where only one project store loads per session, a *global* rule whose evidence sits in one project's store is unreachable from every other project — so the citation reads as missing everywhere except the repo that happens to own it. If you cannot avoid that, the rule must be actionable without opening the evidence at all, and the citation must name the store that owns it.
+
+**Write the split now, not for a later pass to perform.** Separate the entry's specifics into two kinds before you write either destination. **Recognition specifics** — the vocabulary and situation shape that make you notice the rule applies, plus the action it demands: command and flag names, the symptom, the instruction. These are what fires, and they stay on the loaded line. **Evidence specifics** — dates, run IDs, measured numbers, the incident, the alternatives that were disconfirmed. These move, because you consult them at a moment when you already know to go looking: deciding whether to trust a rule, or whether it has expired.
+
+The failure mode is one-directional and silent: take a recognition specific for an evidence one and the rule stops firing, with nothing to announce it. So when a specific could be either, it stays. Space recovered from a rule that no longer fires was not recovered.
 
 **Size is a further gate, not a style preference:** an entry can pass the usefulness test and still cost more than it returns. A 90-word bullet added to a 300-word section is a 30% tax on that section, paid forever, on every unrelated task.
 
@@ -90,6 +121,8 @@ If your memory system keeps an always-loaded index — a file of pointers read e
 **Methods and recipes need the same split, and are the likeliest to get it wrong.** Step 2 explicitly asks what verification approach or cheap proof worked — but a recipe is neither a standing instruction nor an incident, so the routing above has no obvious slot for it, and the default pull is toward CLAUDE.md because a method *reads* like guidance. Put the **trigger** in CLAUDE.md and the **method** in memory: one line naming when you'd reach for it and where it lives, with the commands, the gotchas, and the approaches that failed behind that pointer. The trigger stays loaded so you know the method exists; the method itself costs nothing until the day it's needed.
 
 Check the destination before writing, whichever it is: re-read the relevant CLAUDE.md section and search existing memories for the same ground. If something already covers it, extend or correct that instead of adding a second entry. Duplicates are worse than nothing — they drift apart and later readers can't tell which is current.
+
+**Re-read it from disk, not from context, and do it immediately before the write.** A running session can hold a superseded copy of an instruction file and have no way to tell: another session's edit reaches it by replay on ordinary turns, but the copy in context is only rebuilt at a compaction. So a session that has not compacted since someone else wrote to the file will overwrite their entry with content that predates it, and the diff will look clean. Re-reading immediately before the write is the whole fix — a lock is the alternative if the environment offers one, and nothing else is needed: the write itself costs concurrent sessions nothing.
 
 While you're in there, notice whether the file made the choice easy. If two sections could plausibly hold the entry, or you settle it by feel, that's a finding about the destination rather than a detail of your entry — a boundary you can't file against is one that retrieval can't search against either. Filing is the moment structural drift becomes visible, and this pass is the only one standing in the file when it does. Note it and name `refile-rules`. Don't reorganize here.
 

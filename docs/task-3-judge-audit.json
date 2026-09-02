@@ -1,0 +1,213 @@
+{
+  "rows": [
+    {
+      "leg": "A_full",
+      "id": "S2-B4",
+      "repeat": 0,
+      "haiku": true,
+      "opus": true,
+      "opus_quote": "the most likely explanation is that you're counting your own probe... Strip the tool-input echo lines and re-count",
+      "retried": false
+    },
+    {
+      "leg": "A_full",
+      "id": "S2-B4",
+      "repeat": 1,
+      "haiku": true,
+      "opus": true,
+      "opus_quote": "the signature of the log recording your own queries... A count that equals the number of terms you searched, with no variance, is the tell.",
+      "retried": false
+    },
+    {
+      "leg": "A_full",
+      "id": "S5-B17",
+      "repeat": 0,
+      "haiku": true,
+      "opus": true,
+      "opus_quote": "Both plan-mode boundaries then tested an effort switch, which your classifier strips by construction, and seven turns produced nothing... gives you void arms",
+      "retried": false
+    },
+    {
+      "leg": "A_full",
+      "id": "S5-B17",
+      "repeat": 1,
+      "haiku": true,
+      "opus": true,
+      "opus_quote": "If plan mode moves effort, your classifier strips that event as `unavailable`, which means it eats the very rebuild you're trying to observe.",
+      "retried": false
+    },
+    {
+      "leg": "A_full",
+      "id": "S8-B6",
+      "repeat": 0,
+      "haiku": true,
+      "opus": true,
+      "opus_quote": "The proof is scoped to the file, not to the refactor... Compare each file's parent tree to its staged tree (or split the commits per task)",
+      "retried": false
+    },
+    {
+      "leg": "A_full",
+      "id": "S8-B6",
+      "repeat": 1,
+      "haiku": true,
+      "opus": true,
+      "opus_quote": "if these 7 files carry other uncommitted work, that diff fuses two changes and the strip-and-diff is scoped to the file, not to your commit",
+      "retried": false
+    },
+    {
+      "leg": "B_split",
+      "id": "S2-B4",
+      "repeat": 0,
+      "haiku": false,
+      "opus": false,
+      "opus_quote": "",
+      "retried": false
+    },
+    {
+      "leg": "B_split",
+      "id": "S2-B4",
+      "repeat": 1,
+      "haiku": false,
+      "opus": false,
+      "opus_quote": "",
+      "retried": false
+    },
+    {
+      "leg": "B_split",
+      "id": "S5-B17",
+      "repeat": 0,
+      "haiku": true,
+      "opus": false,
+      "opus_quote": "entering it via the brainstorming/plan flow may pull in extra context or change the system prompt",
+      "retried": false
+    },
+    {
+      "leg": "B_split",
+      "id": "S5-B17",
+      "repeat": 1,
+      "haiku": false,
+      "opus": false,
+      "opus_quote": "",
+      "retried": false
+    },
+    {
+      "leg": "B_split",
+      "id": "S8-B6",
+      "repeat": 0,
+      "haiku": true,
+      "opus": true,
+      "opus_quote": "strip-and-diff answers a question about the file (\"does anything *other* than class attributes differ?\")... If you also edited CSS to match, then the diff hid the exact change",
+      "retried": false
+    },
+    {
+      "leg": "B_split",
+      "id": "S8-B6",
+      "repeat": 1,
+      "haiku": false,
+      "opus": true,
+      "opus_quote": "strip-and-diff answers a question about *the file*, not about *the change you meant to test*",
+      "retried": false
+    },
+    {
+      "leg": "C_absent",
+      "id": "S2-B4",
+      "repeat": 0,
+      "haiku": false,
+      "opus": false,
+      "opus_quote": "",
+      "retried": false
+    },
+    {
+      "leg": "C_absent",
+      "id": "S2-B4",
+      "repeat": 1,
+      "haiku": true,
+      "opus": false,
+      "opus_quote": "",
+      "retried": false
+    },
+    {
+      "leg": "C_absent",
+      "id": "S5-B17",
+      "repeat": 0,
+      "haiku": false,
+      "opus": false,
+      "opus_quote": "",
+      "retried": false
+    },
+    {
+      "leg": "C_absent",
+      "id": "S5-B17",
+      "repeat": 1,
+      "haiku": true,
+      "opus": false,
+      "opus_quote": "",
+      "retried": false
+    },
+    {
+      "leg": "C_absent",
+      "id": "S8-B6",
+      "repeat": 0,
+      "haiku": false,
+      "opus": false,
+      "opus_quote": "",
+      "retried": false
+    },
+    {
+      "leg": "C_absent",
+      "id": "S8-B6",
+      "repeat": 1,
+      "haiku": false,
+      "opus": false,
+      "opus_quote": "",
+      "retried": false
+    }
+  ],
+  "by_arm": {
+    "A_full": [
+      6,
+      6
+    ],
+    "B_split": [
+      4,
+      6
+    ],
+    "C_absent": [
+      4,
+      6
+    ]
+  },
+  "tallies": {
+    "haiku": {
+      "A_full": [
+        6,
+        6
+      ],
+      "B_split": [
+        2,
+        6
+      ],
+      "C_absent": [
+        2,
+        6
+      ]
+    },
+    "haiku_p": 0.06060606060606061,
+    "opus": {
+      "A_full": [
+        6,
+        6
+      ],
+      "B_split": [
+        2,
+        6
+      ],
+      "C_absent": [
+        0,
+        6
+      ]
+    },
+    "opus_p": 0.06060606060606061
+  },
+  "holes": 0
+}

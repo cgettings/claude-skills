@@ -1,7 +1,7 @@
 ---
 name: refile-rules
 description: Reorganize a rule store whose structure stopped holding — sections drifted into overlap, a file grown past the length anyone reads to the end, rules filed by feel because the boundary was not real, or content sitting in an always-loaded file when the moment it is needed would have triggered it anyway. Use when a lessons pass reports it could not tell which section an entry belonged to, when a rule that already existed failed to fire and could not be narrowed into a checkable form, and whenever someone says a CLAUDE.md has got too big, that two sections say the same kind of thing, that they can never find the rule they need, or asks where something belongs. This is not for correcting what went false, which is `reconcile-records`, and not for deciding what is worth recording, which is `distill-lessons`. It moves rules between and within stores, and it may shorten one only where a specifics inventory shows that nothing making the rule fire was lost. Someone asking is a trigger in itself and running on demand is normal; absent a request, do not run it speculatively — a shuffle with no trigger is churn on a file whose whole value is that it stays put.
-version: 1.1.0
+version: 2.1.0
 license: GPL-3.0-or-later
 ---
 
@@ -22,7 +22,7 @@ Be honest about the strength of this. You will almost never be able to show that
 The rest of this section governs runs **you** would be starting unprompted. Those need one of three:
 
 - **A lessons pass reported it couldn't tell where an entry belonged** — two sections could hold it, or the choice came down to feel. Weight this one highest of the three: it is an observation made while actually filing, which is the only time a boundary gets tested rather than inspected.
-- **A rule that already existed failed to fire, and couldn't be narrowed into a checkable form.** `distill-lessons` hands this over. The wording was not the problem; retrieval was.
+- **A rule that already existed failed to fire.** `distill-lessons` hands this over with its diagnosis attached, and only two of the three it distinguishes belong here. *Never in context* is a move: the rule is in a tier that isn't summoned for the situations it covers. *In context, intact, and not narrowable into a checkable form* is retrieval, and may be a boundary problem. The third — *in context but trimmed past recognition* — goes back to `distill-lessons`: that is an edit to one entry, not a structural finding, and treating it as one reorganizes a store to fix a single bullet.
 - **A measurement taken while the file was open anyway** — length past the point anyone reads to the end, a section swollen past its neighbours.
 
 Absent one of those, don't. A store whose rules stay where you last put them is worth more than a marginally better-organized one that moves every few weeks. Knowing where something lives is itself part of retrieval, and every reorganization spends that down. This pass is cheap to run and expensive to run often, unlike the passes it sits beside.
@@ -35,6 +35,7 @@ The finding is never "this file is long." Length is a symptom shared by every po
 - **An entry partly subsumed by another**, often only a few bullets away, where neither reads as redundant on its own. This is the shape step 5's edit branch exists for; the others are fixed by moving things.
 - **Content in the always-loaded tier that has a perfectly good trigger elsewhere.** Worth looking for first, because it is the shape that can be fixed without losing anything — see step 4. Whether it is also the bulkiest shape in a given file is a question that file can answer; don't assume it.
 - **A section that has become a bucket** — a heading broad enough that nothing is ever wrong to file under it.
+- **A rule sitting in a tier that is never summoned for the situations it covers.** The mirror of the bullet above it, and the one a routing rule produces rather than prevents: that one is always-loaded content with a better trigger available, this one is content given a trigger that does not match when it is needed. The tell is a miss handed over with *never in context* as its diagnosis — not a judgement about where the rule reads best. Decide it per rule: two rules on the same subject can belong in different tiers, and a trigger that fits one is not evidence about the other.
 
 "It feels cluttered" is not a finding. Neither is a token count on its own.
 
@@ -84,11 +85,14 @@ Stores accumulate redundancy that re-filing alone cannot remove. Handing each in
 
 **Then the bar: every item on that inventory is locatable in the new text, or named in the manifest as a deliberate drop with a reason.** No item is excused by the edit reading better.
 
-Three shapes qualify:
+Four shapes qualify:
 
 - **Two entries duplicating a specific.** The merged form states the union of both inventories; the second copy of the shared specific goes.
 - **Connective prose that names nothing** — a sentence restating the entry's own heading, a transition, a re-assertion of what the previous bullet just said.
 - **An entry restating a rule stated in full elsewhere in the same file.** The full statement stays; the restatement becomes a pointer, or goes.
+- **An entry whose evidence specifics can move to a lazy tier.** Its specifics are two kinds, not one. **Recognition specifics** — the vocabulary and situation shape that make the rule recognizable, plus the action it demands — are what fires, and they stay. **Evidence specifics** — dates, run IDs, measured numbers, the incident narrative, the alternatives that were disconfirmed — move to a file the entry points at, because they are consulted at a moment when you already know to go looking: deciding whether to trust a rule, or whether it has expired. The bar is unchanged, applied to the destination as well as the survivor: every evidence item is locatable in the file it moved to, or named in the manifest as a deliberate drop with a reason.
+
+This fourth shape is the one whose failure is invisible, so it gets one extra constraint. Mistake a recognition specific for an evidence one and the rule simply stops firing — the survivor still reads as true and still looks like a rule, which is the failure the section opens with. **When a specific could be read either way, it stays.** Space bought from a rule that no longer fires was not bought. And this is an edit, so it never shares a manifest line with the move that relocates the entry — same reason as always, and the split makes the trap easier to fall into, because relocating the evidence *feels* like the move it is filed beside.
 
 What does not qualify: **an entry that carries its own specifics and is merely long.** Length was never the finding — step 2 says so directly. An entry long because it names four conditions and the incident behind them is doing what a rule is for.
 

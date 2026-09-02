@@ -1,0 +1,635 @@
+{
+  "records": [
+    {
+      "leg": "C_absent",
+      "id": "S1-B5",
+      "bullet": "'Unchanged' is a null result too / git cherry compares patch-ids",
+      "repeat": 0,
+      "raised": true,
+      "quote": "What actually answers the question is a content comparison, not a commit comparison",
+      "chars": 1863,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 25978,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34063,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34063
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Not yet \u2014 `git cherry` can't tell you what you're about to ask it to tell you.\n\n`git cherry main feature` decides \"is this commit already upstream?\" by patch-id: it hashes the diff (ignoring line numbers and whitespace) and looks for a matching hash among the commits on `main`. Squashing breaks that match by construction \u2014 three feature commits combined into one squashed commit produce a diff with a patch-id that matches none of the three originals. Any reword or rebase that shifted surrounding context breaks it the same way. So three commits showing as `+` outstanding is the *expected* output after a squash-on-merge, not evidence that their content is missing from `main`. Re-applying them would most likely re-introduce changes that are already there \u2014 merge conflicts if the squashed version diverged at all, or silently duplicated hunks if it didn't.\n\nWhat actually answers the question is a content comparison, not a commit comparison:\n\n- `git range-diff main <old-feature-base>..<old-feature-tip>` (or `git range-diff <old-tip> main` framed against the merge) lines up each original feature commit against whatever landed in `main` and shows you, commit by commit, which ones have an equivalent and how it differs. This is the tool built for exactly \"commits got reworked and squashed, what maps to what.\"\n- Failing that, `git diff main..feature` \u2014 if the only thing left is genuinely new work, that's your list. If it's empty or trivial, nothing was lost.\n- For any specific hunk you're worried about, `git log -p -S'<unique string from that change>' main` tells you whether it's in `main`.\n\nIf after that comparison there's real content on `feature` that never made it into `main`, then yes, re-apply *that* \u2014 but cherry-pick the specific missing changes, don't replay all three commits on the assumption that `git cherry`'s list is a loss report."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S1-B5",
+      "bullet": "'Unchanged' is a null result too / git cherry compares patch-ids",
+      "repeat": 1,
+      "raised": true,
+      "quote": "squashing or reworking a commit changes its patch-ID even when every line of its content landed on main",
+      "chars": 1434,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 23298,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 53919,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 53919
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Not on `git cherry` alone, no. `git cherry` decides \"already applied\" by matching patch-IDs, and squashing or reworking a commit changes its patch-ID even when every line of its content landed on main. Those three `+` commits are exactly the case where the signal is unreliable \u2014 a squash of two of them into one, or a reworded/rebased version, will always show as outstanding here regardless of whether the changes are actually missing.\n\nCherry-picking them because of that output is how you get the changes applied twice: either a merge conflict, or a silent duplicate hunk if the surrounding code still applies cleanly.\n\nDo a content check before re-applying anything:\n\n- `git diff main..feature` \u2014 the decisive one. If this is empty, every line of the feature branch is already in main and there is nothing to recover; `git cherry` is just wrong here. If it's non-empty, that diff *is* the set of what's genuinely missing, and it's usually not \"three whole commits.\"\n- `git range-diff main...feature@{upstream}` or against the pre-merge tip of feature, if you can name it \u2014 this shows the commit-by-commit mapping, including \"these two squashed into that one,\" and tells you whether the squash dropped anything or just recombined it.\n\nIf `git diff main..feature` comes back empty, delete the branch and move on. If it shows real hunks, apply *those hunks*, not the three commits \u2014 the commits carry context that's already present."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S2-B4",
+      "bullet": "the corpus records your own query",
+      "repeat": 0,
+      "raised": false,
+      "quote": "",
+      "chars": 2141,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 24512,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 53902,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 53902
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your evidence doesn't support the claim you're about to write down.\n\n**The probe measures logging, not use.** A debug log records what the runtime chose to emit, not what it read. A field consulted twenty times in a hot path emits zero log lines if nobody put a log statement there; a field read once emits one line if there's a startup log statement next to it. \"One hit per field\" is exactly what you'd see if the runtime logs each field once as it loads config, regardless of how many times it later reads the parsed value. That pattern is equally consistent with \"each used once\" and \"each logged once at load, used an unknown number of times after.\"\n\n**A grep hit is a line match, not a read.** One occurrence could be a struct field definition, a single `log.Debug(\"loaded %s\", ...)`, or a case label. It doesn't tell you the field is accessed once \u2014 it tells you the string appears on one line of the log.\n\n**No positive control, so the probe has no demonstrated power.** Before \"every field came back with one hit\" means anything, you need a field you independently know is read repeatedly, and you need to show it comes back with *many* hits. If a known-hot field also shows exactly one, the uniform \"one hit\" result is an artifact of how config logging works and separates nothing. Per the house rule: a null result isn't a result until you've shown the probe can fire.\n\n**The claim bundles three assertions.** \"Used exactly once at startup\" = a count (once), a timing (startup), and a semantics (used, not just logged). The log timestamps might support the timing. Nothing here supports the count or the \"used.\"\n\n**Where the eight names came from matters.** If you drew them from the config schema, fine. If you drew them from grepping the log, the result is circular.\n\nWhat would actually support \"each field is read once at startup\": grep the *source*, not the log \u2014 count read sites and look at where they sit. Or trace/instrument the accessor. If all you have is the log, the defensible write-up is \"each config field produces exactly one debug-log line at startup,\" which is a fact about the logging and worth noting as that."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S2-B4",
+      "bullet": "the corpus records your own query",
+      "repeat": 1,
+      "raised": false,
+      "quote": "No quote\u2014response addresses log-grep validity but not searcher-probe-in-log issue",
+      "chars": 2012,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 23143,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34049,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34049
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your evidence doesn't support the conclusion you're about to write down.\n\nWhat you have: eight field names, one debug-log line each. What that shows is that each name was *logged* once in one run. \"Used exactly once at startup\" is a claim about the runtime's code paths, and a log grep can't reach it.\n\nThe specific gaps:\n\n- **Logging isn't use.** The most likely explanation for \"exactly one hit, every field, no exceptions\" is that the runtime dumps its parsed config in a single line at startup \u2014 one `loaded config: {...}` record naming every field once. That pattern produces exactly your result whether a field is read once or forty times. A uniform count across eight unrelated fields is more consistent with a config echo than with eight independent single uses.\n\n- **No positive control.** Before reading one-hit-per-field as \"used once,\" you need to know that a field you *know* is used repeatedly shows up more than once in this log. If a heavily-used field also gets one hit, your probe has no power to distinguish the two cases, and the null reading is an artifact. Find such a field and grep it; if it's also 1, the whole result is just \"the log names each field once.\"\n\n- **One run, one code path.** Fields consumed only on error paths, specific subcommands, or reload/signal handlers won't appear. The log samples the run you happened to capture.\n\n- **Name-tracking.** If the runtime binds `cfg.foo` to a local and passes that around, later uses don't carry the field name and your grep misses them.\n\n- **\"At startup\"** rests on the timestamp of that one line, not on the count.\n\nIf the claim matters, verify it against the source: grep the codebase for each field, list the read sites, and check what actually happens at each. That's re-checkable by anyone later; the log grep isn't. If you only have the log, the defensible write-up is narrower \u2014 \"the debug log references each field once, consistent with a single config dump at startup\" \u2014 and it shouldn't assert anything about use frequency."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S3-B12",
+      "bullet": "a blind spot explains missed cases only if something falls through it",
+      "repeat": 0,
+      "raised": true,
+      "quote": "'number of unlabelled events' and 'number of events with an unhandled marker' are independent quantities \u2014 they can match by accident",
+      "chars": 1634,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 17491,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 33632,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 33632
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Before you write it up: the load-bearing claim isn't \"the classifier is blind to two marker types\" \u2014 that part you've verified by reading the classifier. The claim you're about to commit is \"that blindness is why *these 9* are unlabelled,\" and that's a different proposition that the code inspection doesn't establish.\n\nWhat would actually close it: take the 9 unlabelled events and check each one individually for which marker type it carries. You're looking for one of three outcomes:\n\n- **All 9 carry one of the two missing marker types** \u2014 claim holds, and you can say \"9/9\" instead of \"explains the 9.\"\n- **Some carry a marker type the classifier already handles** \u2014 then those are a second, separate bug (a handled type that still fell through), and the blind-spot writeup is incomplete in a way that matters.\n- **Some carry neither** \u2014 malformed records, a third missing type, an upstream truncation. Also not covered by your writeup.\n\nThe blind spot is real and worth fixing regardless. But \"explains the 9\" is the sentence that will steer whoever reads the writeup \u2014 if it's actually \"explains 6 of 9,\" someone closes this out and three events stay broken with no ticket.\n\nThe count coincidence is weak evidence here. Two missing marker types explaining exactly the residual is plausible, but \"number of unlabelled events\" and \"number of events with an unhandled marker\" are independent quantities \u2014 they can match by accident, especially at n=9. The per-event check is cheap (9 records, one field each); do that sweep and report it as a checklist against the 9, not as a diff between \"before\" and \"after\" a hypothetical fix."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S3-B12",
+      "bullet": "a blind spot explains missed cases only if something falls through it",
+      "repeat": 1,
+      "raised": true,
+      "quote": "For each, name which marker type it has. If all 9 come back as one of the two blind-spot types, write-up is earned.",
+      "chars": 1948,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 18966,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34052,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34052
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Before writing it up, close the gap between \"the classifier is blind to two marker types\" and \"that's why these 9 are unlabelled.\" Those are different claims. The first is about the classifier's logic; the second requires that each of the 9 unlabelled events actually carries one of those two marker types and nothing the classifier already handles. Right now you have a plausible mechanism, not a confirmed cause.\n\nThe check that would actually settle it: go through the 9 events individually and classify them by hand. For each, name which marker type it has. If all 9 come back as one of the two blind-spot types, the write-up is earned and you can say \"9/9.\" If seven do and two are something else \u2014 a malformed record, a marker the classifier should have caught but didn't due to a separate bug, an event that's genuinely unclassifiable \u2014 then the blind spot is *a* cause, not *the* cause, and the write-up should say that.\n\nWatch for the failure mode where the blind spot is real and independently worth fixing, but it's masking a second smaller issue in the remainder. Attributing all 9 to one cause closes the investigation before the second cause surfaces, and it resurfaces later as \"we thought we fixed this.\"\n\nAlso worth one positive control: confirm the classifier really does drop these marker types on an event you construct or pick where you know the type. \"Blind to two marker types\" should mean you traced it \u2014 there's no branch that matches them \u2014 or you fed one through and watched it fall out unlabelled. If that's what \"digging in\" already involved, good; if it's inferred from the code structure alone, run one through.\n\nIf the hand-classification gives you 9/9, this is a short write-up and you're done \u2014 the fix (add handling for the two types) is clear and the cause is proven. The only thing I'd push back on is shipping the write-up on the strength of the mechanism being plausible rather than the 9 being accounted for."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S4-B15",
+      "bullet": "a precondition check that reads the same field the measurement reads",
+      "repeat": 0,
+      "raised": true,
+      "quote": "The check you designed as a probe of document state is contaminated by the probe itself.",
+      "chars": 1702,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 24590,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34067,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34067
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your conclusion doesn't follow from the test, for two compounding reasons.\n\n**The second question was answerable without the document.** When you asked it to quote the sentence the first time, its reply put that sentence verbatim into the conversation transcript. The second time you asked, it could produce the sentence from its own previous message \u2014 no file access, stale or fresh, required. The check you designed as a probe of document state is contaminated by the probe itself. A positive control has to be drawn from outside the hits you already have; this one wasn't.\n\n**Even a clean version of this test wouldn't show a malfunction.** A session carries earlier tool results \u2014 including file contents it read \u2014 in its context window. Editing or deleting the file on disk afterward does not reach back and alter what's already in that window, and the session won't re-read the file unless something makes it. So \"it still quotes the old sentence\" is the expected behavior of a session working exactly as designed, not evidence of anything being wrong. \"Stale context\" frames normal context retention as a defect.\n\n**What would actually test what you seem to be worried about:** change a passage the session has *not* already quoted, then ask a question whose answer depends on that passage. If it answers from the old text, that only tells you it hasn't re-read the file \u2014 still not a fault. If you want to know whether the session is degraded or unresponsive, ask it to do something that requires fresh reasoning or a fresh file read and see whether it does so competently. Long-running sessions don't silently \"go stale\"; what happens is compaction, and the harness tells you when that occurs."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S4-B15",
+      "bullet": "a precondition check that reads the same field the measurement reads",
+      "repeat": 1,
+      "raised": true,
+      "quote": "When the file was read earlier, its contents entered the transcript as a tool result.",
+      "chars": 1514,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 18194,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34070,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34070
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your test can't show what you're concluding from it, because a healthy session and a \"stale\" one would both do exactly what you saw.\n\nA Claude session's context is the conversation transcript, not a live handle on the file. When the file was read earlier, its contents entered the transcript as a tool result. Deleting the sentence on disk doesn't reach back and edit that transcript entry. So when you ask again, the session quotes the version it still has \u2014 the earlier one \u2014 regardless of what's now on disk. That's the architecture working as designed, not a fault.\n\nFor the test to mean anything, the second ask has to force a fresh read: \"re-open the file and quote the sentence.\" If it re-reads and *still* produces the deleted sentence, that's a real problem. If it re-reads and reports the sentence is gone, the session is fine and was never stale \u2014 it was just answering from conversation history the first time, which is correct behavior.\n\nAs run, the test has no discriminating power: \"holding context from earlier in the conversation\" is both the expected state and the thing you're calling a defect. Every session passes it and every session fails it.\n\nTwo adjacent facts worth having:\n- A running session does not notice file edits on its own. If you change a file mid-session and need the session to act on the new version, you have to tell it to re-read.\n- This is the same reason a live edit to `CLAUDE.md` isn't picked up by an already-running session until it re-reads or the prefix is rebuilt."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S5-B17",
+      "bullet": "a trigger that also moves something the classifier already explains",
+      "repeat": 0,
+      "raised": false,
+      "quote": "Plan mode changes toolset and injects instructions, but doesn't address model/effort level covariates",
+      "chars": 2934,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 52839,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34062,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34062
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "The confound in the method is the thing to fix first: toggling plan mode in a live session can't isolate the permission-mode variable, because the conversation grows by at least one user turn and one assistant turn per toggle. Every request after a toggle will show `cache_creation` tokens regardless of whether the mode change did anything, and reverting the mode never restores a byte-identical prefix (the messages array has grown), so you don't get a clean cache-hit-on-revert to compare against. \"Whatever events are left over\" will be a pile of `messages_changed` rewrites that you can't attribute to the toggle rather than to the turn.\n\nWhat `cache_miss_reason` buys you here is disambiguation, not isolation. If plan-mode toggles line up with `system_changed` or `tools_changed` while the between-toggle requests read `messages_changed`, that's suggestive. But `system_changed`/`tools_changed` also fire on a CLAUDE.md edit, a skill re-registration, and MCP server changes, so you'd still be arguing from correlation.\n\nOn the mechanism, plan mode is very likely a real rebuild trigger, and for a reason that makes it a poor proxy for \"permission mode\" in general:\n\n- Entering plan mode injects plan-mode instructions into the request. If those land in the top-level system prompt, that's `system_changed`; if they land as a user-turn system-reminder (which is how Claude Code injects most of this class of text \u2014 they show up as `attachment` records in the transcript), that's `messages_changed` from that breakpoint forward. Either way the prefix from that point is invalidated.\n- Plan mode also changes the available toolset (ExitPlanMode being the obvious one). If that tool is added/removed dynamically rather than always-present-and-gated, toggling produces `tools_changed` in both directions.\n\nThe other permission modes \u2014 `default` \u2194 `acceptEdits` \u2194 `bypassPermissions` \u2014 are, as far as I know, purely client-side execution gating. They don't alter the system prompt, the tools array, or the messages, so they should be invisible to the API and cause no rebuild at all. Testing with plan mode and generalizing to \"does switching permission mode rebuild the cache\" would therefore overgeneralize from the one mode that's an outlier.\n\nWhat I'd actually do instead of toggling: dump the API payload for one request in plan mode and one in normal mode from otherwise-identical state (the debug logs at `~/.claude/debug/` or a proxy capture), and diff the `system` and `tools` arrays directly. That's a mechanism check \u2014 it tells you *what* changes and therefore which `cache_miss_reason` to expect \u2014 and it's cheaper and more conclusive than counting rebuild events across a confounded live session. If you want the event-level confirmation on top, do it as a controlled pair: take one on-disk session, issue exactly one more turn in each mode, and compare `cache_read_input_tokens` and `cache_miss_reason` between the two."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S5-B17",
+      "bullet": "a trigger that also moves something the classifier already explains",
+      "repeat": 1,
+      "raised": false,
+      "quote": "",
+      "chars": 2424,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 35734,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34062,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34062
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Short answer: I expect toggling plan mode *does* trigger a prefix rewrite, but I'm not certain of the mechanism or the size, and the plan as described won't settle it cleanly.\n\n**Why I expect a rewrite.** Plan mode isn't just a client-side gate. When it's active the harness changes what the model sees: `ExitPlanMode` becomes available and the edit tools are effectively withdrawn, and a system-reminder about plan constraints is injected. Tool-list changes and system-prompt changes both sit ahead of every message cache breakpoint, so either one forces a rewrite from that point forward. That maps to `cache_miss_reason` of `tools_changed` or `system_changed` in the diagnostics you already know about. The uncertainty: it's possible the harness implements plan mode purely as an injected system-reminder in a user message, which would only append, not rewrite. I can't rule that out from memory.\n\n**The methodological problem with \"read whatever events are left over.\"** That's residual-set reasoning \u2014 the exact trap the `cache-prefix-rewrite-investigation` and `factorize-controls-for-a-negative-result` memories are about. If a toggle produces no leftover rebuild after you filter effort changes, that's equally consistent with \"permission mode doesn't cause rebuilds\" and with \"your classifier didn't catch this kind.\" You'd have no positive control proving the classifier *can* surface a permission-mode rebuild, so a null is uninterpretable.\n\n**What actually settles it, without leaning on the classifier at all:**\n\n1. Read `message.diagnostics.cache_miss_reason` directly on the first assistant record of the request *after* each toggle. The server names the cause. You don't need to subtract effort rebuilds \u2014 you just check whether the reason is `tools_changed`/`system_changed` vs no miss at all.\n2. Separately, diff the `tools` array and the system blocks between a request made in plan mode and one made in normal mode in the same session. If the tool list differs, that's your mechanism, confirmed independently of any rebuild accounting.\n\n**One execution risk:** plan mode has to persist across a request boundary to register. If you enter and exit within a single turn, there may be no request issued in that mode, and you'll see nothing. Give each mode its own turn with a real prompt, and confirm from the transcript that a request was actually sent while the mode was active before concluding anything.",
+      "hole_resolved": "re-judged 2026-09-01; haiku=True (off-rubric quote), opus=False; opus taken"
+    },
+    {
+      "leg": "C_absent",
+      "id": "S6-B16",
+      "bullet": "perturb the variable under test, never an input both arms share",
+      "repeat": 0,
+      "raised": true,
+      "quote": "For that you need the asymmetric case\u2014baseline correct, head code changed\u2014showing head red while base stays green",
+      "chars": 1893,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 27105,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34049,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34049
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your control proves less than \"the check can fail.\" It proves one specific thing: the comparison step executes, reads a non-empty diff surface, and turns a mismatch into a red job. That's worth having. But there are gaps between what you did and what the check is for.\n\n**You perturbed the baseline, not the output.** A real regression is a change on the *output* side, from code. Your edit was a change on the *baseline* side. These are only symmetric if the comparison treats both sides identically with no normalization, field filtering, or key-subsetting. If the diff step canonicalizes or ignores certain fields, an output regression in those fields is invisible \u2014 and your baseline edit wouldn't have caught that, because you happened to edit a field that *is* compared. To close this, make the perturbation on the branch under test: change the code/input that feeds the head job's output in a way you know should move it, and confirm head goes red.\n\n**One edit proves one field is compared, not the whole file.** If the baseline has structure you care about across many fields or rows, a single-line edit is a positive control for that line only. If coverage of the whole surface matters, perturb a few structurally different spots.\n\n**Both jobs going red is one observation, not two.** One edit to one shared file hitting both jobs tells you the shared comparison logic works. It does not exercise what the base-branch control job exists for: discriminating \"head is red because of head's changes\" from \"head is red because of environmental noise.\" For that you need the asymmetric case \u2014 baseline correct, head code changed \u2014 showing head red while base stays green.\n\n**Confirm the resting state.** Restore the baseline and verify both jobs go green. A check that's red on a clean tree is as useless as one that's never red, and your test left the baseline dirty at least momentarily."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S6-B16",
+      "bullet": "perturb the variable under test, never an input both arms share",
+      "repeat": 1,
+      "raised": true,
+      "quote": "Perturbing it is the single change most likely to make any comparison-based check go red \u2014 it separates almost nothing.",
+      "chars": 2201,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 27847,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34047,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34047
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your control proves less than \"positive control done\" implies, and the gap is the one your own notes warn about: a probe that fires proves it *can* fire, not that it can *discriminate*.\n\n**What editing the committed baseline actually tested.** The baseline is the one input both jobs share. Perturbing it is the single change most likely to make any comparison-based check go red \u2014 it separates almost nothing. You've shown the jobs read the baseline and diff against it and that a diff fails the job. That's real but thin: it's close to a no-power control, because you can't name a broken-check scenario in which this edit would *not* have produced a red.\n\n**What the head job is supposed to catch, and hasn't been shown to.** The regression you care about is head's *output* drifting from a fixed baseline \u2014 not the baseline moving. Those exercise different code paths (output generation, then comparison) and your edit exercised only the second. A real positive control injects a representative fault into the thing being measured, on the head branch, leaving the baseline untouched, and confirms the head job goes red on that. Ideally you also write down beforehand what the failure should look like, so a red for the wrong reason doesn't get read as success.\n\n**The base-branch control job's informative state is green, not red.** Its purpose (as I read it) is to establish that a red on head means \"head introduced this,\" not \"the check itself is broken or the baseline is stale.\" For that, the thing to verify is that it's currently green *and* that green is meaningful \u2014 i.e., it would go red if the base branch genuinely regressed against the baseline. Showing it goes red when you corrupt the shared baseline tests it in the wrong direction and tells you little about whether it's doing its job.\n\n**One more check worth doing.** Revert the baseline edit and confirm both jobs return to green. That closes the loop that your edit specifically caused the red, rather than something else that changed in the same window.\n\nNet: keep going. Do a head-side fault injection with a written expectation, confirm the base control is green-for-a-reason, and verify the revert. Then the control is done."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S7-B18",
+      "bullet": "one probe's positive control does not validate the others",
+      "repeat": 0,
+      "raised": true,
+      "quote": "If there are 30 focusable controls and the sweep sees 20, the 10 missing may be the defect",
+      "chars": 1724,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 19682,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34057,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34057
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "\"The harness is validated\" is doing more work than the evidence supports. You validated one sweep. The contrast fault exercised that sweep's detection logic and the shared plumbing underneath it (page load, driver, traversal, reporting). It tells you nothing about whether the keyboard sweep's assertions can fire.\n\nThe keyboard result is a null: 20 stops, zero issues. A null isn't a result until you've shown the probe can produce a non-null. Right now \"no issues\" and \"the keyboard checks silently no-op\" are indistinguishable from the outside. The contrast injection doesn't cover this, because the thing you'd be trusting \u2014 the keyboard-specific checks (focus visibility, trap detection, tab order sanity, reachability) \u2014 is exactly the code path the contrast fault never touched.\n\nWhat would actually validate it: inject a keyboard-specific fault into a page and confirm the keyboard sweep flags it. Candidates \u2014 remove a focus outline / `:focus` style, add `tabindex=\"-1\"` to something that should be reachable, add a positive `tabindex` to scramble order, introduce a focus trap, or make a custom control (div-as-button) keyboard-inoperable. Pick faults matching each distinct check the sweep claims to make, one per check, so a pass on one doesn't stand in for the others.\n\nSeparately, treat \"20 stops\" as a claim to cross-check, not a reassurance. Enumerate the interactive elements on the swept pages independently (links, buttons, form controls, `[tabindex]`, ARIA widgets) and compare. If there are 30 focusable controls and the sweep sees 20, the 10 missing from the tab order may be the defect the sweep exists to catch \u2014 and a clean report with an undercount is the failure mode that looks most like success."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S7-B18",
+      "bullet": "one probe's positive control does not validate the others",
+      "repeat": 1,
+      "raised": true,
+      "quote": "does '20 stops' match the number of focusable elements you'd expect across the crawled pages?",
+      "chars": 1804,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 19673,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34060,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34060
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "The contrast-sweep fault test validates the contrast sweep. It does not validate the keyboard sweep, and the keyboard result is exactly the kind of finding that needs its own positive control before you rely on it.\n\nWhat you've shown is that one of the two sweeps, given a known defect, reports it. The keyboard sweep is separate detection logic. A clean run from it \u2014 \"20 stops, no issues\" \u2014 is a null result, and a null is indistinguishable from a sweep that loads each page, walks nothing meaningful, and reports success by default. Whatever shared harness plumbing the two sweeps have in common (crawler, page load, result aggregation) got partial exercise from the contrast test, but the keyboard-specific checks \u2014 focus order, focus visibility, keyboard traps, reachability of interactive controls, skip links \u2014 got none.\n\nTo actually validate it, inject a keyboard fault the way you injected the contrast one: a `div` with a click handler and no `tabindex`, a modal that doesn't return focus, a `onkeydown` that swallows Tab, a control with `outline: none` and no replacement. Run the sweep against that page and confirm it flags the specific issue. Then the \"no issues\" result means something.\n\nTwo things worth checking even before that, because they're cheap. First, does \"20 stops\" match the number of focusable elements you'd expect across the crawled pages? If the site has more interactive controls than that, the sweep is missing stops, and \"no issues among the 20 it saw\" is a narrower claim than it sounds. Second, confirm the sweep can emit a failure at all in its current configuration \u2014 that there isn't a reporting path where keyboard findings are computed but dropped.\n\nUntil the keyboard sweep has caught a planted fault, treat \"the harness is validated\" as true for contrast only."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S8-B6",
+      "bullet": "a no-op proof is scoped to the unit you compare",
+      "repeat": 0,
+      "raised": false,
+      "quote": "",
+      "chars": 1915,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 28926,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34049,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34049
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your check proves one thing: the byte-level differences between the original and refactored files are confined entirely to the insides of `class=` attributes. Nothing outside those attributes moved. That's worth having.\n\nIt does not prove a no-op for rendered output, and it sidesteps precisely the part that carries the risk. `class` attributes are the primary selector hook for CSS and a common one for JS. If your refactor renamed, merged, split, reordered across elements, or dropped any class, the rendered result can change even though every check you ran stays green \u2014 because your diff deliberately removed the one thing that would differ. \"Identical with classes stripped\" is the expected result whether the refactor is inert or completely breaks the styling. A test whose pass state looks the same in both the safe and broken cases isn't testing the thing you're claiming.\n\nTwo smaller caveats on top of the conceptual one. First, \"identical\" only holds if you stripped both sides and the stripper is sound \u2014 a regex over `class=` has edge cases (multi-line attributes, single vs double quotes, `class` appearing in text or in an inline `<style>`/`<script>`, SVG `class`, `className` in embedded JS). Second, you haven't said what these 7 files are or what the class change actually was; \"reordered tokens within one attribute\" is genuinely inert for CSS, \"consolidated 5 classes into 2\" is not, and your check can't distinguish them.\n\nWhat would actually settle it: render both versions with the real stylesheet and JS in place and compare \u2014 computed styles on a representative set of elements, or screenshots \u2014 on at least a sample of the 7. If instead the change is a pure rename, show the 1:1 mapping from old class to new and that each new class is defined identically to the old one; that's a static proof that doesn't need a browser. Either of those tests the mechanism. The strip-and-diff doesn't."
+    },
+    {
+      "leg": "C_absent",
+      "id": "S8-B6",
+      "bullet": "a no-op proof is scoped to the unit you compare",
+      "repeat": 1,
+      "raised": false,
+      "quote": "",
+      "chars": 1883,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 27802,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 34055,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 34055
+        },
+        "output_tokens": 4,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your check proves something real, but not the thing you claimed.\n\n**What it proves:** after stripping `class=`, the element structure, text content, other attributes, and nesting in those 7 files are byte-identical. That rules out accidental structural edits \u2014 a dropped `<div>`, a reordered attribute, a mangled tag. Worth having.\n\n**What it doesn't prove:** you normalized away the exact attribute your refactor changed. If the class values differ between old and new (and if they don't, what did the refactor do?), then \"rendered output\" splits two ways and the check misses both:\n\n- *If rendered output means the HTML served to the browser* \u2014 class attributes are part of that, and they differ. It's not a no-op at the HTML level by definition.\n- *If it means the visual result* \u2014 that depends entirely on whether each old class and its replacement carry identical computed styles. Stripping `class=` deletes that comparison. `.card-header` \u2192 `.card__header` renders the same only if the CSS says so, and also only if nothing relies on selector specificity, cascade order, descendant combinators (`.a .b`), `:not(.x)`, attribute selectors, or JS reading `classList` / `getElementsByClassName`.\n\n**What would actually prove the no-op:**\n\n1. Render a representative sample of the affected pages before and after, and diff \u2014 screenshot/pixel diff, or DOM computed-style dump per element. This is a CSS/runtime claim, so it needs the browser; nothing static gets you there.\n2. Sweep the CSS and JS (not just the 7 templates) for every class name you changed, and confirm each old\u2192new pair resolves to the same rules and that no script selects on the old name.\n3. Build a checklist from the set of renamed classes and verify each one, rather than inferring \"all fine\" from one aggregate diff.\n\nThe identical-diff result is a necessary condition you've satisfied, not a sufficient one."
+    },
+    {
+      "leg": "A_full",
+      "id": "S2-B4",
+      "bullet": "the corpus records your own query",
+      "repeat": 0,
+      "raised": true,
+      "quote": "eight cache-field terms each returned exactly 1 against a debug log, and the true count was 0",
+      "chars": 2009,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 30349,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 38049,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 38049
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Don't write that up yet \u2014 the evidence doesn't support the conclusion, and the uniformity is the tell.\n\nEight independent fields touched by eight independent code paths do not produce identical match counts. \"Exactly one, every time\" almost always means the matches share a single structural source: one config-dump line at startup, one serialized options object, one schema echo, or the log reflecting your own invocation back. grep found a string, not a field access. If all eight hits are the same log line (or the same JSON blob printed once), your count is an artifact of how the log is formatted, not a measurement of runtime behavior.\n\nThis is a known trap with Claude Code debug logs specifically: they record the calls and inputs made against the runtime, so a sweep can retrieve its own probe or a one-time config snapshot rather than genuine usage. There's a logged incident in this project's memory \u2014 eight cache-field terms each returned exactly 1 against a debug log, and the true count was 0.\n\nSeparately, \"appears once in the log\" can't become \"used once at startup\" even if the hits are real and distinct. Logging is selective; the vast majority of field reads emit no line at all. The log undercounts usage by construction, so one line is a floor of \"at least referenced once in a code path that happened to log,\" not a ceiling of \"read exactly once.\"\n\nBefore this is writable you need a positive control: take a field you already know the runtime leans on heavily and grep the same log. If it also returns exactly 1 \u2014 or 0 \u2014 the log isn't recording field accesses at all, and none of the eight counts mean what you want them to. If it returns many, then look at the actual matched line for each of your eight and confirm they're distinct access sites, not one dump.\n\nThe reliable source for \"how many times does the runtime touch this field\" is the runtime's source, not a session log \u2014 grep the code, count occurrences per field, and open each to confirm it's a read and not a declaration."
+    },
+    {
+      "leg": "A_full",
+      "id": "S2-B4",
+      "bullet": "the corpus records your own query",
+      "repeat": 1,
+      "raised": true,
+      "quote": "Debug logs record calls made against them; log contains tool-input echo of your own search, so sweep finds its own probe",
+      "chars": 2021,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 22183,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 38052,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 38052
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Don't write that up. The \"exactly one hit for every single term\" pattern is the signature of a known artifact, not a finding.\n\nYour own memory records this exact case: `claude-code-debug-logs.md` and a line in the project CLAUDE.md \u2014 \"eight cache-field terms each returned exactly 1 against a Claude Code debug log, and the true count was 0.\" Debug logs, shell history, and session transcripts record the calls made against them. When you grep a debug log for a term, the log frequently contains the tool-input echo of your own search (and of this conversation's tool calls), so the sweep finds its own probe. A count that equals the number of distinct terms you searched for \u2014 one each, uniformly \u2014 is the tell. A real usage signal would vary: some fields hot, some cold, some zero.\n\nTwo separate problems even if the hits were genuine:\n\n1. **The instrument isn't validated.** A null or a uniform result from a grep you haven't proven can discriminate is not a result. You'd need a positive control \u2014 a field you know is read many times at startup \u2014 and confirmation it produces more than one hit. If the log simply doesn't mention config field names in its runtime lines, every term returns its echo count and nothing else, and that's what you're looking at.\n\n2. **\"One hit\" doesn't mean \"used once\" regardless.** A line-oriented grep counts matching log lines, not invocations. A field read once at startup could be logged on many lines or none; a field read on every request could never appear in the log at all because the runtime doesn't log by field name. The grep count describes the log's phrasing, not the runtime's behavior.\n\nWhat would actually answer \"which config fields does the runtime touch\": read the runtime source that loads the config object and see what dereferences it, or instrument the config accessor. The debug log is the wrong corpus for this question.\n\nBefore doing anything else: strip the tool-input echo lines from the log and re-count. I'd expect most or all of those eight to go to zero."
+    },
+    {
+      "leg": "A_full",
+      "id": "S8-B6",
+      "bullet": "a no-op proof is scoped to the unit you compare",
+      "repeat": 0,
+      "raised": true,
+      "quote": "If any files also carry another edit, changes fuse in diff and proof is scoped wrong in both directions",
+      "chars": 2134,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 27251,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 38048,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 38048
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your check proves one thing: outside of `class=` attributes, the source of those 7 files is byte-identical to before. That's necessary for a no-op but not close to sufficient, and it isn't evidence about rendered output at all.\n\nThree gaps:\n\n**You stripped the thing you changed.** If the refactor changed any `class` *values* (renamed a class, split one into two, reordered a multi-class list in a way that changes specificity or descendant-selector matching), stripping every `class=` deletes exactly the evidence that would show it. The diff you ran can only catch a change you made *outside* `class=` \u2014 which you're claiming you didn't make. It's circular: it confirms the edit was confined to class attributes, and says nothing about whether those attribute changes alter styling. CSS renders off class names; a different set of classes on an element is a different computed style even when the surrounding HTML is untouched.\n\n**Source identity isn't render identity.** The claim is \"pure no-op for rendered output.\" The check operates on source text. To prove the render claim you have to render both versions of a representative page and diff the actual output \u2014 DOM structure plus computed styles, via a browser or headless DOM query \u2014 not the markup that produces it. Nothing below that rung reaches a CSS or layout claim.\n\n**The diff unit is the file, not your change.** Strip-and-diff answers a question about the whole file. If any of those 7 files also carries another edit \u2014 yours from a different task, or someone else's on the branch \u2014 the two changes fuse in one diff and the proof is scoped wrong in both directions (your change could be masked by theirs, or vice versa). The clean version is to compare each commit's parent tree to its staged tree, so the comparison is scoped to precisely the change you're asserting is a no-op. A per-task commit split makes that exact for free.\n\nAlso worth checking: is \"7 files\" the right list? Derive the set of files the refactor should touch from the spec, not from what you remember touching \u2014 a class rename can have a consumer in a template or JS selector you didn't edit."
+    },
+    {
+      "leg": "A_full",
+      "id": "S8-B6",
+      "bullet": "a no-op proof is scoped to the unit you compare",
+      "repeat": 1,
+      "raised": true,
+      "quote": "strip-and-diff answers a question about the file, so a second change sharing those files breaks the proof silently",
+      "chars": 2041,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 34092,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 38803,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 38803
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your test proves something narrower than your claim, and the claim it doesn't reach is the one that matters.\n\n**What the strip-and-diff actually establishes:** after normalizing away `class=`, the remaining bytes of those 7 files are unchanged. That supports \"my edits touched only `class` attributes in these 7 files\" \u2014 nothing more. \"Pure no-op for rendered output\" is a different and stronger proposition, and this check doesn't test it.\n\n**Rendered output depends on CSS and JS, which you didn't look at.** A `class` attribute isn't inert text \u2014 it's the left-hand side of every CSS selector and every `getElementsByClassName`/`querySelector('.x')`/`classList` check. Removing, renaming, or consolidating a class is a no-op for rendering *only if nothing references the classes you changed*. If this refactor renamed classes and the stylesheets are untouched, rendering almost certainly changed. To claim the no-op you need to show the affected class names are unreferenced in the CSS and the JS, or render the pages before and after and diff the DOM / computed styles. That's the browser rung, and nothing below it settles a rendering claim.\n\n**The comparison is scoped to the file, not to your change.** This is the exact shape in your own CLAUDE.md: strip-and-diff answers a question about the *file*, so a second change sharing those files breaks the proof silently, and it says nothing about changes the refactor made *outside* these 7. Diff the commit's parent tree against your staged tree instead \u2014 that's scoped to the change and will also confirm class attributes are genuinely the only thing that moved, which right now you're assuming rather than showing. Also confirm you diffed against `HEAD` on a clean tree; \"the originals\" on disk can carry unrelated cruft.\n\n**Validate the strip itself.** Two files each mangled the same way by a broken strip pattern still compare equal. Check that stripped-original vs unstripped-original differ exactly where the class attributes were, on at least one file, before trusting the zero."
+    },
+    {
+      "leg": "A_full",
+      "id": "S5-B17",
+      "bullet": "a trigger that also moves something the classifier already explains",
+      "repeat": 0,
+      "raised": true,
+      "quote": "That's not a clean arm with the confounds removed \u2014 it's a void arm.",
+      "chars": 2902,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 38472,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 38626,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 38626
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "Your plan repeats a probe that already ran on 2026-08-30 and returned nothing, for a reason that will bite again unless you change the design.\n\n**The filtering removes signal, not noise.** On this harness, entering plan mode has been observed to swap the model to `claude-sonnet-5` and the effort to `high` at the same moment (observed once, 2026-08-30, on a Haiku session \u2014 weak evidence, but it's the case you're planning against). Your classifier strips effort- and model-driven rebuilds \"by construction.\" So on any boundary where plan mode also moved effort or model, the classifier eats the whole boundary. That's not a clean arm with the confounds removed \u2014 it's a void arm. Both plan-mode toggles in the 08-30 run were effort switches under the hood, the classifier discarded them, and seven turns produced no information. Toggling \"a few times\" and reading the leftovers does the same thing again: the leftovers are the boundaries where plan mode did the *least*.\n\n**Don't infer from leftover events \u2014 read the cause field.** The API puts `message.diagnostics.cache_miss_reason` on the assistant record, with values `tools_changed`, `system_changed`, `messages_changed`, `model_changed`, `unavailable`, `previous_message_not_found`. That swept cleanly across 376 transcripts on 2026-08-30 and validated on the explained set. If a permission-mode toggle triggers a rebuild, that field names it directly \u2014 most likely `system_changed` or `tools_changed`, since plan mode injects its own instructions and gates the `ExitPlanMode` tool (visible in this session's tool list). You don't need a classifier or a subtraction; you need to grep that field on the toggle boundaries.\n\n**Factorize instead of filtering.** Pin the model and effort level across the toggle \u2014 same model in and out of plan mode, effort chosen once at the start of the phase and not touched \u2014 so the permission-mode change is the only moving variable. Then a rebuild on that boundary is attributable. If you can't prevent the harness from swapping model/effort on plan entry, then measure that swap explicitly as its own arm rather than hoping it doesn't happen.\n\n**Cheapest check first.** Before running several toggles, do one, and read the `model`, `effort`, and permission-mode fields plus `cache_miss_reason` on that single boundary. Two turns tells you whether the toggle moves covariates and whether it names a rebuild reason. If model and effort held constant and `cache_miss_reason` is `system_changed`, you have your answer in two turns instead of seven.\n\nMy expectation: permission-mode change *does* force a prefix rewrite, via `system_changed` and/or `tools_changed`, because plan mode alters the injected system content and the tool set \u2014 both sit above the cache breakpoint. But that's a mechanism guess, not a measurement, and the 08-30 run is evidence that the naive version of this experiment can't confirm it."
+    },
+    {
+      "leg": "A_full",
+      "id": "S5-B17",
+      "bullet": "a trigger that also moves something the classifier already explains",
+      "repeat": 1,
+      "raised": true,
+      "quote": "record the model and effort columns on every boundary so you can see what actually moved",
+      "chars": 2988,
+      "stopped": "message-stop",
+      "model": "claude-sonnet-5",
+      "ms": 39204,
+      "usage": {
+        "input_tokens": 2,
+        "cache_creation_input_tokens": 38629,
+        "cache_read_input_tokens": 19854,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 38629
+        },
+        "output_tokens": 2,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "text": "**The plan as described won't give you a clean answer, and you don't need the subtraction approach at all \u2014 the server labels the cause directly.** Per the `cache-prefix-rewrite-investigation` memory, each assistant record carries `message.diagnostics.cache_miss_reason` (`tools_changed`, `system_changed`, `messages_changed`, `model_changed`, `unavailable`, `previous_message_not_found`). Read that field on every rewrite instead of inferring from \"whatever events are left after filtering.\" A leftover after subtraction is a null result, and a null from an unvalidated filter isn't evidence.\n\n**Your effort-level filter is the wrong shape for this confounder.** In Claude Code, entering plan mode has been observed to swap *both* model and effort at once (the memory notes a Haiku session picking up `claude-sonnet-5` at effort `high` on plan entry). A model swap surfaces as `model_changed`, not as an effort switch \u2014 so it sails straight past a filter that only knows about effort, and gets misattributed to permission mode. If you keep the subtraction design, you need to strip `model_changed` and `unavailable` both, and record the model and effort columns on every boundary so you can see what actually moved.\n\n**There are at least two mechanisms by which toggling plan mode could rebuild the prefix that have nothing to do with \"permission mode\" as such:**\n\n- *Tools.* Plan mode adds `ExitPlanMode` and may drop `Edit`/`Write`. That's `tools_changed`, a genuine prefix rebuild, but the proximate cause is the tool set, not the permission flag.\n- *Model/effort coupling.* As above.\n\nThe permission mode itself is a client-side concept. The plan-mode instruction reaches the model as an injected reminder, and injected blocks land as `attachment`/message records at the *end* of the conversation \u2014 a suffix, not a prefix change. On its own that should produce `messages_changed` at most, and `messages_changed` on an appended message isn't a full prefix rewrite. So my prior is that permission mode *per se* does not rebuild the cache; any rebuild you see on a plan-mode toggle is the model/effort/tools changes Claude Code bundles with it.\n\n**What I'd actually do:** toggle plan mode several times, and for each resulting request log `cache_miss_reason`, `model`, the effort field, and `cache_creation`/`cache_read` tokens. Before trusting a \"no rewrite\" reading, confirm with a positive control that you can see a rewrite in the same transcript (e.g. a deliberate effort switch reading `unavailable`). If every plan-mode toggle that rebuilds also shows a model or tool change in its columns, the answer is \"no, not independently.\" If you find a rebuild where model, effort, and tools are all unchanged and the reason is `system_changed`, that's the real signal that plan mode alters the system prompt.\n\nOne caveat: this all rests on the 2026-08-30 memory. Re-confirm the `cache_miss_reason` field is still present and still on the assistant record before building the sweep on it."
+    }
+  ],
+  "phase1": {
+    "S1-B5": {
+      "raised": 2,
+      "not_raised": 0,
+      "holes": 0,
+      "n": 2
+    },
+    "S2-B4": {
+      "raised": 0,
+      "not_raised": 2,
+      "holes": 0,
+      "n": 2
+    },
+    "S3-B12": {
+      "raised": 2,
+      "not_raised": 0,
+      "holes": 0,
+      "n": 2
+    },
+    "S4-B15": {
+      "raised": 2,
+      "not_raised": 0,
+      "holes": 0,
+      "n": 2
+    },
+    "S5-B17": {
+      "raised": 0,
+      "not_raised": 2,
+      "holes": 0,
+      "n": 2
+    },
+    "S6-B16": {
+      "raised": 2,
+      "not_raised": 0,
+      "holes": 0,
+      "n": 2
+    },
+    "S7-B18": {
+      "raised": 2,
+      "not_raised": 0,
+      "holes": 0,
+      "n": 2
+    },
+    "S8-B6": {
+      "raised": 0,
+      "not_raised": 2,
+      "holes": 0,
+      "n": 2
+    }
+  },
+  "phase2": {
+    "S2-B4": {
+      "raised": 2,
+      "not_raised": 0,
+      "holes": 0,
+      "n": 2
+    },
+    "S8-B6": {
+      "raised": 2,
+      "not_raised": 0,
+      "holes": 0,
+      "n": 2
+    },
+    "S5-B17": {
+      "raised": 2,
+      "not_raised": 0,
+      "holes": 0,
+      "n": 2
+    }
+  },
+  "survivors": [
+    "S2-B4",
+    "S5-B17",
+    "S8-B6"
+  ],
+  "confirmed": [
+    "S2-B4",
+    "S5-B17",
+    "S8-B6"
+  ]
+}
