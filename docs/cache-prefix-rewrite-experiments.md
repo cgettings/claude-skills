@@ -1772,6 +1772,13 @@ that cannot be arranged from a cold start on this machine while the wrapper is c
   the JSONL, as `attachment` records (§1.5) — the 2026-08-28 check parsed *message content*, which
   is the one place they are not. A verification scoped to the wrong container returns a clean null,
   and this one closed off the cheapest instrument in the inventory for two days.
+  **One block kind is the exception, and §1.5's table shows it by omission: the global and project
+  `CLAUDE.md` injection is in no subtype and no record.** `[verified 2026-09-02: 4 completed
+  transcripts, 5.65 MB, whole-record text rather than message content; 0 hits on never-typed
+  strings from either file, against controls firing 26-557 per file]`. Both docs cite the same
+  2026-08-28 check and reach opposite verdicts because they mean different blocks by "the injected
+  block" — so `durable-memory-model.md` §5's "not in the JSONL" stands for that one, and this
+  correction does not retire it.
 - **Comparing IDE against CLI sessions in the existing corpus.** Cannot work: by turns it is
   13,952 `claude-vscode` against 3 `cli`. It becomes Task 3 Step 3 instead, as a deliberate pair.
 - **Asking the model what changed.** A session cannot see its own injected blocks any more reliably
