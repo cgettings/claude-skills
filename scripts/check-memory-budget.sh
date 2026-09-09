@@ -87,23 +87,53 @@ report "./CLAUDE.md ($branch)" "./CLAUDE.md" "$CEILING_PROJECT"
 #    only ':' and '/' silently reports "no project store" for every worktree. The drive
 #    letter's case varies between stores that already exist, so match case-insensitively
 #    rather than assuming either spelling.
-here=$(pwd -W 2>/dev/null || pwd)
-want=$(printf '%s' "$here" | tr ':/.' '---' | tr 'A-Z' 'a-z')
-store=""
-for d in "$HOME"/.claude/projects/*/; do
-    [ -d "$d" ] || continue
-    if [ "$(basename "$d" | tr 'A-Z' 'a-z')" = "$want" ]; then
-        store=$d
-        break
-    fi
+# 3a. `autoMemoryDirectory` overrides the path-folded store, and a git worktree is
+#     exactly where it usually does: Claude Code gives each worktree its own store and
+#     leaves the memory dir out of it, so the convention is to repoint the setting at
+#     the main checkout's. Folding the path alone therefore finds a store, looks for a
+#     MEMORY.md that was never there, and reports "not present" -- a null that reads
+#     like a result, on the one limit here that is the platform's rather than ours
+#     `[2026-09-09: reported "not present" from an EH-dataportal worktree while the
+#     live file sat at 13,818 B of a 25,000 B cap, unwatched]`.
+#
+#     Most-specific settings file wins. That order is taken from the file names rather
+#     than verified against Claude Code's docs; in practice only one file sets the key.
+mem=""
+mem_src=""
+for s in ".claude/settings.local.json" ".claude/settings.json" "$HOME/.claude/settings.json"; do
+    [ -f "$s" ] || continue
+    v=$(sed -n 's/.*"autoMemoryDirectory"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$s" | head -1)
+    [ -n "$v" ] || continue
+    # Quote the '~/' in the strip pattern: unquoted, bash tilde-expands the word first,
+    # so the pattern becomes $HOME/, matches nothing, and the '~' survives into the path.
+    case "$v" in "~/"*) v="$HOME/${v#'~/'}" ;; esac
+    mem="$v/MEMORY.md"
+    mem_src="$s"
+    break
 done
 
-if [ -z "$store" ]; then
+if [ -z "$mem" ]; then
+    here=$(pwd -W 2>/dev/null || pwd)
+    want=$(printf '%s' "$here" | tr ':/.' '---' | tr 'A-Z' 'a-z')
+    for d in "$HOME"/.claude/projects/*/; do
+        [ -d "$d" ] || continue
+        if [ "$(basename "$d" | tr 'A-Z' 'a-z')" = "$want" ]; then
+            mem="${d}memory/MEMORY.md"
+            mem_src="path-folded store"
+            break
+        fi
+    done
+fi
+
+if [ -z "$mem" ]; then
     printf '  %-34s %9s  %8d  no project store for this directory\n' \
         "MEMORY.md" "-" "$CEILING_MEMORY"
 else
-    mem="${store}memory/MEMORY.md"
     report "MEMORY.md" "$mem" "$CEILING_MEMORY"
+
+    # Name the file that was measured. "not present" is otherwise indistinguishable
+    # from "measured the wrong path", which is the bug this section exists to prevent.
+    printf '    resolved: %s (via %s)\n' "$mem" "$mem_src"
 
     # The truncation report, which is the part a ceiling check would otherwise miss.
     if [ -f "$mem" ]; then
