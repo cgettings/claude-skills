@@ -1,7 +1,7 @@
 ---
 name: distill-lessons
 description: Review a finished stretch of work for durable lessons and write each one to the right place — CLAUDE.md for standing instructions, memory for incidents, nowhere for the rest. Use this whenever a branch, plan, multi-stage task, or long debugging session wraps up; when context is about to be lost to a compaction or session reset; and whenever the user asks "any lessons?", "anything for CLAUDE.md?", "what did we learn?", "anything worth remembering?", "let's debrief", or otherwise asks what should be carried forward from the work. Also use it proactively at the end of substantial work even if the user doesn't ask — lessons left in a plan doc or scratch ledger are read by nobody. Two things this is NOT for — summarizing or recapping what happened, which is a report on the work rather than a decision about what outlives it; and edits already decided on, since "add X to CLAUDE.md" or "remember that I prefer Y" is a direct request to just do it. This pass is for deciding *what* is worth recording.
-version: 2.4.0
+version: 3.0.0
 license: GPL-3.0-or-later
 ---
 
@@ -112,7 +112,11 @@ The second is derivable rather than conventional: where only one project store l
 
 The failure mode is one-directional and silent: take a recognition specific for an evidence one and the rule stops firing, with nothing to announce it. So when a specific could be either, it stays. Space recovered from a rule that no longer fires was not recovered.
 
-**Size is a further gate, not a style preference:** an entry can pass the usefulness test and still cost more than it returns. A 90-word bullet added to a 300-word section is a 30% tax on that section, paid forever, on every unrelated task.
+**Length is a matter for the wording, never for the destination.** An entry that earned an always-loaded line still costs something there — a 90-word bullet added to a 300-word section is a 30% tax on that section, paid on every unrelated task — and the repair for that is to write it shorter, or to move its evidence out per the split above. It is not to send the rule somewhere it will not fire.
+
+**How full the destination file already is decides nothing.** A budget on an always-loaded file is a number someone chose, and passing it breaks nothing: adding a rule to a CLAUDE.md already over its budget is fine, and "the file is over, so this goes to memory instead" is a routing decision made on the wrong grounds. Two things follow. Never displace an existing rule to make room for a new one as part of this pass — moving a rule you were not otherwise going to touch, or dropping it, is a `refile-rules` judgement about structure and needs its own trigger. Relocating an entry's *evidence* behind a pointer is a different move and is always welcome: it is the split above, the rule keeps firing, and nothing has to leave to pay for it. And if a size reading is put in front of you — by a hook, a checker, a line in the instructions — read what kind of limit it is before letting it move anything.
+
+**The exception is a limit the platform enforces by truncating.** An always-loaded index with a hard cap — the memory index is the usual case — stops loading its tail at the cap while the file on disk still looks complete, so an entry appended past it is written and never read. That is not a budget and it does not yield to a judgement call: measure it before appending, and if the file is at the cap, say so and stop rather than adding a line nothing will load. `[2026-09-09: a pass filed a global rule in a project store because the global CLAUDE.md read "241% over" — a chosen ceiling. The cap that could actually have truncated something went unmeasured, and the file it applied to had 11,182 B of headroom.]`
 
 **Memory — incidents and context.** Is this the story of what happened, or state a future session would need to pick the work up? Memory holds the narrative, the numbers, the *why* — everything that would bloat CLAUDE.md. Follow whatever memory format the environment specifies — one fact per file, with frontmatter and an index line, is one common shape. If the environment has no memory tier at all, this destination collapses into CLAUDE.md or nowhere; say so plainly rather than inventing a store to write to.
 
@@ -166,7 +170,7 @@ Two guards, and they bind as hard as the test itself:
 - **Confidence about what was done and observed stays flat and declarative.** A record padded with "may" and "appears to" is harder to act on, and it launders the same distinction in the other direction — hedging a measurement makes it read like a guess, which is the failure this section exists to prevent, mirrored. Hedge what is uncertain. Assert what you ran.
 - **Vivid phrasing that compresses something true nearby is kept, not trimmed.** "A test whose pass and fail states are indistinguishable is worse than no test" is doing work, and the incident sits in the next sentence. Trimming it to "unclear test outcomes are a problem" loses the trigger and gains nothing. This is a calibration, never a ban on writing well.
 
-**For every CLAUDE.md addition, give its size against the section it joins** — words added, section length, the ratio. Measure it; don't estimate it. Do this in the proposal rather than after, because bloat is nearly invisible in a diff read line by line and obvious the moment it's a ratio. If the number is embarrassing, the entry wants to be a memory with a one-line pointer, not a bullet.
+**For every CLAUDE.md addition, give its size against the section it joins** — words added, section length, the ratio. Measure it; don't estimate it. Do this in the proposal rather than after, because bloat is nearly invisible in a diff read line by line and obvious the moment it's a ratio. A large ratio is a prompt to tighten the wording or move the evidence out, and the user's call either way — it never re-routes the entry on its own, per step 4.
 
 Then ask which to apply. Two reasons this matters: they know things you don't about what's already tribal knowledge, and a project CLAUDE.md is usually shared with a team, so it's their call what lands in it.
 

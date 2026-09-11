@@ -45,13 +45,18 @@ setup() {
 # $1 arm name, $2 expected exit, $3 pattern that must appear in the output,
 # $4 optional second pattern -- the summary tally is a separate claim from the per-file
 # row, and an arm that checks only the row passes while the tally counts one file twice.
+# Set ARGS before a call to pass flags; it is reset after each arm so a flag cannot leak
+# into the next one and make a wide-report arm pass on the narrow report.
+ARGS=""
 arm() {
     name=$1
     want_exit=$2
     want_text=$3
     want_more=${4:-}
-    out=$(cd "$tmp/work" && HOME="$tmp/home" sh "$SCRIPT" 2>&1)
+    # Unquoted on purpose: ARGS holds zero or one flag and must word-split.
+    out=$(cd "$tmp/work" && HOME="$tmp/home" sh "$SCRIPT" $ARGS 2>&1)
     got_exit=$?
+    ARGS=""
 
     ok=1
     [ "$got_exit" = "$want_exit" ] || ok=0
@@ -139,6 +144,43 @@ arm "no project store" 0 "no project store"
 
 setup none none none 0
 arm "nothing to measure exits 2" 2 "measured 0 files"
+
+# --memory-only exists so a lessons pass sees the one limit that truncates and nothing
+# else. The claim under test is therefore two-sided: the cap still binds, and a CLAUDE.md
+# far over its chosen ceiling changes neither the exit code nor a line of the output.
+setup 30000 25000 5000 20
+ARGS="--memory-only"
+arm "memory-only: ceilings do not bind" 0 "MEMORY.md is under the cap"
+
+# The absence is the whole point of the mode, so assert it rather than the presence of
+# the MEMORY.md row that the arm above already covers. Both CLAUDE.md files are over
+# ceiling in this fixture, so a leak would print an OVER row.
+out=$(cd "$tmp/work" && HOME="$tmp/home" sh "$SCRIPT" --memory-only 2>&1)
+ctrl=$(cd "$tmp/work" && HOME="$tmp/home" sh "$SCRIPT" 2>&1)
+# Positive control for the absence: the same fixture without the flag must print the row
+# being looked for. Without it, a grep that finds nothing because the fixture built
+# nothing is indistinguishable from the mode suppressing it.
+if ! printf '%s' "$ctrl" | grep -q "CLAUDE.md"; then
+    printf '  FAIL  %-38s control: wide report printed no CLAUDE.md row either\n' "memory-only: no CLAUDE.md rows"
+    fail=$((fail + 1))
+elif printf '%s' "$out" | grep -q "CLAUDE.md"; then
+    printf '  FAIL  %-38s a CLAUDE.md row leaked into the narrow report\n' "memory-only: no CLAUDE.md rows"
+    printf '%s\n' "$out" | sed 's/^/          /'
+    fail=$((fail + 1))
+else
+    printf '  PASS  %-38s no CLAUDE.md row, both over ceiling\n' "memory-only: no CLAUDE.md rows"
+    pass=$((pass + 1))
+fi
+
+setup 5000 5000 30000 20
+ARGS="--memory-only"
+arm "memory-only: cap still binds" 1 "ALREADY PAST 25000 B" "tail is not loading"
+
+# An unknown flag must not fall back to the wide report: a caller that asked for the
+# narrow reading and silently got the wide one is the failure this mode exists to avoid.
+setup 5000 5000 5000 20
+ARGS="--memoryonly"
+arm "unknown argument exits 2" 2 "unknown argument"
 
 printf 'arms: %d passed, %d failed\n' "$pass" "$fail"
 [ "$fail" -eq 0 ] || exit 1

@@ -558,6 +558,22 @@ lessons, a fraction of the bytes per lesson.
 A ceiling is what turns that from an intention into a mechanism: at the ceiling, adding a rule
 requires routing one out, so every addition becomes a routing decision instead of an append.
 
+**Retired 2026-09-10 — this is the one sentence in §3c that was acted on, and it was acted on
+wrongly.** The ceilings are readings, not gates: *"i don't want the ceilings to dictate structural
+moves or changes. i believe memory.md is the only one that has a hard cap w/r/t claude code
+mechanics"* `[2026-09-09, restated 2026-09-10]`. Adding a rule to a `CLAUDE.md` already over its
+ceiling is fine and always was — nothing truncates, nothing breaks. Trading one rule out for
+another is a `refile-rules` judgement about structure and needs its own trigger; it is never
+something a byte count obliges. What survives here is the row for `MEMORY.md`, and only because a
+platform cap sits above it: past 25,000 B or 200 lines the tail silently stops loading. `MEMORY.md`
+is the only file in the table whose limit changes what anyone should do.
+
+The cost of the retired sentence is recorded: two lessons passes routed entries away from
+`~/.claude/CLAUDE.md` because the file read "241% over", and one of them filed a global rule in a
+single project's store, where every other project reads it as missing. Downstream copies corrected
+the same day — `distill-lessons` §4 (3.0.0), `check-memory-budget.sh`'s header, and the
+`lessons-gate` hook, which now injects `--memory-only` rather than the whole table.
+
 | File | Ceiling | Note |
 |---|---:|---|
 | `~/.claude/CLAUDE.md` | 25,000 B | from 49,553 — about 6,000 tokens, from 11,973 |
@@ -1330,10 +1346,21 @@ existing `scripts/check-versions.sh`.
 
 Report bytes for each always-loaded file against §3c's ceiling, and `MEMORY.md` against both the
 200-line and 25KB platform caps. Non-zero exit when a ceiling is passed. The point is not to block
-a commit — it is that passing the ceiling surfaces as a routing decision instead of silently.
+a commit — it is that passing the ceiling surfaces at all instead of silently.
+
+**Amended 2026-09-10, following §3c's retirement of the ceiling-as-gate sentence.** A ceiling row
+is a reading and obliges nothing; only the truncation cap changes what anyone should do.
+`--memory-only` reports that cap alone, and is what the `lessons-gate` hook now injects — the wide
+table in front of a lessons pass was read as a routing constraint. Two arms cover the mode
+(ceilings do not bind; the cap still does) plus one for the absence of the `CLAUDE.md` rows, with a
+positive control that the wide report prints them from the same fixture, and one for an unknown
+argument exiting 2 rather than falling back to the wide report. **15 arms, all pass
+`[2026-09-10; inverting the mode gate turned two of the four new arms red — the two that assert
+the ceilings are absent. The cap arm stays green under that injection because the wide report
+reports truncation too, and the argument arm never enters the mode]`.**
 
 **Two limits, deliberately not merged.** A **ceiling** is a number §3c chose: passing it costs
-tokens in every session and means the next addition should route something out. A **truncation
+tokens in every session, and that is the whole of it. A **truncation
 cap** is the platform's (§2): `MEMORY.md` loads its first 200 lines *or* 25,000 B, whichever
 arrives first, and passing it means the tail stops loading while the file on disk still looks
 whole. The report prints the line the byte cap actually lands on rather than a line count, because

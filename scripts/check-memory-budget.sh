@@ -5,11 +5,16 @@
 # point — they have different consequences and different fixes:
 #
 #   CEILING     a number we chose (docs/durable-memory-model.md §3c). Passing it costs
-#               tokens in every session of every day, and means the next addition should
-#               route something out rather than append. Nothing breaks.
+#               tokens in every session of every day. Nothing breaks, and nothing is
+#               owed: a ceiling is a reading, never a reason to route an entry somewhere
+#               it does not belong `[2026-09-09, restated 2026-09-10: "i don't want the
+#               ceilings to dictate structural moves or changes"]`. Adding a rule to a
+#               CLAUDE.md that is already over is fine.
 #   TRUNCATION  a platform limit (§2). MEMORY.md loads only its first 200 lines OR the
 #               first 25,000 B, whichever arrives first. Passing it means the tail
 #               silently stops loading while the file on disk still looks complete.
+#               This is the only limit here that should change anyone's handling of an
+#               entry, and `--memory-only` reports it alone.
 #
 # Which of MEMORY.md's two truncation caps binds depends on the file's bytes-per-line,
 # and for prose index files it is never the line count: at ~178 B/line, 25,000 B arrives
@@ -22,8 +27,28 @@
 # nobody currently has open — so the project row names the branch it measured.
 #
 #   sh scripts/check-memory-budget.sh   ; echo $?   # 0 = all under, 1 = at least one over
+#   sh scripts/check-memory-budget.sh --memory-only ; echo $?   # MEMORY.md vs the caps
 #
 # Chain it with `;` rather than `&&`: a non-zero exit is the informative answer here.
+#
+# An unrecognised argument exits 2 rather than falling back to the full report: a caller
+# that asked for the narrow reading must not silently get the wide one.
+
+memory_only=0
+for a in "$@"; do
+    case "$a" in
+        --memory-only) memory_only=1 ;;
+        -h|--help)
+            sed -n '2,/^$/p' "$0"
+            exit 0
+            ;;
+        *)
+            echo "check-memory-budget.sh: unknown argument '$a'" >&2
+            echo "usage: check-memory-budget.sh [--memory-only]" >&2
+            exit 2
+            ;;
+    esac
+done
 
 # From §3c. Chosen, not derived — no measurement establishes 25,000 over 30,000. They are
 # revised against what a split actually yields, not defended.
@@ -68,17 +93,27 @@ report() {
     fi
 }
 
-echo "always-loaded instruction files, measured $(date -u +%Y-%m-%d)"
-printf '  %-34s %9s  %8s  %s\n' "file" "bytes" "ceiling" "status"
+if [ "$memory_only" -eq 1 ]; then
+    # The limit column is the platform's byte cap in this mode, not a chosen ceiling —
+    # the two are different numbers and labelling them alike is what makes a ceiling
+    # read as though it bound something.
+    mem_limit=$TRUNC_BYTES
+    echo "MEMORY.md against the platform cap, measured $(date -u +%Y-%m-%d)"
+    printf '  %-34s %9s  %8s  %s\n' "file" "bytes" "cap" "status"
+else
+    mem_limit=$CEILING_MEMORY
+    echo "always-loaded instruction files, measured $(date -u +%Y-%m-%d)"
+    printf '  %-34s %9s  %8s  %s\n' "file" "bytes" "ceiling" "status"
 
-# 1. The global file: one copy, loaded into every session in every project.
-report "~/.claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md" "$CEILING_GLOBAL"
+    # 1. The global file: one copy, loaded into every session in every project.
+    report "~/.claude/CLAUDE.md" "$HOME/.claude/CLAUDE.md" "$CEILING_GLOBAL"
 
-# 2. The project file, named with its branch. Run it, never read it from a cached
-#    status block — a session-start snapshot goes stale the moment anyone switches.
-branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || branch=""
-[ -n "$branch" ] || branch="no branch"
-report "./CLAUDE.md ($branch)" "./CLAUDE.md" "$CEILING_PROJECT"
+    # 2. The project file, named with its branch. Run it, never read it from a cached
+    #    status block — a session-start snapshot goes stale the moment anyone switches.
+    branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || branch=""
+    [ -n "$branch" ] || branch="no branch"
+    report "./CLAUDE.md ($branch)" "./CLAUDE.md" "$CEILING_PROJECT"
+fi
 
 # 3. MEMORY.md, in the per-directory store. The store's name is the absolute path with
 #    ':', '/' AND '.' all folded to '-' -- the dot matters and is easy to miss, because
@@ -127,9 +162,9 @@ fi
 
 if [ -z "$mem" ]; then
     printf '  %-34s %9s  %8d  no project store for this directory\n' \
-        "MEMORY.md" "-" "$CEILING_MEMORY"
+        "MEMORY.md" "-" "$mem_limit"
 else
-    report "MEMORY.md" "$mem" "$CEILING_MEMORY"
+    report "MEMORY.md" "$mem" "$mem_limit"
 
     # Name the file that was measured. "not present" is otherwise indistinguishable
     # from "measured the wrong path", which is the bug this section exists to prevent.
@@ -154,9 +189,9 @@ else
         }'
         # Count a live truncation as a failure: silent data loss outranks a budget choice.
         # Only when `report` has not already counted this same file, though. TRUNC_BYTES
-        # sits above CEILING_MEMORY, so every byte-cap truncation is also a ceiling
-        # breach, and counting both makes one file read as "2 over budget".
-        if [ "$mb" -le "$CEILING_MEMORY" ]; then
+        # sits at or above whichever limit the row used, so every byte-cap truncation is
+        # also a row breach, and counting both makes one file read as "2 over budget".
+        if [ "$mb" -le "$mem_limit" ]; then
             if [ "$mb" -gt "$TRUNC_BYTES" ] || [ "$ml" -gt "$TRUNC_LINES" ]; then
                 over=$((over + 1))
             fi
@@ -166,8 +201,23 @@ fi
 
 # Emit the counts unconditionally: a run that measured nothing must not read as a pass.
 if [ "$checked" -eq 0 ]; then
-    echo "measured 0 files - no always-loaded file found from $(pwd)"
+    if [ "$memory_only" -eq 1 ]; then
+        # Say which file was not found. In this mode the CLAUDE.md files are skipped by
+        # design, so "no always-loaded file found" would misdescribe what happened.
+        echo "measured 0 files - no MEMORY.md resolved from $(pwd)"
+    else
+        echo "measured 0 files - no always-loaded file found from $(pwd)"
+    fi
     exit 2
+fi
+
+if [ "$memory_only" -eq 1 ]; then
+    if [ "$over" -eq 0 ]; then
+        echo "MEMORY.md is under the cap: all $total B of it loads"
+        exit 0
+    fi
+    echo "MEMORY.md is past the cap: its tail is not loading"
+    exit 1
 fi
 
 printf 'measured %d files, %d B always loaded here: ' "$checked" "$total"
