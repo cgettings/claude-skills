@@ -1,11 +1,17 @@
 ---
 name: reconcile-records
 description: Find and fix records that recent work made false — status lines that have moved on, numbers something re-measured, notes that became re-derivable, rules a newer rule replaced, and state the work left unrecorded. Use when a branch merges, a release ships, or a multi-stage task completes; at a boundary where a lessons pass found nothing worth recording, which is not a reason to skip this one; when someone trips over a stale doc, memory, comment, or README; and whenever the user asks "is this still true?", "anything out of date?", "clean up the notes", or "does the doc still match the code?". This is not for adding new knowledge — capturing a durable lesson is `distill-lessons`. It is also not for reorganizing a store whose sections have drifted into overlap or grown too long to read, which is `refile-rules`. Its pair is `keep-ledger`, which writes the status record while work is live; this pass is what checks one. This pass makes the record match reality — it corrects, retires, and where the work left state unrecorded, captures that state. It runs whether or not the work taught anything.
-version: 1.5.0
+version: 1.6.0
 license: GPL-3.0-or-later
 ---
 
 # Reconcile records
+
+Before anything else — before any tool call, before a todo list, before any other output — emit this line on its own:
+
+**▶ Skill: reconcile-records**
+
+It is how a reader finds where this run began, which matters most when it began without anyone asking for it.
 
 Keeping a record true is half of keeping it useful. Most note-keeping only adds: every pass appends, nothing is retired, and the store grows until the wrong parts outnumber the parts anyone still trusts.
 

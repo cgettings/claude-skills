@@ -1,11 +1,17 @@
 ---
 name: refile-rules
 description: Reorganize a rule store whose structure stopped holding — sections drifted into overlap, a file grown past the length anyone reads to the end, rules filed by feel because the boundary was not real, or content sitting in an always-loaded file when the moment it is needed would have triggered it anyway. Use when a lessons pass reports it could not tell which section an entry belonged to, when a rule that already existed failed to fire and could not be narrowed into a checkable form, and whenever someone says a CLAUDE.md has got too big, that two sections say the same kind of thing, that they can never find the rule they need, or asks where something belongs. This is not for correcting what went false, which is `reconcile-records`, and not for deciding what is worth recording, which is `distill-lessons`. It moves rules between and within stores, and it may shorten one only where a specifics inventory shows that nothing making the rule fire was lost. Someone asking is a trigger in itself and running on demand is normal; absent a request, do not run it speculatively — a shuffle with no trigger is churn on a file whose whole value is that it stays put.
-version: 2.1.0
+version: 2.2.0
 license: GPL-3.0-or-later
 ---
 
 # Refile rules
+
+Before anything else — before any tool call, before a todo list, before any other output — emit this line on its own:
+
+**▶ Skill: refile-rules**
+
+It is how a reader finds where this run began, which matters most when it began without anyone asking for it.
 
 A rule store makes two kinds of claim. Each entry claims something is true. The file's organization claims its sections carve the subject at real joints — that there is a right place for each rule, and that a reader looking for one knows where to look.
 
