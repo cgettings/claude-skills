@@ -1,11 +1,17 @@
 ---
 name: distill-lessons
 description: Review a finished stretch of work for durable lessons and write each one to the right place — CLAUDE.md for standing instructions, memory for incidents, nowhere for the rest. Use this whenever a branch, plan, multi-stage task, or long debugging session wraps up; when context is about to be lost to a compaction or session reset; and whenever the user asks "any lessons?", "anything for CLAUDE.md?", "what did we learn?", "anything worth remembering?", "let's debrief", or otherwise asks what should be carried forward from the work. Also use it proactively at the end of substantial work even if the user doesn't ask — lessons left in a plan doc or scratch ledger are read by nobody. Two things this is NOT for — summarizing or recapping what happened, which is a report on the work rather than a decision about what outlives it; and edits already decided on, since "add X to CLAUDE.md" or "remember that I prefer Y" is a direct request to just do it. This pass is for deciding *what* is worth recording.
-version: 3.0.0
+version: 3.1.0
 license: GPL-3.0-or-later
 ---
 
 # Distill lessons
+
+Before anything else — before any tool call, before a todo list, before any other output — emit this line on its own:
+
+**▶ Skill: distill-lessons**
+
+It is how a reader finds where this run began, which matters most when it began without anyone asking for it.
 
 Work produces two things: the change, and what you learned making it. The change gets committed. The learning usually evaporates — it sits in a plan file or a scratch ledger that only that one workstream will ever open, and the next session rediscovers it the expensive way.
 

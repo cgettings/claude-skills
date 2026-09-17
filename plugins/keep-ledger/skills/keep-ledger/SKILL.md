@@ -1,11 +1,17 @@
 ---
 name: keep-ledger
 description: Keep a resumable ledger — what is done, what proof actually ran, and the exact next command — in the tracked document that owns the work, written so a session that was not there can run the next step from it alone. Use when starting anything with more than one step (a plan about to be executed, a staging list, a migration, a multi-stage refactor), and use again when picking such work back up — a new session, a fresh context after a compaction or a session-limit reset, or when the user says "where were we", "pick this back up", "what's left on X", "did we finish Y". Also use when a plan or staging list turns out to list steps with no status. This is not for deciding what knowledge is worth keeping, which is `distill-lessons`, and not for sweeping a record store for what recent work made false, which is `reconcile-records` — though a stale or absent ledger is exactly what that pass is built to catch. It is also not a session recap or a handover summary — those describe what happened, and a ledger records only what a future session must act on.
-version: 1.3.1
+version: 1.4.0
 license: GPL-3.0-or-later
 ---
 
 # Keep a ledger
+
+Before anything else — before any tool call, before a todo list, before any other output — emit this line on its own:
+
+**▶ Skill: keep-ledger**
+
+It is how a reader finds where this run began, which matters most when it began without anyone asking for it.
 
 A plan says what to do. It does not say what happened — and after the first session, what happened is the only thing a reader needs.
 
