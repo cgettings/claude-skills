@@ -1,7 +1,7 @@
 ---
 name: refile-rules
 description: Reorganize a rule store whose structure stopped holding — sections drifted into overlap, a file grown past the length anyone reads to the end, rules filed by feel because the boundary was not real, or content sitting in an always-loaded file when the moment it is needed would have triggered it anyway. Use when a lessons pass reports it could not tell which section an entry belonged to, when a rule that already existed failed to fire and could not be narrowed into a checkable form, and whenever someone says a CLAUDE.md has got too big, that two sections say the same kind of thing, that they can never find the rule they need, or asks where something belongs. This is not for correcting what went false, which is `reconcile-records`, and not for deciding what is worth recording, which is `distill-lessons`. It moves rules between and within stores, and it may shorten one only where a specifics inventory shows that nothing making the rule fire was lost. Someone asking is a trigger in itself and running on demand is normal; absent a request, do not run it speculatively — a shuffle with no trigger is churn on a file whose whole value is that it stays put.
-version: 2.2.0
+version: 2.3.0
 license: GPL-3.0-or-later
 ---
 
@@ -121,6 +121,8 @@ Prove this class mechanically: sort the rule lines before and after, and diff th
 **Class 2 — edits, merges included.** Each is shown in full: the before text — both befores, for a merge — the after text, and step 5's specifics inventory with every item marked carried-over or dropped-with-reason.
 
 This class gets no mechanical proof; by construction the text changed. It is proved by being read, which is only possible while the class stays small. If it isn't small, that is itself the finding — a rewrite is running under a reorganization's name, and it needs a different conversation before it goes any further.
+
+One sub-shape gets a mechanical proof of everything except its judgment: an edit that is a manifest of substitutions - each an old span, the span replacing it, and for step 5's fourth shape the file the removed text went to. Replay the manifest onto the base and compare bytes with the result, then check every removed span is verbatim at its destination. Replay forward, never in reverse: a replacement such as a bare date can already occur on the same line, so the reverse is ambiguous and fails a sound edit. Break a copy once per check before trusting a pass. What is left to read is which spans were judged evidence; the text around them is proved. `[2026-09-26: 29 spans across 22 entries, proved byte for byte this way; the first, reverse version failed the sound edit on a line already holding a bare date]`
 
 Do this on a **clean working tree**. On a dirty one the proof is worthless: you'd be reading your reorganization fused with whatever else was in flight, and you'd have to reconstruct which was which afterwards from memory.
 

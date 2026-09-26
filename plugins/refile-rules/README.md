@@ -73,7 +73,9 @@ something it did, it's out of scope — and both are visible in the before/after
 text byte for byte, so they're proved mechanically: sort the rule lines before and after, diff the
 sorted forms, and on a clean working tree that diff is the proof. Edits get no mechanical proof —
 by construction the text changed — so each is shown in full with its inventory, and the class has
-to stay small enough to read. **Merges are edits**, not moves: a merge produces text that was in
+to stay small enough to read. The exception is an edit that is a manifest of substitutions — evidence
+moved off a line, say — which is proved by replaying the manifest onto the base and comparing bytes,
+leaving only the judgment to read. **Merges are edits**, not moves: a merge produces text that was in
 neither original, so the sorted diff can't speak to it. A large edit class is itself a finding —
 that's a rewrite running under a reorganization's name. The two classes are proposed separately and
 can be accepted separately.
