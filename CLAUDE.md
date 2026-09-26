@@ -31,3 +31,13 @@ incidents and methods live in this project's memory store.
   rather than an incomplete one. `distill-lessons` 1.4.0 → 2.0.0 (three flat routing destinations
   became two axes) and `refile-rules` 1.1.0 → 2.0.0 (§5's byte-for-byte default gained a fourth
   permitted edit) were both proposed as minor bumps and corrected on review `[2026-09-01]`.
+
+- **A skill step fires when the output it produces has a field for it.** Prose telling a pass to do
+  something is skipped without trace; a field the proposal must fill is not `[2026-09-26]`. When
+  adding a step to a skill, add the line its output must carry. Evidence: the Task 5 row in
+  `docs/durable-memory-model.md`.
+
+- **The Skill tool serves the installed plugin, not this working tree.** To exercise an unmerged
+  skill, compare `ls ~/.claude/plugins/cache/<marketplace>/<plugin>/` against the branch's
+  `version:`, and if they differ, read the branch's `SKILL.md` and follow that. A run through the
+  Skill tool tests the installed version and reports on the branch.
