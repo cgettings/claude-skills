@@ -1,7 +1,7 @@
 ---
 name: keep-ledger
 description: Keep a resumable ledger — what is done, what proof actually ran, and the exact next command — in the tracked document that owns the work, written so a session that was not there can run the next step from it alone. Use when starting anything with more than one step (a plan about to be executed, a staging list, a migration, a multi-stage refactor), and use again when picking such work back up — a new session, a fresh context after a compaction or a session-limit reset, or when the user says "where were we", "pick this back up", "what's left on X", "did we finish Y". Also use when a plan or staging list turns out to list steps with no status. This is not for deciding what knowledge is worth keeping, which is `distill-lessons`, and not for sweeping a record store for what recent work made false, which is `reconcile-records` — though a stale or absent ledger is exactly what that pass is built to catch. It is also not a session recap or a handover summary — those describe what happened, and a ledger records only what a future session must act on.
-version: 1.4.0
+version: 2.0.0
 license: GPL-3.0-or-later
 ---
 
@@ -50,7 +50,7 @@ The vocabulary, and the distinctions that matter:
 
 Parked and blocked are not synonyms, and the difference is who acts next. A step marked with neither reads as available, and a session will start it.
 
-**Record identities; derive relationships.** A ledger holds two kinds of fact and they age completely differently. An identity — a commit hash, a file path, the date an event happened — is stable: `3ce4b8f2b3` is that commit through a push, a merge, someone else's rebase, and the deletion of the branch it sat on. A relationship is two refs evaluated at a moment: *unpushed*, *unmerged*, *no PR open*, *8 commits ahead*. Each is true only until something moves, and each is falsified by a different event, which the phrase gives no hint of — so nobody knows what to re-check or when. Write the identity down; leave the relationship to be derived (§5).
+**Record identities; derive relationships.** A ledger holds two kinds of fact and they age completely differently. An identity — a commit hash, a file path, the date an event happened — is stable: `3ce4b8f2b3` is that commit through a push, a merge, someone else's rebase, and the deletion of the branch it sat on. A relationship is two refs evaluated at a moment: *unpushed*, *unmerged*, *no PR open*, *8 commits ahead*, *uncommitted*. Each is true only until something moves, and each is falsified by a different event, which the phrase gives no hint of — so nobody knows what to re-check or when. Write the identity down; leave the relationship to be derived (§5).
 
 **So a DONE row names the commit that holds it.** DONE is a relationship, and it survives this vocabulary because the hash and the date turn it into an identity: `A @ 3ce4b8f2b3` says what landed and when, and lets a reader derive the part they actually need at the moment they need it — `git merge-base --is-ancestor 3ce4b8f2b3 production`, which exits non-zero for *no*. The branch name stays in the cell as the readable locator; the hash is the half that still resolves without it. What the row itself claims stays narrow: a fact about that commit, and about nothing downstream of it until the branch merges.
 
@@ -119,7 +119,13 @@ Four things strand a cold session, and none of them is a step status — which i
 - **A decision taken, and what was rejected with it.** A session that does not know an option was considered and dropped will re-argue it or quietly undo it. Record the choice and the reason once.
 - **Environment state.** The branch, the worktree, a seeded fixture, a temp directory, a service left running, a checkout that is not where someone would assume. None of it is in the repo, and all of it goes with the session. Where the next command will *change* some of it — an experiment that swaps a live config file — record the backup path and the restore line the run prints, because `git checkout` recovers none of it.
 - **What was deliberately deferred, and what would un-defer it.** Otherwise it reads as an oversight — or as done.
-- **Uncommitted state.** What is in the working tree and why it has not been committed.
+- **Uncommitted state — the *why*, not the *what*.** `git status --porcelain` answers what is in
+  the tree; nothing answers why it has not been committed, or what a run has already changed
+  outside git. Record those two. *Uncommitted* is itself a relationship (§3), so a status cell
+  reading **In progress — uncommitted** is falsified by the very next commit — and it decays in
+  several places at once, because uncommitted work gets described in the amendment, in the status
+  table, and in the section that owns it. One resume swept six such lines out of three sections of
+  a single plan before it could commit anything.
 
 The incident: two of these sit in one spec. A `settings.json` was copied aside before a hook probe registered anything, and a firing probe copies each of three arm variants over the user's global `CLAUDE.md` and puts it back in a `finally`. Neither is recoverable with `git checkout`, and a run that dies before its restore leaves the state changed and the ledger still describing the old one — so the ledger carries the backup path and names the line the run prints when the restore succeeds.
 
