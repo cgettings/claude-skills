@@ -34,7 +34,7 @@ report rather than a decision about what outlives the work; and an edit already 
    rules, memory for incidents and methods, nowhere for most of them.
 5. **Verify each claim** before it becomes durable, especially forward-looking ones.
 6. **Propose the exact wording as a diff**, with each CLAUDE.md addition's measured size against
-   the section it joins.
+   the section it joins, and the evidence file its incident moves to — or why it has none.
 
 ## Install
 
