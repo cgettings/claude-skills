@@ -53,8 +53,8 @@ and an untested table is a table every future pass will file against by feel.
 
 **Status as of 2026-09-01.** Tasks 1 and 2 are done and Task 1's **premise held**: `paths:` is
 honoured at user scope, so §4's global routing lane is real rather than assumed. §1's *method* stands,
-but its **numbers are a 2026-08-25 baseline, not current** — the live global `CLAUDE.md` has since
-grown from 49,553 B to **62,370 B**, and nothing has re-measured its token share. Task 3's split was
+but its **numbers are a 2026-08-25 baseline, not current** — the live global `CLAUDE.md` had grown
+from 49,553 B to **62,370 B** by 2026-09-01 and stood at **75,771 B** on 2026-09-26, and nothing has re-measured its token share. Task 3's split was
 **re-cut a third time on 2026-09-01** against a section that had drifted to 14,749 B and still proved
 lossless — 22 bullets, 14,749 -> 10,365 B (-29.7% after Task 12's written paths), 19 lesson files —
 and it is **APPLIED to the live file as of 2026-09-01**, taking the global `CLAUDE.md` from 64,019
@@ -118,8 +118,8 @@ nor the repo's `.claude/rules/` exists again, so nothing extra loads into any se
 `ls ~/.claude/rules/` (expect "No such file or directory").
 
 **A second piece of live environment state, added 2026-08-25 by Task 3.** `~/.claude/lessons/`
-now exists and holds **19 files / 27,534 B** — the evidence moved out of the pilot section, each
-containing its original bullet verbatim. Nothing loads them; they are read only when a rule's
+now exists; it held **19 files / 27,534 B** at the pilot — the evidence moved out of the pilot section, each
+containing its original bullet verbatim — and **39 files / 52,552 B** on 2026-09-26, after `9bd92bb` and `70ea1ca` in the `~/.claude` repo. Nothing loads them; they are read only when a rule's
 pointer is followed. **The split was applied to the live file on 2026-09-01**; before that date the live section held the full
 text, not the split text, because the firing test that would license applying it has not returned a
 usable answer. `~/.claude/CLAUDE.md` is no longer untouched, though: on 2026-09-01 the parked
@@ -130,11 +130,11 @@ file and restores it afterwards: the guard command returns 14,749 while the sect
 19 pointers to written paths: +323 B]`.
 
 **The split is APPLIED as of 2026-09-01, so that guard now reads 10,365 and the state it reports has
-flipped.** The live global file is **59,635 B**, down from 64,019. `scripts/measure-rule-firing.py`
+flipped.** The live global file was **59,635 B** at the split, down from 64,019 (75,771 B on 2026-09-26; see the Task 5 row). `scripts/measure-rule-firing.py`
 refuses to run unless it finds the *unsplit* section and will therefore no longer start — that is
 correct and costs nothing, since step 5 is closed and no further run is commissioned. To revert the
 split, `git -C ~/.claude revert` the commit that applied it; the lessons directory is unaffected
-either way, and `rm -rf ~/.claude/lessons/` would now break 19 live pointers rather than tidying up
+either way, and `rm -rf ~/.claude/lessons/` would now break 39 live pointers (2026-09-26) rather than tidying up
 an unused directory.
 
 **One thing owed, and it is not a step in this document.** The `keep-ledger` 1.3.1 release that
@@ -142,6 +142,7 @@ this work's lessons pass produced is **settled**: `efd2637` merged to `main` as 
 2026-08-26 `[verified 2026-08-28: git merge-base --is-ancestor efd2637 origin/main, exit 0]`.
 Nothing here depends on it and it needs no further action.
 
+**Run 2026-09-26, scoped to the sizes and counts this plan moves:** the memory store and `README.md` hold no copy of them except `eval-suites-have-no-behavioural-runner`, corrected that day; the paragraph below is the 2026-09-01 state.
 Still owed: a `reconcile-records` sweep of this project's memory store and `README.md`,
 **deferred until step 5 lands**, because that run moves the same numbers again — one of the four
 memory files was spot-checked (`eval-suites-have-no-behavioural-runner`, current) and the other
@@ -2313,7 +2314,7 @@ before committing; chain it with `;`, since a mismatch is its informative non-ze
 #### Result, 2026-09-01 — done, with the log moved out of `lessons/`
 
 **`misses.md` is at `~/.claude/misses.md`, not `~/.claude/lessons/misses.md` as specified above.**
-`verify-split.py` check [5] holds that directory 1:1 with pointers, so a log file there is an
+`verify-split.py` check [5] holds that directory 1:1 with pointers `[true while every evidence file came from the pilot; since 2026-09-11 check [5] counts only the fixture's pointers and reads red on the rest — see the Task 5 row]`, so a log file there is an
 **orphan**: the run would go red and report *"lesson files nothing points at: ['misses']"*, which
 reads as the split having lost a pointer rather than as a file having been added. Trading that
 invariant — the one that makes the single-file model reconstitutable — for a tidier path is a bad

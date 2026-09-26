@@ -40,4 +40,6 @@ incidents and methods live in this project's memory store.
 - **The Skill tool serves the installed plugin, not this working tree.** To exercise an unmerged
   skill, compare `ls ~/.claude/plugins/cache/<marketplace>/<plugin>/` against the branch's
   `version:`, and if they differ, read the branch's `SKILL.md` and follow that. A run through the
-  Skill tool tests the installed version and reports on the branch.
+  Skill tool tests the installed version and reports on the branch `[verified 2026-09-26:
+  reconcile-records loaded from the plugin cache at 1.5.0 while this repo held 1.6.0; the served
+  text lacked 1.6.0's run-start banner]`.
