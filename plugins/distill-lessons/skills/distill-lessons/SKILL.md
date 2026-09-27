@@ -1,7 +1,7 @@
 ---
 name: distill-lessons
 description: Review a finished stretch of work for durable lessons and write each one to the right place — CLAUDE.md for standing instructions, memory for incidents, nowhere for the rest. Use this whenever a branch, plan, multi-stage task, or long debugging session wraps up; when context is about to be lost to a compaction or session reset; and whenever the user asks "any lessons?", "anything for CLAUDE.md?", "what did we learn?", "anything worth remembering?", "let's debrief", or otherwise asks what should be carried forward from the work. Also use it proactively at the end of substantial work even if the user doesn't ask — lessons left in a plan doc or scratch ledger are read by nobody. Two things this is NOT for — summarizing or recapping what happened, which is a report on the work rather than a decision about what outlives it; and edits already decided on, since "add X to CLAUDE.md" or "remember that I prefer Y" is a direct request to just do it. This pass is for deciding *what* is worth recording.
-version: 3.1.0
+version: 3.2.0
 license: GPL-3.0-or-later
 ---
 
@@ -177,6 +177,8 @@ Two guards, and they bind as hard as the test itself:
 - **Vivid phrasing that compresses something true nearby is kept, not trimmed.** "A test whose pass and fail states are indistinguishable is worse than no test" is doing work, and the incident sits in the next sentence. Trimming it to "unclear test outcomes are a problem" loses the trigger and gains nothing. This is a calibration, never a ban on writing well.
 
 **For every CLAUDE.md addition, give its size against the section it joins** — words added, section length, the ratio. Measure it; don't estimate it. Do this in the proposal rather than after, because bloat is nearly invisible in a diff read line by line and obvious the moment it's a ratio. A large ratio is a prompt to tighten the wording or move the evidence out, and the user's call either way — it never re-routes the entry on its own, per step 4.
+
+**Beside the size, give every always-loaded addition an evidence line** — the evidence file it points to, with its own diff, or `evidence: none` and why. This is step 4's split made visible. A split performed only in your head leaves nothing in the proposal to review, and what it falls back to is the incident written inline, in whatever `[date: what happened]` form the file already uses. A bare date may stay on the loaded line as provenance; the narrative after it — what happened, the numbers, what it cost — is evidence and moves. A narrowing repair after a miss is an addition too: the missing recognition term goes on the line, and the incident that exposed the gap goes to the evidence file. `none` is right when every specific is a recognition one, and when one could be either it stays, per step 4. It is not right because no evidence file exists yet — create one. `[2026-09-26: in the month after a section was split, 19 of 29 passes never named an evidence destination. The one read in full reported a size for every entry and put every incident inline.]`
 
 Then ask which to apply. Two reasons this matters: they know things you don't about what's already tribal knowledge, and a project CLAUDE.md is usually shared with a team, so it's their call what lands in it.
 
